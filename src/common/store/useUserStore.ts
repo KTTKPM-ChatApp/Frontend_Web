@@ -55,7 +55,7 @@ export const useUserStore = create<UseUserStoreProps>()((set) => ({
 
     set({
       editProfileData: {
-        fullName: user?.fullName ?? "",
+        displayName: user?.displayName ?? "",
         bio: user?.bio ?? "",
         gender: user?.gender ?? "",
         dateOfBirth: user?.dateOfBirth ?? "",

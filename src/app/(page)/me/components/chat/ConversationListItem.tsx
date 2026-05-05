@@ -133,8 +133,8 @@ function ConversationListItem({
     : null;
 
   const displayName = isGroup
-    ? item.name
-    : otherMember?.nickname || otherMember?.fullName || item.name;
+    ? item.title
+    : otherMember?.nickname || otherMember?.fullName || item.title;
 
   const displaySrc = isGroup
     ? buildS3Url(item.avatarUrl)
@@ -158,7 +158,7 @@ function ConversationListItem({
           <Content>
             <Row>
               <NameWrap>
-                <Name>{item.name}</Name>
+                <Name>{item.title}</Name>
 
               </NameWrap>
 

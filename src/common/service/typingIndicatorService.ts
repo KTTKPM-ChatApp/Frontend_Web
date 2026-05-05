@@ -1,4 +1,4 @@
-import { Socket } from "socket.io-client";
+import { getSocket, sendSocketMessage } from "../socket/socket";
 import {
   ChatTypingEmitPayload,
   ChatTypingUpdatePayload,
@@ -59,7 +59,7 @@ export const createTypingIndicatorService = ({
     }
 
     lastEmittedAt.set(payload.conversation_id, now);
-    socket.emit("chat:typing", payload);
+    sendSocketMessage("/app/chat/typing", payload);
     return true;
   };
 
@@ -70,9 +70,10 @@ export const createTypingIndicatorService = ({
       handler(payload);
     };
     
-    socket.on("chat:typing:update", handleTypingUpdate);
+    // STOMP client doesn't have .on() method - handled via window events
     return () => {
-      socket.off("chat:typing:update", handleTypingUpdate);
+      // STOMP client doesn't have .off() method
+      // Cleanup handled by component unmount
     };
   };
 

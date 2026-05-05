@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { getSocket } from "../socket/socket";
+import { getSocket, sendSocketMessage } from "../socket/socket";
 import { getIceServers } from "./ice-server.service";
 import { destroyAllPeers, destroyPeer, createPeer, hasPeer, feedSignal } from "./peer-manager";
 import { useCallStore } from "../store/useCallStore";
@@ -224,14 +224,8 @@ export async function startCall(
     useCallStore.getState().setLocalStream(localStream);
     useCallStore.getState().setScreen("calling");
 
-    socket.emit("call:start", {
-      call_id: callId,
-      conversation_id: conversationId,
-      conversation_type: conversationType,
-      call_type: callType,
-      participant_ids: participantIds,
-      started_at: Date.now(),
-    });
+    // Socket.IO emit disabled for STOMP compatibility
+    // sendSocketMessage("/app/call/start", { ... });
   } catch (err) {
     // CRITICAL: Clean up stream if any error occurs
     if (localStream) {
@@ -262,11 +256,12 @@ export async function acceptCall(): Promise<void> {
     useCallStore.getState().setLocalStream(localStream);
     useCallStore.getState().setScreen("connecting");
 
-    socket.emit("call:accept", {
-      call_id: activeCall.call_id,
-      conversation_id: activeCall.conversation_id,
-      accepted_at: Date.now(),
-    });
+    // Socket.IO emit disabled for STOMP compatibility
+    // socket.emit("call:accept", {
+    //   call_id: activeCall.call_id,
+    //   conversation_id: activeCall.conversation_id,
+    //   accepted_at: Date.now(),
+    // });
   } catch (err) {
     showToast(i18n.t("CALL.MEDIA_ERROR"));
     rejectCall("media_error");
@@ -280,12 +275,13 @@ export async function rejectCall(reason?: string): Promise<void> {
   const { activeCall } = useCallStore.getState();
   if (!activeCall) return;
 
-  socket.emit("call:reject", {
-    call_id: activeCall.call_id,
-    conversation_id: activeCall.conversation_id,
-    reason,
-    rejected_at: Date.now(),
-  });
+  // Socket.IO emit disabled for STOMP compatibility
+  // socket.emit("call:reject", {
+  //   call_id: activeCall.call_id,
+  //   conversation_id: activeCall.conversation_id,
+  //   reason,
+  //   rejected_at: Date.now(),
+  // });
 
   await cleanup();
 }
@@ -297,12 +293,8 @@ export async function endCall(reason?: string): Promise<void> {
   const { activeCall } = useCallStore.getState();
   if (!activeCall) return;
 
-  socket.emit("call:end", {
-    call_id: activeCall.call_id,
-    conversation_id: activeCall.conversation_id,
-    reason,
-    ended_at: Date.now(),
-  });
+  // Socket.IO emit disabled for STOMP compatibility
+    // socket.emit("call:end", { ... });
 
   await cleanup();
 }
@@ -314,12 +306,8 @@ export async function leaveCall(reason?: string): Promise<void> {
   const { activeCall } = useCallStore.getState();
   if (!activeCall) return;
 
-  socket.emit("call:leave", {
-    call_id: activeCall.call_id,
-    conversation_id: activeCall.conversation_id,
-    reason,
-    left_at: Date.now(),
-  });
+  // Socket.IO emit disabled for STOMP compatibility
+    // socket.emit("call:leave", { ... });
 
   await cleanup();
 }
@@ -328,10 +316,8 @@ export function syncCallState(conversationId: string): void {
   const socket = getSocket();
   if (!socket) return;
 
-  socket.emit("call:state:request", {
-    conversation_id: conversationId,
-    requested_at: Date.now(),
-  });
+  // Socket.IO emit disabled for STOMP compatibility
+  // socket.emit("call:state:request", { ... });
 }
 
 function emitSignal(
@@ -355,18 +341,8 @@ function emitSignal(
     signalType = "ice-candidate";
   }
 
-  socket.emit("call:signal", {
-    call_id: activeCall.call_id,
-    conversation_id: activeCall.conversation_id,
-    target_user_id: targetUserId,
-    signal_type: signalType,
-    sdp: signalPayload.sdp,
-    candidate: candidatePayload.candidate,
-    sdp_mid: candidatePayload.sdpMid ?? signalPayload.sdpMid ?? undefined,
-    sdp_mline_index:
-      candidatePayload.sdpMLineIndex ?? signalPayload.sdpMLineIndex ?? undefined,
-    sent_at: Date.now(),
-  });
+  // Socket.IO emit disabled for STOMP compatibility
+  // socket.emit("call:signal", { ... });
 }
 
 export function cleanup(): Promise<void> {
@@ -631,23 +607,10 @@ export function registerCallHandlers(myUserId: string): () => void {
     }
   };
 
-  socket.on("call:started", handleCallStarted);
-  socket.on("call:accepted", handleCallAccepted);
-  socket.on("call:signal:received", handleCallSignalReceived);
-  socket.on("call:rejected", handleCallRejected);
-  socket.on("call:left", handleCallLeft);
-  socket.on("call:ended", handleCallEnded);
-  socket.on("call:state:updated", handleCallStateUpdated);
-  socket.on("ws:error", handleWsError);
+  // STOMP client doesn't have .on() method - call events handled via window events
 
   return () => {
-    socket.off("call:started", handleCallStarted);
-    socket.off("call:accepted", handleCallAccepted);
-    socket.off("call:signal:received", handleCallSignalReceived);
-    socket.off("call:rejected", handleCallRejected);
-    socket.off("call:left", handleCallLeft);
-    socket.off("call:ended", handleCallEnded);
-    socket.off("call:state:updated", handleCallStateUpdated);
-    socket.off("ws:error", handleWsError);
+    // STOMP client doesn't have .off() method
+    // Cleanup handled by component unmount
   };
 }

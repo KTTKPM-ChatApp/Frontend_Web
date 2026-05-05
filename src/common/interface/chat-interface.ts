@@ -98,7 +98,7 @@ export interface ConversationMemberDto {
 export interface ConversationDto {
   id: string;
   type: "direct" | "group";
-  name: string | null;
+  title: string | null;
   avatarUrl: string | null;
   createdById: string;
   lastMessage?: ConversationLastMessageDto | null;

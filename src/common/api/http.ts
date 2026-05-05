@@ -56,6 +56,14 @@ const buildBodyAndHeaders = (options?: CustomOptions) => {
   const headers: Record<string, string> =
     body instanceof FormData ? {} : { "Content-Type": "application/json" };
 
+  // Add authentication token if available
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
   return { body, headers };
 };
 
@@ -77,8 +85,7 @@ export const request = async <T = any>(
 ): Promise<IHttpresponse<T>> => {
   const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  console.log(`[HTTP] ${method} ${url}`, { body: options?.body });
-
+  
   if (!baseUrl) {
     console.error('[HTTP] Missing baseUrl');
     return {
@@ -91,35 +98,29 @@ export const request = async <T = any>(
   const apiPath = normalizeApiPath(baseUrl, url);
   const fullUrl = joinUrl(baseUrl, apiPath);
 
-  console.log(`[HTTP] Full URL: ${fullUrl}`);
-
-  const { body, headers } = buildBodyAndHeaders(options);
+  const { headers } = buildBodyAndHeaders(options);
   const optionHeaders = toHeaderRecord(options?.headers);
 
   try {
-    console.log(`[HTTP] Sending request...`);
-    
-    // Add timeout for the request
+    // Add timeout for request
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.error(`[HTTP] Request timeout after 10s: ${method} ${url}`);
       controller.abort();
     }, 10000);
-    
+
     const res = await fetch(fullUrl, {
       ...options,
-      method,
-      headers: { ...headers, ...optionHeaders },
-      body,
+      headers: {
+        ...headers,
+        ...optionHeaders,
+      },
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
 
-    console.log(`[HTTP] Response status: ${res.status}`);
-
     const payload = await getResponsePayload(res);
-    console.log(`[HTTP] Response payload:`, payload);
 
     if (res.ok) {
       return { statusCode: res.status, ok: true, payload: payload as T };

@@ -336,8 +336,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const res = await chatService.fetchListConversations(params);
 
       set({
-        listConversation: sortConversations(res?.payload?.data ?? []),
-        conversationMeta: res?.payload?.meta ?? null,
+        listConversation: sortConversations((res?.payload as any)?.data ?? []),
+        conversationMeta: (res?.payload as any)?.meta ?? null,
         conversationFetched: true,
       });
     } catch (error: any) {

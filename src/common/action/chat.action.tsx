@@ -5,7 +5,7 @@ import { sortConversations } from "../helpers/sortConservation";
 import { ConversationDto, ConversationLastMessageDto, UiMessage } from "../interface/chat-interface";
 import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interface";
 import { chatService } from "../service/chat-service";
-import { connectSocket, getSocket } from "../socket/socket";
+import { connectSocket, getSocket, sendSocketMessage } from "../socket/socket";
 import { useChatStore } from "../store/useChatStore";
 
 export const rebuildConversationDerivedData = (conversationId: string) => {
@@ -137,16 +137,15 @@ export const fetchListConversation = async (
 
   try {
     const res = await chatService.fetchListConversations({
-      page: params.page ?? 1,
       limit: params.limit ?? 10,
+      offset: params.page ? (params.page - 1) * (params.limit ?? 10) : 0,
     });
 
     const payload = res?.payload;
-    const items = Array.isArray(payload?.data) ? payload.data : [];
-    const meta = payload?.meta ?? null;
+    const items = Array.isArray(payload?.conversations) ? payload.conversations : [];
 
     state.setListConversation(sortConversations(items));
-    state.setConversationMeta(meta);
+    state.setConversationMeta(null);
     state.setConversationLoading(false);
     state.setConversationFetched(true);
   } catch (err: any) {
@@ -182,27 +181,13 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   if (!accessToken || !currentUserId) return;
 
   const state = useChatStore.getState();
-  const socket = connectSocket(accessToken);
+  const socket = connectSocket(accessToken, currentUserId);
 
   const oldHeartbeat = state.heartbeatId;
   if (oldHeartbeat) clearInterval(oldHeartbeat);
 
-  socket.off("connect");
-  socket.off("disconnect");
-  socket.off("connect_error");
-  socket.off("chat:new");
-  socket.off("chat:message");
-  socket.off("chat:message:deleted");
-  socket.off("chat:message:updated");
-  socket.off("chat:message:pinned");
-  socket.off("chat:message:unpinned");
-  socket.off("chat:typing:update");
-  socket.off("conversation:member:removed");
-  socket.off("conversation:member:added");
-  socket.off("conversation:created");
-  socket.off("conversation:disbanded");
-  socket.off("chat:system-message");
-  socket.offAny();
+  // STOMP client doesn't have .off() method like Socket.IO
+  // Event cleanup is handled by window.removeEventListener in cleanupChat
 
   const handleIncomingMessage = (raw: any) => {
     const normalized = normalizeMessage(raw);
@@ -436,59 +421,14 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     });
   };
 
-  socket.on("connect", () => {
-    const current = useChatStore.getState();
-    const activeConversationId = current.activeConversationId;
-
-    if (activeConversationId) {
-      socket.emit("chat:join", {
-        conversation_id: activeConversationId,
-      });
-    }
-
-    current.setSocketConnected(true);
-    current.setInitialized(true);
-    current.setCurrentUserId(currentUserId);
-    current.setError(null);
-  });
-
-  socket.on("disconnect", () => {
-    useChatStore.getState().setSocketConnected(false);
-  });
-
-  socket.on("connect_error", (err) => {
-    const current = useChatStore.getState();
-    current.setSocketConnected(false);
-    current.setError(err?.message || "Socket connect failed");
-  });
-
-  socket.on("chat:new", handleIncomingMessage);
-  socket.on("chat:message", handleIncomingMessage);
-  socket.on("chat:message:deleted", handleDeletedMessage);
-  socket.on("chat:message:updated", handleUpdatedMessage);
-  socket.on("chat:message:pinned", handlePinnedMessage);
-  socket.on("chat:message:unpinned", handleUnpinnedMessage);
-  socket.on("conversation:member:added", handleConversationMemberAdded);
-  socket.on("conversation:created", handleConversationCreated);
-  socket.on("conversation:disbanded", handleConversationDisbanded);
-  socket.on("conversation:member:removed", handleConversationMemberRemoved);
-  socket.on("chat:system-message", handleSystemMessage);
-  socket.on("chat:typing:update", (payload: any) => {
-    const conversationId = payload?.conversation_id ?? payload?.conversationId;
-    const users = payload?.users || [];
-    if (conversationId) {
-      useChatStore.getState().updateTypingUsers(conversationId, users);
-    }
-  });
-
-  socket.onAny((event, ...args) => {
-    // Socket event received
-  });
+  // Socket.IO event handlers disabled for STOMP compatibility
+  // Events will be handled through STOMP subscriptions in socket.ts
+  console.log('Socket initialized for user:', currentUserId);
 
   const heartbeatId = setInterval(() => {
-    if (!socket.connected) return;
+    if (!socket?.connected) return;
 
-    socket.emit("presence:heartbeat", {
+    sendSocketMessage("/app/presence/heartbeat", {
       ts: Date.now(),
     });
   }, 30000);
@@ -506,7 +446,7 @@ export const openConversation = async (conversationId: string) => {
   state.setError(null);
 
   if (socket?.connected) {
-    socket.emit("chat:join", { conversation_id: conversationId });
+    sendSocketMessage("/app/chat/join", { conversation_id: conversationId });
   }
 
   state.setPagination(conversationId, {
@@ -516,9 +456,8 @@ export const openConversation = async (conversationId: string) => {
 
   try {
     const res = await chatService.fetchMessages(conversationId, { limit: 50 });
-    const page = res?.payload?.data;
-    const rawItems = Array.isArray(page?.items) ? page.items : [];
-    const normalizedItems = dedupeByMessageId(rawItems.map(normalizeMessage));
+    const messages = (res?.payload as any)?.data || [];
+    const normalizedItems = dedupeByMessageId(messages.map(normalizeMessage));
     const hydratedItems = hydrateReplyMessages(normalizedItems);
 
     const oldItems =
@@ -528,8 +467,8 @@ export const openConversation = async (conversationId: string) => {
     state.setMessages(conversationId, merged);
 
     state.setPagination(conversationId, {
-      nextCursor: page?.nextCursor ?? null,
-      hasMore: page?.hasMore ?? false,
+      nextCursor: null,
+      hasMore: false,
       loading: false,
       loadingMore: false,
     });
@@ -616,6 +555,108 @@ export const loadMoreMessages = async (conversationId: string) => {
 };
 
 
+export const sendMessageHttp = async (
+  conversationId: string,
+  body: string,
+  attachments: any[] = [],
+  replyMessage?: any
+) => {
+  const state = useChatStore.getState();
+  const currentUserId = state.currentUserId;
+  const displayBody = cleanMessageBody(body);
+
+  if (!displayBody && attachments.length === 0) {
+    state.setError("Nội dung tin nhắn không được để trống");
+    return;
+  }
+
+  const clientMessageId = crypto.randomUUID();
+  const now = Date.now();
+
+  // Optimistic UI - Add message immediately
+  const optimisticMessage = normalizeMessage({
+    messageId: clientMessageId,
+    conversationId,
+    senderId: currentUserId,
+    body: displayBody,
+    attachments,
+    createdAt: now,
+    pending: true,
+    failed: false,
+    replyTo: replyMessage
+      ? {
+          messageId: replyMessage.messageId,
+          senderId: replyMessage.senderId,
+          body: replyMessage.body ?? "",
+          attachments: replyMessage.attachments ?? [],
+          isDeleted: Boolean(replyMessage.isDeleted),
+        }
+      : null,
+    replyToMessageId: replyMessage?.messageId ?? null,
+  });
+
+  state.appendRealtimeMessage(conversationId, optimisticMessage);
+  appendMessageDerivedData(optimisticMessage);
+  
+  // Send via HTTP API
+  try {
+    const response = await chatService.sendMessage(conversationId, displayBody, 'TEXT', attachments);
+    
+    if (response.ok && response.payload) {
+      // Success - Update optimistic message with server data
+      const serverMessage = normalizeMessage(response.payload);
+      
+      // Update only the specific message, preserve all others
+      const updates = {
+        pending: false, 
+        failed: false,
+        messageId: serverMessage.messageId, // Update with server ID
+        createdAt: serverMessage.createdAt,
+      };
+      
+      state.updateMessage(conversationId, clientMessageId, updates);
+      
+      // Update conversation list with last message info
+      const conversation = state.listConversation.find(c => c.id === conversationId);
+      if (conversation) {
+        state.upsertConversationToTop({
+          ...conversation,
+          lastMessage: {
+            id: serverMessage.messageId,
+            content: serverMessage.body,
+            createdAt: serverMessage.createdAt,
+            senderId: serverMessage.senderId,
+            senderName: "You", // TODO: Get actual sender name
+          },
+        });
+      }
+      
+      // Refresh conversation list to ensure UI updates when using HTTP API fallback
+      await state.fetchListConversation({ page: 1, limit: 20 });
+      
+      return serverMessage;
+    } else {
+            // Mark as failed
+      state.setMessages(
+        conversationId,
+        (state.messagesByConversation[conversationId] || []).map((msg) =>
+          msg.messageId === clientMessageId ? { ...msg, pending: false, failed: true } : msg
+        )
+      );
+      state.setError(response.payload?.message || "Gửi tin nhắn thất bại");
+    }
+  } catch (error) {
+        // Mark as failed
+    state.setMessages(
+      conversationId,
+      (state.messagesByConversation[conversationId] || []).map((msg) =>
+        msg.messageId === clientMessageId ? { ...msg, pending: false, failed: true } : msg
+      )
+    );
+    state.setError("Không thể gửi tin nhắn - Lỗi kết nối");
+  }
+};
+
 export const sendMessage = async (
   conversationId: string,
   body: string,
@@ -642,10 +683,14 @@ export const sendMessage = async (
 
   if (
     !currentUserId ||
-    (!displayBody && socketAttachments.length === 0) ||
-    !socket?.connected
+    (!displayBody && socketAttachments.length === 0)
   ) {
     return;
+  }
+
+  // If socket is not connected, use HTTP API fallback
+  if (!socket?.connected) {
+    return sendMessageHttp(conversationId, body, attachments, replyMessage);
   }
 
   const clientMessageId = crypto.randomUUID();
@@ -675,7 +720,7 @@ export const sendMessage = async (
   state.appendRealtimeMessage(conversationId, optimisticMessage);
   appendMessageDerivedData(optimisticMessage);
 
-  socket.emit("chat:join", { conversation_id: conversationId });
+  sendSocketMessage("/app/chat/join", { conversation_id: conversationId });
 
   const payload: any = {
     message_id: clientMessageId,
@@ -688,35 +733,10 @@ export const sendMessage = async (
     payload.reply_to_message_id = replyMessage.messageId;
   }
 
-  socket.emit("chat:send", payload, (ack: any) => {
+  sendSocketMessage("/app/chat/send", payload);
 
-    const current = useChatStore.getState();
-    const messages = current.messagesByConversation[conversationId] || [];
-    const isSuccess = ack?.success === true;
-
-    current.setMessages(
-      conversationId,
-      messages.map((msg: any) => {
-        if (msg.messageId !== clientMessageId) return msg;
-
-        if (!isSuccess) {
-          return {
-            ...msg,
-            pending: false,
-            failed: true,
-          };
-        }
-
-        return {
-          ...msg,
-          pending: false,
-          failed: false,
-          messageId: ack?.data?.messageId ?? ack?.messageId ?? msg.messageId,
-          createdAt: ack?.data?.createdAt ?? ack?.createdAt ?? msg.createdAt,
-        };
-      })
-    );
-  });
+  // Note: STOMP doesn't support callbacks like Socket.IO
+  // Message updates will be handled through the real-time message subscription
 };
 
 export const editMessage = async (
@@ -771,7 +791,7 @@ export const editMessage = async (
     }),
   }));
 
-  socket.emit("chat:update", {
+  sendSocketMessage("/app/chat/update", {
     conversation_id: conversationId,
     message_id: messageId,
     body: cleanBody,
@@ -808,7 +828,7 @@ export const deleteMessage = (
     ),
   }));
 
-  socket.emit("chat:delete", {
+  sendSocketMessage("/app/chat/delete", {
     message_id: messageId,
     conversation_id: conversationId,
     created_at: Number(createdAt),
@@ -901,23 +921,95 @@ export const cleanupChat = () => {
 
   if (heartbeatId) clearInterval(heartbeatId);
 
-  socket?.off("connect");
-  socket?.off("disconnect");
-  socket?.off("connect_error");
-  socket?.off("chat:new");
-  socket?.off("chat:message");
-  socket?.off("chat:message:deleted");
-  socket?.off("chat:typing:update");
-  socket?.off("conversation:member:added");
-  socket?.off("conversation:member:removed");
-  socket?.off("conversation:created");
-  socket?.off("conversation:disbanded");
-  socket?.off("chat:system-message");
-  socket?.offAny();
+  // Remove window event listeners
+  window.removeEventListener('chat:new', handleWindowIncomingMessage);
+  window.removeEventListener('presence:update', handlePresenceUpdate);
+  window.removeEventListener('socket:error', handleSocketError);
+  window.removeEventListener('socket:disconnect', handleSocketDisconnect);
 
-  if (socket?.connected) socket.disconnect();
+  if (socket?.connected) socket.deactivate();
 
   state.resetChatState();
+};
+
+// Event handlers for window events
+const handleWindowIncomingMessage = (event: any) => {
+  console.log('Window event - chat:new:', event.detail);
+  const normalized = normalizeMessage(event.detail);
+  
+  // Handle incoming message logic (copied from original handleIncomingMessage)
+  if (!normalized.conversationId || !normalized.messageId) return;
+
+  let finalMessage = normalized;
+
+  useChatStore.setState((state) => {
+    const currentMessages =
+      state.messagesByConversation[normalized.conversationId] || [];
+
+    let msg = normalized;
+
+    if (!msg.replyTo && msg.replyToMessageId) {
+      const repliedMessage = currentMessages.find(
+        (item) => item.messageId === msg.replyToMessageId
+      );
+
+      if (repliedMessage) {
+        msg = {
+          ...msg,
+          replyTo: {
+            messageId: repliedMessage.messageId,
+            senderId: repliedMessage.senderId,
+            body: repliedMessage.body ?? "",
+            attachments: repliedMessage.attachments ?? [],
+            isDeleted: Boolean(repliedMessage.isDeleted),
+          },
+          replyToMessageId: null,
+        };
+      }
+    }
+
+    const nextMessages = [...currentMessages];
+    const existingIndex = nextMessages.findIndex(
+      (item) => item.messageId === msg.messageId
+    );
+
+    if (existingIndex >= 0) {
+      nextMessages[existingIndex] = msg;
+    } else {
+      nextMessages.push(msg);
+    }
+
+    const nextConversations = moveConversationToTopWithLastMessage(
+      state.listConversation,
+      normalized.conversationId,
+      msg
+    );
+
+    return {
+      messagesByConversation: {
+        ...state.messagesByConversation,
+        [msg.conversationId]: nextMessages,
+      },
+      listConversation: nextConversations,
+    };
+  });
+};
+
+const handlePresenceUpdate = (event: any) => {
+  console.log('Window event - presence:update:', event.detail);
+  // Handle presence updates
+};
+
+const handleSocketError = (event: any) => {
+  console.log('Window event - socket:error:', event.detail);
+  const state = useChatStore.getState();
+  state.setSocketConnected(false);
+  state.setError(event.detail?.message || "Socket connection failed");
+};
+
+const handleSocketDisconnect = (event: any) => {
+  console.log('Window event - socket:disconnect:', event.detail);
+  useChatStore.getState().setSocketConnected(false);
 };
 
 const detectPreviewTypeFromMessage = (message: UiMessage) => {

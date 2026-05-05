@@ -17,24 +17,25 @@ export function handleCallReconnect(): void {
     reconnectTimeout = null;
   }
 
+  // STOMP client doesn't have .on() method - call reconnect disabled
   // When socket reconnects, sync call state for active conversations
-  socket.on("connect", () => {
-    syncCallStates();
-  });
+  // socket.on("connect", () => {
+  //   syncCallStates();
+  // });
 
   // Handle extended disconnection during active call
-  socket.on("disconnect", (reason) => {
-    const { activeCall, screen } = useCallStore.getState();
-    
-    if (activeCall && (screen === "active" || screen === "connecting")) {
-      // If disconnected for more than 30s during active call, end via HTTP
-      reconnectTimeout = setTimeout(() => {
-        if (!socket.connected) {
-          endCallViaHttp(activeCall.call_id, activeCall.conversation_id);
-        }
-      }, 30000);
-    }
-  });
+  // socket.on("disconnect", (reason) => {
+  //   const { activeCall, screen } = useCallStore.getState();
+  //   
+  //   if (activeCall && (screen === "active" || screen === "connecting")) {
+  //     // If disconnected for more than 30s during active call, end via HTTP
+  //     reconnectTimeout = setTimeout(() => {
+  //       if (!socket.connected) {
+  //         endCallViaHttp(activeCall.call_id, activeCall.conversation_id);
+  //       }
+  //     }, 30000);
+  //   }
+  // });
 }
 
 /**

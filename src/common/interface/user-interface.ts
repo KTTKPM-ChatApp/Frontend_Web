@@ -1,13 +1,13 @@
 import { Gender } from "./auth-interface";
 
 export interface IEditProfileForm {
-    fullName: string;
+    displayName: string;
     bio: string;
     gender: Gender | string;
     dateOfBirth: string;
     phone: string; // chỉ xem
 }export interface IUpdateMyProfilePayload {
-    fullName?: string;
+    displayName?: string;
     bio?: string | null;
     avatarUrl?: string | null;
     dateOfBirth?: string | null;

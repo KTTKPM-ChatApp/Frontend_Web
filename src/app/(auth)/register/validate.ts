@@ -12,11 +12,11 @@ export const initialValues = {
 
 export const validationSchemaRegisForm = (Trans: (key: string) => string) =>
     yup.object({
-        // email: yup
-        //     .string()
-        //     .trim()
-        //     .email(Trans("REGIS.EMAIL_INVALID"))
-        //     .required(Trans("REGIS.EMAIL_REQUIRED")),
+        email: yup
+            .string()
+            .trim()
+            .email(Trans("REGIS.EMAIL_INVALID"))
+            .required(Trans("REGIS.EMAIL_REQUIRED")),
 
         password: yup
             .string()

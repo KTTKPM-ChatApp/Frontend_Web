@@ -12,7 +12,7 @@ import { ChatAttachmentPayload } from "@/src/common/interface/media-interface";
 import { getCurrentUserId } from "@/src/common/utilities/utils";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
-import { uploadManyChatMedia } from "@/src/common/service/chat-media-service";
+import { uploadManyMedia } from "@/src/common/service/media-service";
 import { UiMessage } from "@/src/common/interface/chat-interface";
 import { useTypingIndicator } from "@/src/common/hooks/useTypingIndicator";
 import { getSocket } from "@/src/common/socket/socket";
@@ -182,7 +182,7 @@ export default function ChatInput({
       setUploading(true);
 
       const fileArray = Array.from(files);
-      const uploadedList = await uploadManyChatMedia(fileArray, conversationId);
+      const uploadedList = await uploadManyMedia(fileArray, conversationId);
 
       const nextAttachments = uploadedList.map((uploaded, index) =>
         buildChatAttachmentPayload(uploaded, fileArray[index])

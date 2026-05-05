@@ -110,7 +110,7 @@ export default function ProfileModals({
 
   const initialValues = useMemo<IUpdateMyProfilePayload>(
     () => ({
-      fullName: currentUser?.fullName ?? "",
+      fullName: currentUser?.displayName ?? "",
       bio: currentUser?.bio ?? "",
       gender: currentUser?.gender ?? "other",
       dateOfBirth: currentUser?.dateOfBirth
@@ -128,8 +128,8 @@ export default function ProfileModals({
     validate: (values) => {
       const errors: Partial<Record<keyof IUpdateMyProfilePayload, string>> = {};
 
-      if (!values.fullName?.trim()) {
-        errors.fullName = t("PROFILE.FULL_NAME_REQUIRED");
+      if (!values.displayName?.trim()) {
+        errors.displayName = t("PROFILE.FULL_NAME_REQUIRED");
       }
 
       return errors;
@@ -147,7 +147,7 @@ export default function ProfileModals({
         setErrorAuth(null);
 
         const payload: IUpdateMyProfilePayload = {
-          fullName: values.fullName?.trim() || "",
+          displayName: values.displayName?.trim() || "",
           bio: values.bio?.trim() || null,
           gender: ["male", "female", "other"].includes(String(values.gender))
             ? (values.gender as Gender)
@@ -166,7 +166,7 @@ export default function ProfileModals({
 
 
         const response = await userService.userUpdateProfile(payload);
-        const updatedUser = response?.payload?.data
+        const updatedUser = response?.payload;
 
         if (updatedUser) {
           const prevAuth = useAuthStore.getState().authData;
@@ -179,8 +179,8 @@ export default function ProfileModals({
                 ...updatedUser,
                 avatarUrl: updatedUser.avatarUrl ?? null,
                 avatarResolvedUrl:
-                  updatedUser.avatarResolvedUrl ??
-                  updatedUser.avatarUrl ??
+                  (updatedUser as any)?.avatarResolvedUrl ??
+                  (updatedUser as any)?.avatarUrl ??
                   "",
               },
               tokens: prevAuth?.data?.tokens ?? {
@@ -189,9 +189,9 @@ export default function ProfileModals({
                 expiresIn: null,
               },
             },
-            meta: response?.payload?.meta,
-            message: response?.payload?.message,
-            timestamp: response?.payload?.timestamp
+            meta: (response?.payload as any)?.meta,
+            message: (response?.payload as any)?.message,
+            timestamp: (response?.payload as any)?.timestamp
           });
         }
 
@@ -338,7 +338,7 @@ export default function ProfileModals({
 
           <Box>
             <Typography paddingBottom={0} fontSize={16} fontWeight={600}>
-              {currentUser?.fullName ?? ""}
+              {currentUser?.displayName ?? ""}
             </Typography>
           </Box>
         </ProfileHeader>
@@ -405,7 +405,7 @@ export default function ProfileModals({
 
             <Box>
               <Typography fontSize={16} fontWeight={600}>
-                {currentUser?.fullName ?? ""}
+                {currentUser?.displayName ?? ""}
               </Typography>
               <Typography fontSize={13} color="text.secondary">
                 {t("PROFILE.CHANGE_AVATAR_HINT")}
@@ -427,12 +427,12 @@ export default function ProfileModals({
             fullWidth
             margin="dense"
             label={t("PROFILE.FULL_NAME")}
-            name="fullName"
-            value={formik.values.fullName ?? ""}
+            name="displayName"
+            value={formik.values.displayName ?? ""}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-            helperText={formik.touched.fullName ? formik.errors.fullName : ""}
+            error={formik.touched.displayName && Boolean(formik.errors.displayName)}
+            helperText={formik.touched.displayName ? formik.errors.displayName : ""}
           />
 
           <TextField

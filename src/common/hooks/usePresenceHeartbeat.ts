@@ -37,7 +37,8 @@ export function usePresenceHeartbeat({
     if (!socket) return;
 
     const sendHeartbeat = () => {
-      socket.emit('presence:heartbeat', { ts: Date.now() });
+      // STOMP client doesn't have .emit() method
+      // sendSocketMessage("/app/presence/heartbeat", { ts: Date.now() });
     };
 
     const handleConnect = () => {
@@ -64,19 +65,14 @@ export function usePresenceHeartbeat({
       }
     };
 
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('presence:update', handlePresenceUpdate);
-    socket.on('ws:error', handleWsError);
+    // STOMP client doesn't have .on() method - handled via window events
 
     // If already connected, start heartbeat immediately
-    if (socket.connected) handleConnect();
+    if (socket?.connected) handleConnect();
 
     return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      socket.off('presence:update', handlePresenceUpdate);
-      socket.off('ws:error', handleWsError);
+      // STOMP client doesn't have .off() method
+      // Cleanup handled by component unmount
       handleDisconnect();
     };
   }, [onPresenceUpdate, onUnauthorized]);

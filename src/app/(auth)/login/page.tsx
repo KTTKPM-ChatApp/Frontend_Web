@@ -4,7 +4,6 @@ import * as React from "react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { TabContext } from "@mui/lab";
-import { COUNTRIES, Country } from "../../constant";
 import { useRouter } from "next/navigation";
 
 import {
@@ -31,8 +30,7 @@ export default function LoginPage() {
     const router = useRouter();
 
     const [mounted, setMounted] = useState(false);
-    const [tab, setTab] = useState("loginQR");
-    const [country, setCountry] = useState<Country>(COUNTRIES[0]);
+    const [tab, setTab] = useState("loginPsw");
 
     const loadingAuth = useAuthStore((s) => s.loadingAuth);
     const setLoadingAuth = useAuthStore((s) => s.setLoadingAuth);
@@ -53,35 +51,22 @@ export default function LoginPage() {
             setLoadingAuth(true);
 
             try {
-                const raw = String(values.phone || "").replace(/\D/g, "");
-                let phoneFinal = raw;
-
-                if (raw === "0901111111") {
-                    phoneFinal = raw;
-                } else if (raw.length === 10 && raw.startsWith("0")) {
-                    phoneFinal = `+84${raw.slice(1)}`;
-                } else if (raw.length === 9) {
-                    phoneFinal = `+84${raw}`;
-                }
-
                 const result = await authService.authLogin({
-                    phone: phoneFinal,
+                    email: values.email,
                     password: values.password,
                 });
 
-                const payload = result?.payload;
-                
                 console.log("[LOGIN] result.ok:", result?.ok);
-                console.log("[LOGIN] payload.success:", payload?.success);
-                console.log("[LOGIN] payload.data:", payload?.data);
-                console.log("[LOGIN] payload.data.tokens:", payload?.data?.tokens);
-                console.log("[LOGIN] accessToken:", payload?.data?.tokens?.accessToken);
+                console.log("[LOGIN] result:", result);
 
-                if (result?.ok && payload?.success && payload?.data?.tokens?.accessToken) {
+                const payload = result?.payload as any;
+                
+                if (result?.ok && payload?.accessToken) {
+                    console.log('[LOGIN] Login successful, tokens received');
                     if (typeof window !== "undefined") {
-                        localStorage.setItem("accessToken", payload.data.tokens.accessToken);
-                        localStorage.setItem("refreshToken", payload.data.tokens.refreshToken);
-                        localStorage.setItem("currentUserId", payload.data.user.id);
+                        localStorage.setItem("accessToken", payload.accessToken);
+                        localStorage.setItem("refreshToken", payload.refreshToken);
+                        localStorage.setItem("currentUserId", payload.user.id);
                     }
 
                     setAuthData(payload);
@@ -134,15 +119,12 @@ export default function LoginPage() {
                         <TabContainer>
                             <CardHeader>
                                 <Tabs onChange={handleChangeTab} aria-label="login tabs">
-                                    <TabItem label={Trans("LOGIN.QR_TAB")} value="loginQR" />
                                     <TabItem label={Trans("LOGIN.PASSWORD_TAB")} value="loginPsw" />
                                 </Tabs>
                             </CardHeader>
 
                             <FormLogin
                                 tab={tab}
-                                country={country}
-                                setCountry={setCountry}
                                 formik={formik}
                                 loading={loadingAuth}
                                 errorMsg={errorAuth}

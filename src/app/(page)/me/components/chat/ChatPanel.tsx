@@ -117,7 +117,13 @@ export default function ChatPanel({
   })
 
   const messages = useMemo(
-    () => messagesByConversation[conversationId] || [],
+    () => {
+      const msgs = messagesByConversation[conversationId] || [];
+      console.log('ChatPanel - conversationId:', conversationId);
+      console.log('ChatPanel - messagesByConversation:', messagesByConversation);
+      console.log('ChatPanel - messages for this conversation:', msgs);
+      return msgs;
+    },
     [messagesByConversation, conversationId]
   );
 

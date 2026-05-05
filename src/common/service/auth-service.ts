@@ -1,30 +1,20 @@
-// TODO: Replace with your new backend authentication service
-// This service needs to be updated to match your new backend API structure
+import http from "../api/http";
+import { API } from "../api/path";
 
 export const authService = {
-  // Placeholder methods - implement these for your new backend
-  authRegister: (body: any) => {
-    console.log('authRegister called with:', body);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+  authRegister: (body: { username: string; email: string; password: string; displayName: string }) => {
+    return http.post(API.API_AUTH_REGISTER, body);
   },
 
-  authLogin: (body: any) => {
-    console.log('authLogin called with:', body);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+  authLogin: (body: { email: string; password: string }) => {
+    return http.post(API.API_AUTH_LOGIN, body);
   },
 
-  authRefresh: (body: any) => {
-    console.log('authRefresh called with:', body);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
-  },
-
-  authResetPassword: (payload: any) => {
-    console.log('authResetPassword called with:', payload);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+  authRefresh: (body: { refreshToken: string }) => {
+    return http.post(API.API_AUTH_REFRESH, body);
   },
 
   authLogout: () => {
-    console.log('authLogout called');
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+    return http.post(API.API_AUTH_LOGOUT);
   },
 };

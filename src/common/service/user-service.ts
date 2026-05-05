@@ -1,13 +1,25 @@
-// TODO: Replace with your new backend user service
-// This service needs to be updated to match your new backend API structure
+import http from "../api/http";
+import { API } from "../api/path";
 
 export const userService = {
     userGetMe() {
-        console.log('userGetMe called - implement for new backend');
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.get(API.API_USERS_ME);
     },
+    
     userUpdateProfile(body: any) {
-        console.log('userUpdateProfile called with:', body);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.put(API.API_USERS_ME, body);
+    },
+    
+    searchUsers(query: string, limit = 20, offset = 0) {
+        const params = new URLSearchParams();
+        params.append('q', query);
+        if (limit) params.append('limit', limit.toString());
+        if (offset) params.append('offset', offset.toString());
+        
+        return http.get(`${API.API_USERS_SEARCH}?${params.toString()}`);
+    },
+    
+    getUserById(userId: string) {
+        return http.get(API.API_USERS_PUBLIC_PROFILE(userId));
     },
 };

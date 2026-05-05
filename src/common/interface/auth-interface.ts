@@ -2,7 +2,7 @@ export type Gender = "male" | "female" | "other";
 
 export interface IBase {
     email?: string;
-    fullName: string;
+    displayName: string;
     gender: Gender | string;
     dateOfBirth: string | null;
 }

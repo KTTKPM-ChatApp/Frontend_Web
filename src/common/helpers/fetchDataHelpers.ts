@@ -15,14 +15,15 @@ export const fetchAuthData = async () => {
         authStore.setLoadingAuth(true);
         authStore.setErrorAuth(null);
         const userData = await userService.userGetMe();
-        const user = userData?.payload?.data ?? null;
-        if (user) {
+        
+        if (userData?.ok && userData?.payload) {
+            const user = userData.payload;
             authStore.setAuthData({
                 success: true,
                 data: {
                     user: {
                         ...user,
-                        avatarUrl: user.avatarResolvedUrl ?? user.avatarUrl ?? null,
+                        avatarUrl: user.avatarUrl ?? null,
                     },
                     tokens: authStore.authData?.data?.tokens ?? {
                         accessToken: String(getSessionToken()),
@@ -30,7 +31,7 @@ export const fetchAuthData = async () => {
                         expiresIn: Number(getTokenExpiresIn()),
                     },
                 },
-                meta: userData?.payload?.meta ?? null,
+                meta: null,
                 message: userData?.payload?.message,
                 timestamp: userData?.payload?.timestamp,
             });
@@ -54,6 +55,7 @@ export const fetchConversations = async (params = { page: 1, limit: 20 }) => {
         useChatStore.getState().setError(null);
 
         // Gọi method từ store
+        console.log('fetchConversations called with params:', params);
         await useChatStore.getState().fetchListConversation(params);
 
         // Set active conversation nếu có
