@@ -5,6 +5,7 @@ import { PaginationState, UiMessage } from "@/src/common/interface/chat-interfac
 import { useChatStore } from "@/src/common/store/useChatStore";
 import ReplyOutlinedIcon from "@mui/icons-material/ReplyOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import MessageItem from "./MessageItem";
 interface MessageListProps {
   listRef: React.RefObject<HTMLDivElement | null>;
   messages: UiMessage[];
@@ -207,85 +208,35 @@ export default function MessageList({
           {
             messages.map((msg) => {
               const mine = msg.senderId === currentUserId;
-              const canDelete = mine && !msg.isDeleted;
-              const canReply = !msg.isDeleted;
+              const timestamp = new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
 
               return (
-                <MessageRow data-testid="message-row" key={msg.messageId} mine={mine}>
-                  {!mine && (
-                    <MessageActions className="message-actions" mine={mine}>
-                      {canReply && (
-                        <Tooltip title="Trả lời">
-                          <IconButton size="small" onClick={() => onReplyMessage(msg)}>
-                            <ReplyOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-
-                      {canDelete && (
-                        <Tooltip title="Xóa tin nhắn">
-                          <IconButton
-                            size="small"
-                            onClick={() => onDeleteMessage(conversationId, msg.messageId)}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </MessageActions>
-                  )}
-
-                  <Bubble mine={mine}>
-                    <MessageText>
-                      {msg.isDeleted ? "Tin nhắn đã được thu hồi" : msg.body}
-                    </MessageText>
-
-                    {!!msg.attachments?.length && (
-                      <AttachmentList>
-                        {msg.attachments.map((file) => (
-                          <AttachmentItem key={file.key}>{file.name}</AttachmentItem>
-                        ))}
-                      </AttachmentList>
-                    )}
-
-                    <MetaRow>
-                      <MetaLeft>
-                        <MetaText>
-                          {new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </MetaText>
-
-                        {msg.failed && <MetaText>Gửi thất bại</MetaText>}
-                        {msg.editedAt && <MetaText>Đã sửa</MetaText>}
-                      </MetaLeft>
-                    </MetaRow>
-                  </Bubble>
-
-                  {mine && (
-                    <MessageActions className="message-actions" mine={mine}>
-                      {canReply && (
-                        <Tooltip title="Trả lời">
-                          <IconButton size="small" onClick={() => onReplyMessage(msg)}>
-                            <ReplyOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-
-                      {canDelete && (
-                        <Tooltip title="Xóa tin nhắn">
-                          <IconButton
-                            size="small"
-                            onClick={() => onDeleteMessage(conversationId, msg.messageId)}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </MessageActions>
-                  )}
-                </MessageRow>
+                <MessageItem
+                  key={msg.messageId}
+                  id={msg.messageId}
+                  content={msg.isDeleted ? "Tin nhắn đã được thu hồi" : msg.body}
+                  sender={mine ? undefined : {
+                    id: msg.senderId,
+                    name: "User", // Default name since senderName is not available
+                    avatar: undefined // Avatar not available in UiMessage
+                  }}
+                  timestamp={timestamp}
+                  isOwn={mine}
+                  isDeleted={msg.isDeleted}
+                  isPinned={false} // Pinned status not available in UiMessage
+                  deliveryStatus="read" // Default delivery status
+                  isEdited={false} // Edit status not available in UiMessage
+                  reactions={[]} // Reactions not available in UiMessage
+                  onReply={() => onReplyMessage(msg)}
+                  onForward={() => console.log("Forward message:", msg.messageId)}
+                  onPin={() => console.log("Pin message:", msg.messageId)}
+                  onEdit={() => console.log("Edit message:", msg.messageId)}
+                  onReact={(reaction) => console.log("React to message:", msg.messageId, reaction)}
+                  onDelete={() => onDeleteMessage(conversationId, msg.messageId)}
+                />
               );
             })
           }

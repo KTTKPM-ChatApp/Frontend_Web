@@ -28,6 +28,12 @@ import { searchService } from "@/src/common/service/search-service";
 import { IUserSearchItem, SearchResult } from "@/src/common/interface/search-interface";
 import { useDebounce } from "@/src/common/utilities/hook/debounce";
 
+interface SearchBarProps {
+    onResultSelect?: (result: SearchResult) => void;
+    onAddFriend?: () => void;
+    onCreateGroup?: () => void;
+}
+
 const BoxSearchBar = styled(Box)({
     height: 32,
     minWidth: 50,
@@ -96,7 +102,7 @@ const SearchResultItem = styled(ListItem)({
         backgroundColor: "#f0f0f0",
     },
 });
-const SearchBar = () => {
+const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProps) => {
     const [focusOnSearch, setFocusOnSearch] = useState(false);
     const [searchValue, setSearchValue] = useState("");
     const [userResults, setUserResults] = useState<IUserSearchItem[]>([]);
@@ -146,7 +152,7 @@ const SearchBar = () => {
                     limit: 20,
                 });
 
-                const users = response?.payload?.data || response?.data || [];
+                const users = response?.payload?.data || [];
                 setUserResults(Array.isArray(users) ? users : []);
             } catch (error: any) {
                 console.error("search user error:", error);
@@ -186,6 +192,7 @@ const SearchBar = () => {
             setActiveConversationId(result.conversation.id);
             setSearchValue("");
             setFocusOnSearch(false);
+            onResultSelect?.(result);
             return;
         }
         setSearchValue("");
@@ -285,10 +292,10 @@ const SearchBar = () => {
                     </ActionBtn>
                 ) : (
                     <>
-                        <ActionBtn>
+                        <ActionBtn onClick={onAddFriend}>
                             <PersonAddAltOutlinedIcon sx={{ fontSize: 22, color: "#353535" }} />
                         </ActionBtn>
-                        <ActionBtn>
+                        <ActionBtn onClick={onCreateGroup}>
                             <GroupAddOutlinedIcon sx={{ fontSize: 22, color: "#353535" }} />
                         </ActionBtn>
                     </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Divider, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { styled } from "@mui/material/styles";
 import ReportGmailerrorredRoundedIcon from "@mui/icons-material/ReportGmailerrorredRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -27,18 +28,19 @@ const DangerRow = styled(Box, {
 }));
 
 export default function DangerZone() {
+  const { t } = useTranslation();
   return (
     <Card>
       <DangerRow>
         <ReportGmailerrorredRoundedIcon />
-        <Typography fontSize={15}>Báo xấu</Typography>
+        <Typography fontSize={15}>{t("DANGER.REPORT")}</Typography>
       </DangerRow>
 
       <Divider />
 
       <DangerRow danger>
         <DeleteOutlineRoundedIcon />
-        <Typography fontSize={15}>Xoá lịch sử trò chuyện</Typography>
+        <Typography fontSize={15}>{t("DANGER.DELETE_HISTORY")}</Typography>
       </DangerRow>
     </Card>
   );
