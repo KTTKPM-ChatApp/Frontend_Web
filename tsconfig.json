@@ -31,5 +31,5 @@
     "**/*.mts",
     "**/*.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "UI_CODE_EXTRACTED"]
 }

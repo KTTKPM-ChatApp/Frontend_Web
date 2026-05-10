@@ -1,11 +1,22 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Box, IconButton, TextField } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  TextField,
+  InputAdornment,
+  Button,
+  Chip,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import dynamic from "next/dynamic";
 import InsertEmoticonRoundedIcon from "@mui/icons-material/InsertEmoticonRounded";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import MicIcon from "@mui/icons-material/Mic";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import ImageIcon from "@mui/icons-material/Image";
 import { EmojiClickData } from "emoji-picker-react";
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
@@ -15,89 +26,108 @@ interface ChatInputProps {
   onSend: (value: string) => void;
 }
 
-const ComposerWrap = styled(Box)({
-  height: "100%",
-  minHeight: 50,
-  maxHeight: 50,
-  borderTop: "1px solid #EEF1F4",
+// ==================== STYLED COMPONENTS ====================
+
+const ChatInputContainer = styled(Box)(({ theme }) => ({
   background: "#fff",
-  display: "flex",
-  alignItems: "center",
-  boxSizing: "border-box",
-});
+  borderTop: "1px solid #E5E7EB",
+  padding: "16px",
+}));
 
-const ComposerRow = styled(Box)({
+const InputRow = styled(Box)(({ theme }) => ({
   display: "flex",
-  alignItems: "center",
-  width: "100%",
-  height: "100%",
+  alignItems: "flex-end",
   gap: 8,
+}));
 
-});
-
-const StyledTextField = styled(TextField)({
+const InputField = styled(TextField)(({ theme }) => ({
   flex: 1,
   "& .MuiOutlinedInput-root": {
-
-    paddingRight: 4,
-    alignItems: "center",
+    borderRadius: 24,
+    backgroundColor: "#F8FAFC",
+    paddingRight: 8,
+    "&:hover": {
+      backgroundColor: "#F1F5F9",
+    },
+    "&.Mui-focused": {
+      backgroundColor: "#FFFFFF",
+      boxShadow: "0 0 0 2px #0078FF",
+    },
   },
-
   "& .MuiOutlinedInput-notchedOutline": {
     borderColor: "transparent",
   },
-
-  "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-    borderColor: "transparent",
-  },
-
-  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-    borderColor: "transparent",
-  },
-
   "& .MuiInputBase-input": {
-    fontSize: "15px",
-    color: "#111827",
-    lineHeight: 1.2,
+    fontSize: 15,
+    color: "#0F172A",
+    padding: "12px 16px",
   },
   "& .MuiInputBase-input::placeholder": {
-    opacity: .5,
-    paddingLeft: 4,
+    color: "#94A3B8",
   },
-});
-const EmojiWrap = styled(Box)({
-  position: "relative",
-  width: 36,
-  minWidth: 36,
-  height: 36,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-  marginRight:"8px"
-});
+}));
 
-const PickerBox = styled(Box)({
+const ActionButton = styled(IconButton)(({ theme }) => ({
+  width: 40,
+  height: 40,
+  borderRadius: 10,
+  color: "#64748B",
+  backgroundColor: "#F8FAFC",
+  "&:hover": {
+    backgroundColor: "#E5E7EB",
+    color: "#0F172A",
+  },
+}));
+
+const SendButton = styled(IconButton)(({ theme }) => ({
+  width: 40,
+  height: 40,
+  borderRadius: 10,
+  backgroundColor: "#0078FF",
+  color: "#FFFFFF",
+  "&:hover": {
+    backgroundColor: "#0056CC",
+  },
+  "&:disabled": {
+    backgroundColor: "#E5E7EB",
+    color: "#94A3B8",
+  },
+}));
+
+const EmojiWrap = styled(Box)(({ theme }) => ({
+  position: "relative",
+}));
+
+const PickerBox = styled(Box)(({ theme }) => ({
   position: "absolute",
-  bottom: 46,
+  bottom: 60,
   right: 0,
   zIndex: 20,
   boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
   borderRadius: 12,
   overflow: "hidden",
-});
-const StyledIconButton = styled(IconButton)({
-  width: 36,
-  minWidth: 36,
-  height: 36,
-  borderRadius: 10,
-  color: "#64748B",
-  flexShrink: 0,
+}));
 
-  "&:hover": {
-    background: "#F1F5F9",
-  },
-});
+const AttachmentPreview = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px",
+  backgroundColor: "#F8FAFC",
+  borderRadius: 8,
+  border: "1px solid #E5E7EB",
+  marginBottom: 8,
+}));
+
+const TypingIndicator = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px 16px",
+  color: "#64748B",
+  fontSize: 13,
+  fontStyle: "italic",
+}));
 export default function ChatInput({ disabled, onSend }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [openEmoji, setOpenEmoji] = useState(false);
@@ -139,13 +169,31 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
     });
   };
   return (
-    <ComposerWrap data-testid="chat-input">
-      <ComposerRow>
-        <StyledTextField
+    <ChatInputContainer>
+      {/* Attachment Preview */}
+      {/* <AttachmentPreview>
+        <AttachFileIcon fontSize="small" />
+        <Typography variant="body2">file.pdf</Typography>
+        <IconButton size="small">
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </AttachmentPreview> */}
+
+      {/* Typing Indicator */}
+      {/* <TypingIndicator>
+        <span>Nguyễn Văn A đang nhập...</span>
+      </TypingIndicator> */}
+
+      <InputRow>
+        <ActionButton disabled={disabled}>
+          <AttachFileIcon />
+        </ActionButton>
+
+        <InputField
           fullWidth
           multiline
           minRows={1}
-          maxRows={1}
+          maxRows={4}
           placeholder="Nhập tin nhắn..."
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -153,15 +201,14 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
           disabled={disabled}
         />
 
-
         <EmojiWrap>
-          <StyledIconButton
+          <ActionButton
             onClick={() => setOpenEmoji((prev) => !prev)}
             disabled={disabled}
             aria-label="emoji"
           >
-            <InsertEmoticonRoundedIcon fontSize="small" />
-          </StyledIconButton>
+            <InsertEmoticonRoundedIcon />
+          </ActionButton>
 
           {openEmoji && (
             <PickerBox>
@@ -176,7 +223,23 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
             </PickerBox>
           )}
         </EmojiWrap>
-      </ComposerRow>
-    </ComposerWrap>
+
+        <ActionButton disabled={disabled}>
+          <CameraAltIcon />
+        </ActionButton>
+
+        <ActionButton disabled={disabled}>
+          <ImageIcon />
+        </ActionButton>
+
+        <SendButton
+          onClick={handleSend}
+          disabled={!value.trim() || disabled}
+          aria-label="send"
+        >
+          <SendRoundedIcon />
+        </SendButton>
+      </InputRow>
+    </ChatInputContainer>
   );
 }

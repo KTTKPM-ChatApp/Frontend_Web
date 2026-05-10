@@ -17,6 +17,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 
 import { useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import BoxIcon from "@/src/shared/component/BoxIcon";
 import MenuPopover, { PopoverMenuItem } from "@/src/shared/component/MenuPopover";
 import { SidebarKey } from "@/src/app/constant";
@@ -24,6 +25,7 @@ import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { authService } from "@/src/common/service/auth-service";
 import { clearAuthStorage, redirectToLogin } from "@/src/common/utilities/utils";
 import ProfileModals from "./ProfileModals";
+import LanguageSwitcher from "../../../../shared/component/LanguageSwitcher";
 import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 
 const Sidebar = styled(Box)({
@@ -43,18 +45,19 @@ const AvatarStyled = styled(Avatar)({
 });
 
 interface AppSidebarProps {
-  selectedIcon: SidebarKey | string;
+  selectedIcon: SidebarKey;
   onSelect: (iconName: SidebarKey) => void;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
 }
 
-const AppSidebar = ({
+const AppSidebar: React.FC<AppSidebarProps> = ({
   selectedIcon,
   onSelect,
   onOpenProfile,
   onOpenSettings,
 }: AppSidebarProps) => {
+  const { t } = useTranslation();
   const resetAuth = useAuthStore((s) => s.resetAuth);
 
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
@@ -62,6 +65,7 @@ const AppSidebar = ({
   const [openProfileModal, setOpenProfileModal] = useState(false);
   const [pendingOpenEdit, setPendingOpenEdit] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [openLanguageModal, setOpenLanguageModal] = useState(false);
   const openMenuPopover = Boolean(menuAnchorEl) && Boolean(activePopover);
   
   const closePopoverThen = useCallback((action?: () => void) => {
@@ -119,6 +123,7 @@ const AppSidebar = ({
 
     setIsLoggingOut(true);
     handleClosePopover();
+
     try {
       await authService.authLogout();
     } catch (error) {
@@ -130,29 +135,36 @@ const AppSidebar = ({
     }
   }, [isLoggingOut, setIsLoggingOut, handleClosePopover, resetAuth]);
     
+  const handleOpenLanguageModal = useCallback(() => {
+    closePopoverThen(() => {
+      setOpenLanguageModal(true);
+    });
+  }, [closePopoverThen, setOpenLanguageModal]);
+    
   const settingsItems = useMemo<PopoverMenuItem[]>(
     () => [
       {
         key: "account",
-        label: "Thông tin tài khoản",
+        label: t("PROFILE.ACCOUNT_INFO"),
         onClick: handleMenuItemClick(onOpenProfile),
       },
       {
         key: "settings",
-        label: "Cài đặt",
+        label: t("COMMON.SETTINGS"),
         onClick: handleMenuItemClick(onOpenSettings),
       },
       {
         key: "language",
-        label: "Ngôn ngữ",
+        label: t("COMMON.LANGUAGE"),
+        onClick: handleOpenLanguageModal,
       },
       {
         key: "support",
-        label: "Hỗ trợ",
+        label: t("COMMON.SUPPORT"),
       },
       {
         key: "logout",
-        label: "Đăng xuất",
+        label: t("COMMON.LOGOUT"),
         danger: true,
         dividerTop: true,
         onClick: () => {
@@ -160,25 +172,25 @@ const AppSidebar = ({
         },
       },
     ],
-    [onOpenProfile, onOpenSettings, handleMenuItemClick, handleLogout]
+    [t, onOpenProfile, onOpenSettings, handleOpenLanguageModal, handleLogout, handleMenuItemClick]
   );
 
   const avatarItems = useMemo<PopoverMenuItem[]>(
     () => [
       {
         key: "account",
-        label: "Thông tin tài khoản",
+        label: t("PROFILE.ACCOUNT_INFO"),
         onClick: handleMenuItemClick(onOpenProfile),
       },
       {
         key: "profile",
-        label: "Hồ sơ của bạn",
+        label: t("PROFILE.YOUR_PROFILE"),
         dividerTop: true,
         onClick: handleOpenProfileModal,
       },
       {
         key: "logout",
-        label: "Đăng xuất",
+        label: t("COMMON.LOGOUT"),
         danger: true,
         dividerTop: true,
         onClick: () => {
@@ -186,7 +198,7 @@ const AppSidebar = ({
         },
       },
     ],
-    [onOpenProfile, handleMenuItemClick, handleOpenProfileModal, handleLogout]
+    [onOpenProfile, t, handleOpenProfileModal, handleLogout, handleMenuItemClick]
   );
 
   const avatarUrl = useAuthStore((s) => s.authData?.data?.user?.avatarUrl);
@@ -213,12 +225,16 @@ const AppSidebar = ({
           </Box>
 
           <ProfileModals
-            openProfileModal={openProfileModal}
-            setOpenProfileModal={setOpenProfileModal}
-            pendingOpenEdit={pendingOpenEdit}
+            open={openProfileModal}
+            onClose={() => setOpenProfileModal(false)}
             setPendingOpenEdit={setPendingOpenEdit}
           />
-          
+
+          <LanguageSwitcher
+            open={openLanguageModal}
+            onClose={() => setOpenLanguageModal(false)}
+          />
+
           <Stack justifyContent="space-between" height="100%">
             <Stack mt={2} spacing={1.25} alignItems="center">
               <BoxIcon
