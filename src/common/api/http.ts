@@ -1,22 +1,8 @@
-import { API } from "./path";
-import {
-  clearAuthStorage,
-  getRefreshToken,
-  getSessionToken,
-  isClientSide,
-  redirectToLogin,
-  setRefreshToken,
-  setSessionToken,
-  setSessionTokenExpiresIn,
-} from "../utilities/utils";
-
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 export type CustomOptions = Omit<RequestInit, "method" | "body"> & {
   baseUrl?: string;
   body?: any;
-  skipAuth?: boolean;
-  _retry?: boolean;
 };
 
 export interface IHttpresponse<T = any> {
@@ -32,10 +18,6 @@ const joinUrl = (baseUrl: string, path: string) => {
   return `${b}${p}`;
 };
 
-/**
- * Nếu baseUrl đã có /api mà path cũng có /api => bỏ bớt 1 cái
- * - baseUrl: http://localhost:3000/api + path: /api/auth/register -> /auth/register
- */
 const normalizeApiPath = (baseUrl: string, path: string) => {
   const baseHasApi = /\/api\/?$/.test(baseUrl);
   const pathHasApi = /^\/?api(\/|$)/.test(path);
@@ -74,10 +56,11 @@ const buildBodyAndHeaders = (options?: CustomOptions) => {
   const headers: Record<string, string> =
     body instanceof FormData ? {} : { "Content-Type": "application/json" };
 
-  if (isClientSide() && !options?.skipAuth) {
-    const token = getSessionToken();
+  // Add authentication token if available
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("accessToken");
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
   }
 
@@ -95,118 +78,49 @@ const getResponsePayload = async (res: Response) => {
   return text ? text : null;
 };
 
-const isRefreshEndpoint = (url: string) => {
-  return /\/api\/auth\/refresh\/?$/.test(url) || /\/auth\/refresh\/?$/.test(url);
-};
-
-const extractRefreshPayload = (raw: any) => {
-  // hỗ trợ cả 2 kiểu:
-  // 1) { accessToken, expiresIn }
-  // 2) { data: { accessToken, expiresIn } }
-  return raw?.data ?? raw?.payload ?? raw;
-};
-
-const handleAuthExpired = () => {
-  clearAuthStorage();
-  redirectToLogin();
-};
-
-let refreshPromise: Promise<string | null> | null = null;
-
-const refreshAccessToken = async (
-  baseUrl?: string
-): Promise<string | null> => {
-  const refreshToken = getRefreshToken();
-  const finalBaseUrl = baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!refreshToken || !finalBaseUrl) {
-    handleAuthExpired();
-    return null;
-  }
-
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      const apiPath = normalizeApiPath(finalBaseUrl, API.API_AUTH_REFRESH);
-      const fullUrl = joinUrl(finalBaseUrl, apiPath);
-
-      const res = await fetch(fullUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      const raw = await getResponsePayload(res);
-
-      if (!res.ok) {
-        throw raw;
-      }
-
-      const refreshData = extractRefreshPayload(raw);
-      const newAccessToken = refreshData?.accessToken;
-
-      if (!newAccessToken) {
-        throw new Error("Refresh response missing accessToken");
-      }
-
-      setSessionToken(newAccessToken);
-
-      if (
-        refreshData?.expiresIn !== undefined &&
-        refreshData?.expiresIn !== null
-      ) {
-        setSessionTokenExpiresIn(refreshData.expiresIn);
-      }
-
-      // nếu backend có trả refreshToken mới thì lưu luôn
-      if (refreshData?.refreshToken) {
-        setRefreshToken(refreshData.refreshToken);
-      }
-
-      return newAccessToken as string;
-    })()
-      .catch((err) => {
-        console.error("Refresh token error:", err);
-        handleAuthExpired();
-        return null;
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
-  }
-
-  return refreshPromise;
-};
-
 export const request = async <T = any>(
   method: HttpMethod,
   url: string,
   options?: CustomOptions
 ): Promise<IHttpresponse<T>> => {
-  const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  
   if (!baseUrl) {
+    console.error('[HTTP] Missing baseUrl');
     return {
       statusCode: 500,
       ok: false,
-      payload: { message: "Missing API base URL" } as any,
+      payload: { message: "Missing baseUrl" } as any,
     };
   }
 
   const apiPath = normalizeApiPath(baseUrl, url);
   const fullUrl = joinUrl(baseUrl, apiPath);
 
-  const { body, headers } = buildBodyAndHeaders(options);
+  const { headers, body } = buildBodyAndHeaders(options);
   const optionHeaders = toHeaderRecord(options?.headers);
 
   try {
+    // Add timeout for request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.error(`[HTTP] Request timeout after 10s: ${method} ${url}`);
+      controller.abort();
+    }, 10000);
+
     const res = await fetch(fullUrl, {
       ...options,
       method,
-      headers: { ...headers, ...optionHeaders },
       body,
+      headers: {
+        ...headers,
+        ...optionHeaders,
+      },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const payload = await getResponsePayload(res);
 
@@ -214,34 +128,10 @@ export const request = async <T = any>(
       return { statusCode: res.status, ok: true, payload: payload as T };
     }
 
-    const shouldTryRefresh =
-      res.status === 401 &&
-      !options?.skipAuth &&
-      !options?._retry &&
-      !isRefreshEndpoint(url);
-
-    if (shouldTryRefresh) {
-      const newAccessToken = await refreshAccessToken(baseUrl);
-
-      if (newAccessToken) {
-        return request<T>(method, url, {
-          ...options,
-          _retry: true,
-          headers: {
-            ...optionHeaders,
-            Authorization: `Bearer ${newAccessToken}`,
-          },
-        });
-      }
-    }
-
-    if (res.status === 401 && isRefreshEndpoint(url)) {
-      handleAuthExpired();
-    }
-
     return { statusCode: res.status, ok: false, payload: payload as T };
   } catch (err: any) {
-    console.error("HTTP error:", err);
+    console.error("[HTTP] Request error:", err);
+    console.error("[HTTP] Error details:", err?.message, err?.stack);
 
     return {
       statusCode: 500,
