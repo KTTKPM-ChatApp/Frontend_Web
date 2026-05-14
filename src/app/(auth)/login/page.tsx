@@ -3,19 +3,14 @@
 import * as React from "react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { TabContext } from "@mui/lab";
 import { useRouter } from "next/navigation";
 
 import {
     Card,
-    CardHeader,
     Content,
     LogoWrap,
     Page,
     Subtitle,
-    TabContainer,
-    TabItem,
-    Tabs,
 } from "../Auth.styles";
 
 import FormLogin from "./component/FormLogin";
@@ -24,13 +19,23 @@ import { initialValues, validationSchemaLogin } from "./validate";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { authService } from "@/src/common/service/auth-service";
+import { IAuthResponse } from "@/src/common/interface/auth-interface";
+import { IconButton } from "@mui/material";
+import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
     const Trans = useTrans();
+    const { i18n } = useTranslation();
     const router = useRouter();
 
     const [mounted, setMounted] = useState(false);
-    const [tab, setTab] = useState("loginPsw");
+
+    const handleLanguageToggle = () => {
+        const newLang = i18n.language === 'vi' ? 'en' : 'vi';
+        i18n.changeLanguage(newLang);
+        localStorage.setItem('language', newLang);
+    };
 
     const loadingAuth = useAuthStore((s) => s.loadingAuth);
     const setLoadingAuth = useAuthStore((s) => s.setLoadingAuth);
@@ -47,51 +52,52 @@ export default function LoginPage() {
         validationSchema: validationSchemaLogin(Trans),
         enableReinitialize: false,
         onSubmit: async (values) => {
+            console.log("Form submitting with values:", JSON.stringify(values));
             setErrorAuth(null);
             setLoadingAuth(true);
 
             try {
+                console.log("Calling authService.authLogin...");
                 const result = await authService.authLogin({
-                    email: values.email,
+                    email: values.email.trim(),
                     password: values.password,
                 });
+                console.log("API call result:", result);
 
-                console.log("[LOGIN] result.ok:", result?.ok);
-                console.log("[LOGIN] result:", result);
+                const authData = result?.payload as IAuthResponse;
+                console.log("Parsed authData:", authData);
 
-                const payload = result?.payload as any;
-                
-                if (result?.ok && payload?.accessToken) {
-                    console.log('[LOGIN] Login successful, tokens received');
+                if (result?.ok && authData?.accessToken) {
                     if (typeof window !== "undefined") {
-                        localStorage.setItem("accessToken", payload.accessToken);
-                        localStorage.setItem("refreshToken", payload.refreshToken);
-                        localStorage.setItem("currentUserId", payload.user.id);
+                        localStorage.setItem("accessToken", authData.accessToken);
+                        localStorage.setItem("refreshToken", authData.refreshToken);
+                        localStorage.setItem("currentUserId", authData.user.id);
                     }
 
-                    setAuthData(payload);
+                    // Format response để match với store expectation
+                    const formattedResponse = {
+                        success: true,
+                        data: authData
+                    };
+                    setAuthData(formattedResponse);
                     router.replace("/me");
                     return;
                 }
 
-                setErrorAuth(payload?.message ?? Trans("LOGIN.FAILED"));
+                setErrorAuth(result?.payload?.message ?? "Đăng nhập thất bại");
             } catch (error: any) {
                 console.error("Login error:", error);
                 setErrorAuth(
                     error?.message ||
                     error?.payload?.message ||
                     error?.response?.data?.message ||
-                    Trans("COMMON.SYSTEM_ERROR")
+                    "Lỗi hệ thống"
                 );
             } finally {
                 setLoadingAuth(false);
             }
         },
     });
-
-    const handleChangeTab = (_event: React.SyntheticEvent, newTab: string) => {
-        setTab(newTab);
-    };
 
     if (!mounted) {
         return null;
@@ -103,35 +109,27 @@ export default function LoginPage() {
                 <LogoWrap>
                     <Image
                         src="https://stc-zlogin.zdn.vn/images/zlogo.png"
-                        alt={Trans("LOGIN.LOGO_ALT")}
+                        alt="Zalo Logo"
                         width={100}
                         height={40}
                         priority
                     />
+                    <IconButton onClick={handleLanguageToggle}>
+                        <LanguageOutlinedIcon />
+                    </IconButton>
                 </LogoWrap>
 
                 <Subtitle>
-                    {Trans("LOGIN.SUBTITLE")}
+                    {"Đăng nhập tài khoản Zalo\nđể kết nối với ứng dụng Zalo Web"}
                 </Subtitle>
 
                 <Card>
-                    <TabContext value={tab}>
-                        <TabContainer>
-                            <CardHeader>
-                                <Tabs onChange={handleChangeTab} aria-label="login tabs">
-                                    <TabItem label={Trans("LOGIN.PASSWORD_TAB")} value="loginPsw" />
-                                </Tabs>
-                            </CardHeader>
-
-                            <FormLogin
-                                tab={tab}
-                                formik={formik}
-                                loading={loadingAuth}
-                                errorMsg={errorAuth}
-                                onGoRegister={() => router.push("/register")}
-                            />
-                        </TabContainer>
-                    </TabContext>
+                    <FormLogin
+                        formik={formik}
+                        loading={loadingAuth}
+                        errorMsg={errorAuth}
+                        onGoRegister={() => router.push("/register")}
+                    />
                 </Card>
             </Content>
         </Page>

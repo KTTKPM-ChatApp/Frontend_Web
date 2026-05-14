@@ -1,48 +1,65 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Avatar,
   Box,
   Button,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
-  FormControl,
-  FormControlLabel,
-  FormHelperText,
-  FormLabel,
   IconButton,
-  Radio,
-  RadioGroup,
-  Stack,
   TextField,
   Typography,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Slider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import Avatar from "@mui/material/Avatar";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { useFormik } from "formik";
-import { Area } from "react-easy-crop";
-import LoadingButton from "@mui/lab/LoadingButton";
+import { useEffect, useRef, useState } from "react";
+import Cropper from "react-easy-crop";
 import InfoRow from "@/src/shared/component/InfoRow";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
-import { useUserStore } from "@/src/common/store/useUserStore";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { uploadMedia } from "@/src/common/service/media-service";
 import { getCroppedImgFile } from "@/src/common/helpers/cropImage";
 import { userService } from "@/src/common/service/user-service";
 import { IUpdateMyProfilePayload } from "@/src/common/interface/user-interface";
-import CropDialog from "@/src/shared/component/CropDialog";
-import { Gender } from "@/src/common/interface/auth-interface";
-import AppModal from "@/src/shared/component/AppModal";
-import BorderColorOutlinedIcon from '@mui/icons-material/BorderColorOutlined';
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import { IUser } from "@/src/common/interface/auth-interface";
+import { useUserStore } from "@/src/common/store/useUserStore";
+
+const ProfileDialog = styled(Dialog)(({ theme }) => ({
+  "& .MuiPaper-root": {
+    borderRadius: 4,
+    padding: theme.spacing(0.5),
+    width: "100%",
+    maxWidth: 420,
+  },
+}));
+
+const ProfileDialogTitle = styled(DialogTitle)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  fontSize: 16,
+  fontWeight: 600,
+  paddingBottom: 8,
+});
+
+const ProfileDialogContent = styled(DialogContent)({
+  paddingTop: "8px !important",
+});
+
 const ProfileHeader = styled(Box)({
   display: "flex",
   alignItems: "center",
-  gap: 16,
-  marginBottom: 16,
+  gap: "16px",
+  marginBottom: "16px",
 });
 
 const AvatarWrapper = styled(Box)({
@@ -71,7 +88,6 @@ const AvatarEditBadge = styled(Box)({
   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
 });
 
-
 interface ProfileModalsProps {
   openProfileModal: boolean;
   setOpenProfileModal: (value: boolean) => void;
@@ -79,147 +95,71 @@ interface ProfileModalsProps {
   setPendingOpenEdit: (value: boolean) => void;
 }
 
-const safeRevokeObjectUrl = (url?: string | null) => {
-  if (url?.startsWith("blob:")) {
-    URL.revokeObjectURL(url);
-  }
-};
-
-export default function ProfileModals({
+const ProfileModals = ({
   openProfileModal,
   setOpenProfileModal,
   pendingOpenEdit,
   setPendingOpenEdit,
-}: ProfileModalsProps) {
-  const t = useTrans();
-  const authData = useAuthStore((s) => s.authData);
-  const setLoadingAuth = useAuthStore((s) => s.setLoadingAuth);
-  const setErrorAuth = useAuthStore((s) => s.setErrorAuth);
-  const loadingAuth = useAuthStore((s) => s.loadingAuth);
-  const refreshUserData = useUserStore((s) => s.refreshUserData);
-  const setOpenEditProfileModal = useUserStore((s) => s.setOpenEditProfileModal);
-  const openEditProfileModal = useUserStore((s) => s.openEditProfileModal);
+}: ProfileModalsProps) => {
+  const {
+    authData,
+    setAuthData,
+    setLoadingAuth,
+    setErrorAuth,
+  } = useAuthStore();
+  const setOpenEditProfileModal = useUserStore((s)=> s.setOpenEditProfileModal)
+  const openEditProfileModal = useUserStore((s)=> s.openEditProfileModal)
+  const editProfileData = useUserStore((s)=> s.editProfileData)
+  const setEditProfileField = useUserStore((s)=> s.setEditProfileField)
+  const [openCropDialog, setOpenCropDialog] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState("");
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const currentUser = authData?.data?.user ?? null;
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [openCropDialog, setOpenCropDialog] = useState(false);
-  const [selectedImageSrc, setSelectedImageSrc] = useState("");
-  const [avatarPreview, setAvatarPreview] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-
-  const initialValues = useMemo<IUpdateMyProfilePayload>(
-    () => ({
-      fullName: currentUser?.displayName ?? "",
-      bio: currentUser?.bio ?? "",
-      gender: currentUser?.gender ?? "other",
-      dateOfBirth: currentUser?.dateOfBirth
-        ? String(currentUser.dateOfBirth).slice(0, 10)
-        : "",
-      avatarUrl: currentUser?.avatarUrl ?? null,
-      email: currentUser?.email ?? "",
-    }),
-    [currentUser]
-  );
-
-  const formik = useFormik<IUpdateMyProfilePayload>({
-    enableReinitialize: true,
-    initialValues,
-    validate: (values) => {
-      const errors: Partial<Record<keyof IUpdateMyProfilePayload, string>> = {};
-
-      if (!values.displayName?.trim()) {
-        errors.displayName = t("PROFILE.FULL_NAME_REQUIRED");
-      }
-
-      return errors;
-    },
-    onSubmit: async (values) => {
-      const userId = currentUser?.id;
-
-      if (!userId) {
-        setErrorAuth(t("PROFILE.USER_NOT_FOUND"));
-        return;
-      }
-
-      try {
-        setLoadingAuth(true);
-        setErrorAuth(null);
-
-        const payload: IUpdateMyProfilePayload = {
-          displayName: values.displayName?.trim() || "",
-          bio: values.bio?.trim() || null,
-          gender: ["male", "female", "other"].includes(String(values.gender))
-            ? (values.gender as Gender)
-            : "other",
-          dateOfBirth: values.dateOfBirth || null,
-        };
-
-        if (avatarFile) {
-          const uploadResult = await uploadMedia({
-            file: avatarFile,
-            userId: String(userId),
-          });
-
-          payload.avatarUrl = uploadResult.key ?? null;
-        }
-
-
-        const response = await userService.userUpdateProfile(payload);
-        const updatedUser = response?.payload;
-
-        if (updatedUser) {
-          const prevAuth = useAuthStore.getState().authData;
-
-          useAuthStore.getState().setAuthData({
-            success: true,
-            data: {
-              user: {
-                ...prevAuth?.data?.user,
-                ...updatedUser,
-                avatarUrl: updatedUser.avatarUrl ?? null,
-                avatarResolvedUrl:
-                  (updatedUser as any)?.avatarResolvedUrl ??
-                  (updatedUser as any)?.avatarUrl ??
-                  "",
-              },
-              tokens: prevAuth?.data?.tokens ?? {
-                accessToken: "",
-                refreshToken: "",
-                expiresIn: null,
-              },
-            },
-            meta: (response?.payload as any)?.meta,
-            message: (response?.payload as any)?.message,
-            timestamp: (response?.payload as any)?.timestamp
-          });
-        }
-
-        await refreshUserData();
-        handleCloseEditModal();
-      } catch (error: any) {
-        console.error("UPDATE PROFILE ERROR:", error);
-        console.error(
-          "UPDATE PROFILE ERROR BODY:",
-          error?.payload || error?.response?.data
-        );
-
-        setErrorAuth(
-          error?.message ||
-          error?.payload?.message ||
-          error?.response?.data?.message ||
-          t("PROFILE.UPDATE_FAILED")
-        );
-      } finally {
-        setLoadingAuth(false);
-      }
-    }
-  });
-
   const currentAvatar = avatarPreview
+    ? avatarPreview.startsWith("blob:")
+      ? avatarPreview
+      : resolveMediaUrl(avatarPreview)
+    : resolveMediaUrl(currentUser?.avatarUrl) || "/avatar.jpg";
 
-  const handleChooseAvatar = () => {
-    fileInputRef.current?.click();
+  const onCropComplete = (_croppedArea: any, croppedPixels: any) => {
+    setCroppedAreaPixels(croppedPixels);
+  };
+
+  const handleSaveCroppedAvatar = async () => {
+    try {
+      if (!selectedImageSrc || !croppedAreaPixels) return;
+
+      const croppedFile = await getCroppedImgFile(
+        selectedImageSrc,
+        croppedAreaPixels,
+        "avatar.jpg"
+      );
+
+      const croppedPreview = URL.createObjectURL(croppedFile);
+
+      if (avatarPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+
+      setAvatarFile(croppedFile);
+      setAvatarPreview(croppedPreview);
+      setOpenCropDialog(false);
+
+      if (selectedImageSrc?.startsWith("blob:")) {
+        URL.revokeObjectURL(selectedImageSrc);
+      }
+
+      setSelectedImageSrc("");
+    } catch (error: any) {
+      setErrorAuth(error?.message ?? "Không thể crop ảnh.");
+    }
   };
 
   const handleCloseProfileModal = () => {
@@ -232,169 +172,271 @@ export default function ProfileModals({
     setOpenEditProfileModal(true);
   };
 
-  const handleCloseEditModal = () => {
-    safeRevokeObjectUrl(avatarPreview);
-    safeRevokeObjectUrl(selectedImageSrc);
-
-    setAvatarPreview("");
-    setSelectedImageSrc("");
-    setAvatarFile(null);
-    setOpenEditProfileModal(false);
-    setPendingOpenEdit(false);
-    formik.resetForm();
+  const handleChooseAvatar = () => {
+    fileInputRef.current?.click();
   };
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-
-    if (!file) {
-      event.target.value = "";
-      return;
-    }
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setErrorAuth(t("PROFILE.SELECT_IMAGE"));
-      event.target.value = "";
+      setErrorAuth("Vui lòng chọn file ảnh");
       return;
     }
 
-    safeRevokeObjectUrl(selectedImageSrc);
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setErrorAuth("Ảnh không được vượt quá 5MB");
+      return;
+    }
 
     const previewUrl = URL.createObjectURL(file);
-    setAvatarFile(file);
     setSelectedImageSrc(previewUrl);
     setOpenCropDialog(true);
-
     event.target.value = "";
   };
 
-  const handleCropConfirm = async (croppedAreaPixels: Area) => {
+  const handleCloseEditModal = () => {
+    if (avatarPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(null);
+    setAvatarPreview("");
+    setOpenEditProfileModal(false);
+    setPendingOpenEdit(false);
+  };
+
+  const handleUpdateMyProfile = async () => {
+    const user = authData?.data?.user;
+    const userId = user?.id;
+
+    if (!user || !userId) {
+      setErrorAuth("Không tìm thấy thông tin người dùng");
+      return;
+    }
+
+    const displayName = editProfileData.displayName?.trim() ?? "";
+    const bio = editProfileData.bio?.trim() ?? "";
+    const gender = editProfileData.gender ?? "other";
+    const dateOfBirth = editProfileData.dateOfBirth || null;
+
+    if (!displayName) {
+      setErrorAuth("Họ và tên không được để trống");
+      return;
+    }
+
     try {
-      if (!selectedImageSrc || !avatarFile) return;
+      setLoadingAuth(true);
+      setErrorAuth(null);
 
-      const croppedFile = await getCroppedImgFile(
-        selectedImageSrc,
-        croppedAreaPixels,
-        avatarFile.name || "avatar.jpg"
-      );
+      let uploadedAvatarUrl = user.avatarUrl;
 
-      safeRevokeObjectUrl(avatarPreview);
+      if (avatarFile) {
+        const uploadResult = await uploadMedia({
+          file: avatarFile,
+          userId: String(userId),
+        });
 
-      const nextPreview = URL.createObjectURL(croppedFile);
+        uploadedAvatarUrl = uploadResult.key;
+      }
+      console.log("avatarKey before update profile:", uploadedAvatarUrl);
+      const payload: IUpdateMyProfilePayload = {
+        displayName,
+        bio: bio || null,
+        gender,
+        dateOfBirth,
+        avatarUrl: uploadedAvatarUrl || undefined,
+      };
+      console.log("update profile payload:", payload);
+      const response = await userService.userUpdateProfile(payload);
+      const returnedUser = response?.payload?.data ?? null;
 
-      setAvatarFile(croppedFile);
-      setAvatarPreview(nextPreview);
-      setOpenCropDialog(false);
+      const mergedUser: IUser = {
+        ...user,
+        ...(returnedUser ?? {}),
+        ...payload,
+        avatarUrl:
+          returnedUser?.avatarUrl ??
+          uploadedAvatarUrl ??
+          user.avatarUrl ??
+          null,
+      } as IUser;
 
-      safeRevokeObjectUrl(selectedImageSrc);
+      setAuthData({
+        success: authData?.success ?? true,
+        message: authData?.message,
+        timestamp: authData?.timestamp,
+        meta: authData?.meta,
+        data: {
+          user: mergedUser,
+          tokens: authData?.data?.tokens ?? {
+            accessToken: "",
+            refreshToken: "",
+            expiresIn: 0,
+          },
+        },
+      });
+
+      if (avatarPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+
+      setAvatarFile(null);
+      setAvatarPreview("");
       setSelectedImageSrc("");
+      setOpenEditProfileModal(false);
+      setPendingOpenEdit(false);
     } catch (error: any) {
-      setErrorAuth(error?.message ?? t("PROFILE.CROP_ERROR"));
+      console.error("update profile error:", error);
+      setErrorAuth(
+        error?.message ||
+        error?.payload?.message ||
+        error?.response?.data?.message ||
+        "Cập nhật hồ sơ thất bại"
+      );
+    } finally {
+      setLoadingAuth(false);
     }
   };
 
   useEffect(() => {
     return () => {
-      safeRevokeObjectUrl(avatarPreview);
-      safeRevokeObjectUrl(selectedImageSrc);
+      if (avatarPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
     };
-  }, [avatarPreview, selectedImageSrc]);
+  }, [avatarPreview]);
+
+  useEffect(() => {
+    if (!openEditProfileModal) return;
+
+    const normalizedDateOfBirth = currentUser?.dateOfBirth
+      ? String(currentUser.dateOfBirth).slice(0, 10)
+      : "";
+
+    setEditProfileField("username", currentUser?.username ?? "");
+    setEditProfileField("email", currentUser?.email ?? "");
+    setEditProfileField("displayName", currentUser?.displayName ?? "");
+    setEditProfileField("bio", currentUser?.bio ?? "");
+    setEditProfileField("gender", currentUser?.gender ?? "other");
+    setEditProfileField("dateOfBirth", normalizedDateOfBirth);
+    setEditProfileField("phone", currentUser?.phone ?? "");
+    setEditProfileField("isActive", String(currentUser?.isActive ?? false));
+    setEditProfileField("createdAt", currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('vi-VN') : "");
+    setEditProfileField("updatedAt", currentUser?.updatedAt ? new Date(currentUser.updatedAt).toLocaleDateString('vi-VN') : "");
+
+    setAvatarPreview("");
+    setAvatarFile(null);
+  }, [openEditProfileModal, currentUser, setEditProfileField]);
 
   return (
     <>
-      <AppModal
+      <ProfileDialog
         open={openProfileModal}
         onClose={handleCloseProfileModal}
-        title={t("PROFILE.ACCOUNT_INFO")}
+        fullWidth
         maxWidth="xs"
-        headerDivider
         slotProps={{
           transition: {
             onExited: handleProfileDialogExited,
           },
         }}
-        actions={
-          <Button
-            fullWidth
-            sx={{border:"none", textTransform:"none"}}
-            startIcon={<BorderColorOutlinedIcon/>}
-            variant="outlined"
-            color="inherit"
-            onClick={() => {
-              setPendingOpenEdit(true);
-              setOpenProfileModal(false);
-            }}
-          >
-            {t("PROFILE.UPDATE")}
-          </Button>
-        }
       >
-        <ProfileHeader>
-          <AvatarWrapper>
-            <AvatarStyled
-              src={(currentUser?.avatarUrl) || "/avatar.jpg"}
-            />
-          </AvatarWrapper>
+        <ProfileDialogTitle>
+          Thông tin tài khoản
+          <IconButton onClick={handleCloseProfileModal} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </ProfileDialogTitle>
 
-          <Box>
-            <Typography paddingBottom={0} fontSize={16} fontWeight={600}>
-              {currentUser?.displayName ?? ""}
-            </Typography>
-          </Box>
-        </ProfileHeader>
-        <Stack gap="10px">
-          <Typography fontSize={16} fontWeight={600}>{t("PROFILE.TITLE")}</Typography>
-          <Stack gap="10px">
-            {currentUser?.bio ? <InfoRow label={t("PROFILE.BIO")} value={currentUser.bio} /> : null}
-            <InfoRow label={t("PROFILE.GENDER")} value={currentUser?.gender ?? ""} />
-            <InfoRow
-              label={t("PROFILE.DATE_OF_BIRTH")}
-              value={
-                currentUser?.dateOfBirth
-                  ? String(currentUser.dateOfBirth).slice(0, 10)
-                  : ""
-              }
-            />
-            <InfoRow label={t("PROFILE.PHONE")} value={currentUser?.phone ?? ""} />
-          </Stack>
-        </Stack>
+        <ProfileDialogContent>
+          <ProfileHeader>
+            <AvatarWrapper>
+              <AvatarStyled src={resolveMediaUrl(currentUser?.avatarUrl) || "/avatar.jpg"} />
+            </AvatarWrapper>
 
+            <Box>
+              <Typography fontSize="16px" fontWeight={600}>
+                {currentUser?.displayName ?? ""}
+              </Typography>
+              <Typography fontSize="13px" color="text.secondary">
+                Thông tin tài khoản
+              </Typography>
+            </Box>
+          </ProfileHeader>
 
-        {/* <Divider sx={{ m: "16px 0" }} /> */}
-      </AppModal>
+          <Divider sx={{ mb: 2 }} />
 
-      <AppModal
-        open={openEditProfileModal}
-        onClose={handleCloseEditModal}
-        title={t("PROFILE.EDIT_INFO")}
-        maxWidth="xs"
-        actions={
-          <>
+          <InfoRow label="Username" value={currentUser?.username ?? ""} />
+          <InfoRow label="Email" value={currentUser?.email ?? ""} />
+          {currentUser?.bio ? <InfoRow label="Bio" value={currentUser.bio} /> : null}
+          <InfoRow label="Giới tính" value={currentUser?.gender ?? ""} />
+          <InfoRow
+            label="Ngày sinh"
+            value={
+              currentUser?.dateOfBirth
+                ? String(currentUser.dateOfBirth).slice(0, 10)
+                : ""
+            }
+          />
+          <InfoRow label="Điện thoại" value={currentUser?.phone ?? ""} />
+          <InfoRow label="Trạng thái" value={currentUser?.isActive ? "Hoạt động" : "Không hoạt động"} />
+          <InfoRow 
+            label="Ngày tạo" 
+            value={
+              currentUser?.createdAt
+                ? new Date(currentUser.createdAt).toLocaleDateString('vi-VN')
+                : ""
+            } 
+          />
+          <InfoRow 
+            label="Cập nhật lần cuối" 
+            value={
+              currentUser?.updatedAt
+                ? new Date(currentUser.updatedAt).toLocaleDateString('vi-VN')
+                : ""
+            } 
+          />
+
+          <Divider sx={{ m: "16px 0px" }} />
+
+          <Box display="flex" justifyContent="center" width="100%">
             <Button
               fullWidth
               variant="outlined"
-              onClick={handleCloseEditModal}
-              disabled={loadingAuth}
-            >
-              {t("COMMON.BACK")}
-            </Button>
-
-            <LoadingButton
-              fullWidth
-              variant="contained"
-              type="button"
-              loading={loadingAuth}
-              disabled={loadingAuth}
               onClick={() => {
-                formik.submitForm();
+                setPendingOpenEdit(true);
+                setOpenProfileModal(false);
               }}
             >
-              {t("PROFILE.SAVE")}
-            </LoadingButton>
-          </>
-        }
+              Chỉnh sửa
+            </Button>
+          </Box>
+        </ProfileDialogContent>
+      </ProfileDialog>
+
+      <Dialog
+        open={openEditProfileModal}
+        onClose={handleCloseEditModal}
+        fullWidth
+        maxWidth="xs"
       >
-        <form onSubmit={formik.handleSubmit}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          Chỉnh sửa thông tin
+          <IconButton onClick={handleCloseEditModal} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent>
           <ProfileHeader>
             <AvatarWrapper onClick={handleChooseAvatar}>
               <AvatarStyled src={currentAvatar} />
@@ -404,11 +446,11 @@ export default function ProfileModals({
             </AvatarWrapper>
 
             <Box>
-              <Typography fontSize={16} fontWeight={600}>
-                {currentUser?.displayName ?? ""}
+              <Typography fontSize="16px" fontWeight={600}>
+                {editProfileData.displayName ?? ""}
               </Typography>
-              <Typography fontSize={13} color="text.secondary">
-                {t("PROFILE.CHANGE_AVATAR_HINT")}
+              <Typography fontSize="13px" color="text.secondary">
+                Nhấn vào ảnh để đổi avatar
               </Typography>
             </Box>
 
@@ -424,73 +466,137 @@ export default function ProfileModals({
           <Divider sx={{ mb: 2 }} />
 
           <TextField
+            label="Họ và tên"
             fullWidth
             margin="dense"
-            label={t("PROFILE.FULL_NAME")}
-            name="displayName"
-            value={formik.values.displayName ?? ""}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            error={formik.touched.displayName && Boolean(formik.errors.displayName)}
-            helperText={formik.touched.displayName ? formik.errors.displayName : ""}
+            value={editProfileData.displayName ?? ""}
+            onChange={(e) => setEditProfileField("displayName", e.target.value)}
           />
 
           <TextField
+            label="Bio"
             fullWidth
             margin="dense"
-            label={t("PROFILE.BIO")}
-            name="bio"
-            value={formik.values.bio ?? ""}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
+            value={editProfileData.bio ?? ""}
+            onChange={(e) => setEditProfileField("bio", e.target.value)}
           />
 
           <FormControl component="fieldset" margin="dense" sx={{ mt: 2 }}>
-            <FormLabel component="legend">{t("PROFILE.GENDER")}</FormLabel>
+            <FormLabel component="legend">Giới tính</FormLabel>
             <RadioGroup
               row
-              name="gender"
-              value={formik.values.gender ?? "other"}
-              onChange={formik.handleChange}
+              value={editProfileData.gender ?? "other"}
+              onChange={(e) => setEditProfileField("gender", e.target.value)}
             >
-              <FormControlLabel value="male" control={<Radio />} label={t("PROFILE.GENDER_MALE")} />
-              <FormControlLabel value="female" control={<Radio />} label={t("PROFILE.GENDER_FEMALE")} />
-              <FormControlLabel value="other" control={<Radio />} label={t("PROFILE.GENDER_OTHER")} />
+              <FormControlLabel value="male" control={<Radio />} label="Nam" />
+              <FormControlLabel value="female" control={<Radio />} label="Nữ" />
+              <FormControlLabel value="other" control={<Radio />} label="Khác" />
             </RadioGroup>
           </FormControl>
 
           <TextField
+            label="Ngày sinh"
+            type="date"
             fullWidth
             margin="dense"
-            label={t("PROFILE.DATE_OF_BIRTH")}
-            type="date"
-            name="dateOfBirth"
-            value={formik.values.dateOfBirth ?? ""}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
+            value={editProfileData.dateOfBirth ?? ""}
+            onChange={(e) => setEditProfileField("dateOfBirth", e.target.value)}
             InputLabelProps={{ shrink: true }}
           />
 
-          <TextField
-            fullWidth
-            margin="dense"
-            label={t("PROFILE.PHONE")}
-            value={currentUser?.phone ?? ""}
-            disabled
-          />
-        </form>
-      </AppModal>
+          
+          <Divider sx={{ m: "16px 0px" }} />
 
-      <CropDialog
+          <Box display="flex" gap={1}>
+            <Button fullWidth variant="outlined" onClick={handleCloseEditModal}>
+              Hủy
+            </Button>
+
+            <Button fullWidth variant="contained" onClick={handleUpdateMyProfile}>
+              Lưu
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={openCropDialog}
-        imageSrc={selectedImageSrc}
-        onClose={() => {
-          safeRevokeObjectUrl(selectedImageSrc);
-          setSelectedImageSrc("");
-          setOpenCropDialog(false);
-        }}
-        onConfirm={handleCropConfirm}
-      />
+        onClose={() => setOpenCropDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          Cắt ảnh đại diện
+          <IconButton onClick={() => setOpenCropDialog(false)} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent>
+          <Box
+            sx={{
+              position: "relative",
+              width: "100%",
+              height: 320,
+              bgcolor: "#000",
+              borderRadius: 2,
+              overflow: "hidden",
+            }}
+          >
+            {selectedImageSrc ? (
+              <Cropper
+                image={selectedImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            ) : null}
+          </Box>
+
+          <Box mt={2}>
+            <Typography fontSize="13px" mb={1}>
+              Thu phóng
+            </Typography>
+            <Slider
+              value={zoom}
+              min={1}
+              max={3}
+              step={0.1}
+              onChange={(_, value) => setZoom(value as number)}
+            />
+          </Box>
+
+          <Box display="flex" gap={1} mt={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setOpenCropDialog(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleSaveCroppedAvatar}
+            >
+              Lưu
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </>
   );
-}
+};
+
+export default ProfileModals;

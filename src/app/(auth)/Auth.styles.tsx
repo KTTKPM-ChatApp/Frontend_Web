@@ -271,62 +271,6 @@ export const StyledGenderItem = styled(MenuItem)({
     },
 });
 
-export const StyledOtpInput = styled("input")({
-    width: 42,
-    height: 48,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: 600,
-    borderRadius: 8,
-    border: "1px solid #d0d0d0",
-    outline: "none",
-    transition: "all 0.2s ease",
-    backgroundColor: "#fff",
-
-    "&:focus": {
-        borderColor: "#1976D2",
-        boxShadow: "0 0 0 2px rgba(25, 118, 210, 0.15)",
-    },
-
-    "&:hover": {
-        borderColor: "#90CAF9",
-    },
-
-    "&:disabled": {
-        backgroundColor: "#f5f5f5",
-        cursor: "not-allowed",
-        color: "#aaa",
-    },
-
-    // remove arrows in number input (if type="number")
-    "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-        WebkitAppearance: "none",
-        margin: 0,
-    },
-    "&[type=number]": {
-        MozAppearance: "textfield",
-    },
-});
-
-export const CaptchaWrapper = styled(Box)({
-    width: "100%",
-    display: "flex",
-    justifyContent: "center",
-});
-
-export const CaptchaBox = styled(Box)({
-    width: "100%",
-    maxWidth: 360,
-    display: "flex",
-    justifyContent: "center",
-    transform: "scale(1.1)",
-    transformOrigin: "center",
-    "& iframe": {
-        transform: "scale(1.05)",
-        transformOrigin: "center",
-    },
-});
-
 export const HelperTextAuth = styled(Typography)(({ theme }) => ({
     fontSize: "11px",
     lineHeight: 1.2,

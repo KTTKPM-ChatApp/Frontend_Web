@@ -2,7 +2,7 @@ export type MediaVisibility = "public" | "private";
 export type AttachmentType = "image" | "video" | "audio" | "document";
 export interface UploadMediaParams {
     file: File;
-    userId?: string;
+    userId: string;
     conversationId?: string;
 }
 
@@ -25,6 +25,4 @@ export interface ChatAttachmentPayload {
     content_type: string;
     thumbnail_key?: string;
     visibility: "public" | "private";
-    url?: string | null;
-    thumbnailUrl?: string;
 }

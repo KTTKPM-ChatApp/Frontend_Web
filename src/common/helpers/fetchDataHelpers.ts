@@ -1,9 +1,7 @@
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
-import { authService } from "../service/auth-service";
 import { userService } from "../service/user-service";
-import { getRefreshToken, getSessionToken, getTokenExpiresIn } from "../utilities/utils";
-import { string } from "yup";
+import { getRefreshToken, getSessionToken } from "../utilities/utils";
 
 /**
  * FETCH AUTH DATA từ server
@@ -15,32 +13,28 @@ export const fetchAuthData = async () => {
         authStore.setLoadingAuth(true);
         authStore.setErrorAuth(null);
         const userData = await userService.userGetMe();
-        
-        if (userData?.ok && userData?.payload) {
-            const user = userData.payload;
+        const user = userData?.payload?.data ?? null;
+        if (user) {
             authStore.setAuthData({
                 success: true,
                 data: {
+                    accessToken: String(getSessionToken()),
+                    refreshToken: String(getRefreshToken()),
                     user: {
                         ...user,
-                        avatarUrl: user.avatarUrl ?? null,
-                    },
-                    tokens: authStore.authData?.data?.tokens ?? {
-                        accessToken: String(getSessionToken()),
-                        refreshToken: String(getRefreshToken()) ,
-                        expiresIn: Number(getTokenExpiresIn()),
+                        avatarUrl: user.avatarUrl ?? undefined,
                     },
                 },
-                meta: null,
+                meta: userData?.payload?.meta ?? null,
                 message: userData?.payload?.message,
                 timestamp: userData?.payload?.timestamp,
             });
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Failed to fetch auth data:", error);
         useAuthStore
             .getState()
-            .setErrorAuth(error?.message || "Lỗi khi tải thông tin người dùng");
+            .setErrorAuth((error as Error)?.message || "Lỗi khi tải thông tin người dùng");
     } finally {
         useAuthStore.getState().setLoadingAuth(false);
     }
@@ -55,7 +49,6 @@ export const fetchConversations = async (params = { page: 1, limit: 20 }) => {
         useChatStore.getState().setError(null);
 
         // Gọi method từ store
-        console.log('fetchConversations called with params:', params);
         await useChatStore.getState().fetchListConversation(params);
 
         // Set active conversation nếu có
@@ -63,9 +56,9 @@ export const fetchConversations = async (params = { page: 1, limit: 20 }) => {
         if (listConversation.length > 0) {
             useChatStore.getState().setActiveConversationId(listConversation[0]?.id || null);
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Failed to fetch conversations:", error);
-        useChatStore.getState().setError(error?.message || "Không thể tải danh sách cuộc trò chuyện");
+        useChatStore.getState().setError((error as Error)?.message || "Không thể tải danh sách cuộc trò chuyện");
     }
 };
 

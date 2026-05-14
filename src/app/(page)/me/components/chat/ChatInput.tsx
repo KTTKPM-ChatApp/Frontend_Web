@@ -1,27 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Box, IconButton, TextField } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import MicIcon from "@mui/icons-material/Mic";
 import dynamic from "next/dynamic";
 import InsertEmoticonRoundedIcon from "@mui/icons-material/InsertEmoticonRounded";
-import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import ImageIcon from "@mui/icons-material/Image";
 import { EmojiClickData } from "emoji-picker-react";
-
-import { ChatAttachmentPayload } from "@/src/common/interface/media-interface";
-import { getCurrentUserId } from "@/src/common/utilities/utils";
-import { useChatStore } from "@/src/common/store/useChatStore";
-import { useAuthStore } from "@/src/common/store/useAuthStore";
-import { uploadManyMedia } from "@/src/common/service/media-service";
-import { UiMessage } from "@/src/common/interface/chat-interface";
-import { useTypingIndicator } from "@/src/common/hooks/useTypingIndicator";
-import { getSocket } from "@/src/common/socket/socket";
-import { useTrans } from "@/src/common/utilities/hook/trans";
-
-import ComposerToolbar from "./ComposerToolbar";
-import { buildChatAttachmentPayload, sanitizeInputText } from "@/src/common/helpers/chatInput.helpers";
-import PendingAttachmentList from "./PendingAttachmentsList";
-import ComposerActionPreview from "./ComposerActionPreview";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
@@ -29,80 +18,81 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
 
 interface ChatInputProps {
   disabled?: boolean;
-  replyMessage?: UiMessage | null;
-  editMessage?: UiMessage | null;
-  onCancelReply?: () => void;
-  onCancelEdit?: () => void;
-  onSend: (
-    value: string,
-    attachments?: ChatAttachmentPayload[]
-  ) => void | Promise<void>;
-  onEdit?: (messageId: string, value: string) => void | Promise<void>;
+  onSend: (value: string) => void;
 }
 
-const ComposerContainer = styled(Box)({
-  borderTop: "1px solid #EEF1F4",
+const ChatInputContainer = styled(Box)({
   background: "#fff",
+  borderTop: "1px solid #E5E7EB",
+  padding: "12px 14px",
 });
 
-const ComposerWrap = styled(Box)({
-  minHeight: 50,
-  maxHeight: 50,
-  background: "#fff",
+const InputRow = styled(Box)({
   display: "flex",
-  alignItems: "center",
-  boxSizing: "border-box",
-});
-
-const ComposerRow = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  width: "100%",
-  height: "100%",
+  alignItems: "flex-end",
   gap: 8,
 });
 
-const StyledTextField = styled(TextField)({
+const InputField = styled(TextField)({
   flex: 1,
   "& .MuiOutlinedInput-root": {
-    paddingRight: 4,
-    alignItems: "center",
+    borderRadius: 18,
+    backgroundColor: "#F3F4F6",
+    "&:hover": {
+      backgroundColor: "#EFF2F7",
+    },
+    "&.Mui-focused": {
+      backgroundColor: "#FFFFFF",
+      boxShadow: "0 0 0 2px #D8E8FF",
+    },
   },
   "& .MuiOutlinedInput-notchedOutline": {
     borderColor: "transparent",
   },
-  "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-    borderColor: "transparent",
-  },
-  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-    borderColor: "transparent",
-  },
   "& .MuiInputBase-input": {
-    fontSize: 15,
-    color: "#111827",
-    lineHeight: 1.2,
+    fontSize: 14,
+    color: "#0F172A",
+    padding: "10px 14px",
   },
   "& .MuiInputBase-input::placeholder": {
-    opacity: 0.5,
-    paddingLeft: 4,
+    color: "#94A3B8",
+  },
+});
+
+const ActionButton = styled(IconButton)({
+  width: 34,
+  height: 34,
+  borderRadius: 8,
+  color: "#64748B",
+  backgroundColor: "#F8FAFC",
+  "&:hover": {
+    backgroundColor: "#E5E7EB",
+    color: "#0F172A",
+  },
+});
+
+const SendButton = styled(IconButton)({
+  width: 34,
+  height: 34,
+  borderRadius: 8,
+  backgroundColor: "#0078FF",
+  color: "#FFFFFF",
+  "&:hover": {
+    backgroundColor: "#0056CC",
+  },
+  "&:disabled": {
+    backgroundColor: "#E5E7EB",
+    color: "#94A3B8",
   },
 });
 
 const EmojiWrap = styled(Box)({
   position: "relative",
-  width: 36,
-  minWidth: 36,
-  height: 36,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-  marginRight: 8,
 });
 
 const PickerBox = styled(Box)({
   position: "absolute",
-  bottom: 46,
+  bottom: 44,
   right: 0,
   zIndex: 20,
   boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
@@ -110,150 +100,30 @@ const PickerBox = styled(Box)({
   overflow: "hidden",
 });
 
-const StyledIconButton = styled(IconButton)({
-  width: 36,
-  minWidth: 36,
-  height: 36,
-  borderRadius: 10,
-  color: "#64748B",
-  flexShrink: 0,
-  "&:hover": {
-    background: "#F1F5F9",
-  },
-});
-
-export default function ChatInput({
-  disabled,
-  replyMessage,
-  editMessage,
-  onCancelReply,
-  onCancelEdit,
-  onSend,
-  onEdit,
-}: ChatInputProps) {
-  const t = useTrans();
+export default function ChatInput({ disabled, onSend }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [openEmoji, setOpenEmoji] = useState(false);
-  const [pendingAttachments, setPendingAttachments] = useState<
-    ChatAttachmentPayload[]
-  >([]);
-  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const hasText = !!value.trim();
 
-  const textInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const currentUserId = getCurrentUserId();
-  const conversationId = useChatStore((s) => s.activeConversationId);
-  const socket = getSocket();
-  const currentUser = useAuthStore((s) => s.authData?.data?.user);
-
-  const { emitTyping } = useTypingIndicator({
-    socket,
-    conversationId: conversationId || '',
-    myUserId: currentUserId || '',
-    enabled: !!conversationId && !!socket,
-  });
-
-  const toolbarDisabled = disabled || !!editMessage;
-
-  const canSubmit = useMemo(() => {
-    if (disabled || uploading) return false;
-
-    if (editMessage) {
-      return !!sanitizeInputText(value);
-    }
-
-    return !!sanitizeInputText(value) || pendingAttachments.length > 0;
-  }, [disabled, uploading, editMessage, value, pendingAttachments.length]);
-
-  const handleSelectFiles = async (files: FileList | null) => {
-    if (
-      !files ||
-      files.length === 0 ||
-      toolbarDisabled ||
-      !currentUserId ||
-      !conversationId
-    ) {
-      return;
-    }
-
-    try {
-      setUploading(true);
-
-      const fileArray = Array.from(files);
-      const uploadedList = await uploadManyMedia(fileArray, conversationId);
-
-      const nextAttachments = uploadedList.map((uploaded, index) =>
-        buildChatAttachmentPayload(uploaded, fileArray[index])
-      );
-
-      setPendingAttachments((prev) => [...prev, ...nextAttachments]);
-    } catch (error) {
-      console.error("upload attachment error:", error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleImageChange: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
-    await handleSelectFiles(e.target.files);
-    e.target.value = "";
-  };
-
-  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
-    await handleSelectFiles(e.target.files);
-    e.target.value = "";
-  };
-
-  const handleRemoveAttachment = (key: string) => {
-    setPendingAttachments((prev) => prev.filter((item) => item.key !== key));
-  };
-
-  const handleSend = async () => {
-    const text = sanitizeInputText(value);
-
-    if (editMessage) {
-      if (!text || disabled || uploading) return;
-
-      await onEdit?.(editMessage.messageId, text);
-      setValue("");
-      setOpenEmoji(false);
-      onCancelEdit?.();
-      return;
-    }
-
-    if ((!text && pendingAttachments.length === 0) || disabled || uploading) {
-      return;
-    }
-
-    await onSend(text, pendingAttachments);
-
+  const handleSend = () => {
+    const text = value.trim();
+    if (!text || disabled) return;
+    onSend(text);
     setValue("");
-    setPendingAttachments([]);
     setOpenEmoji(false);
-    onCancelReply?.();
   };
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  };
-
-  const handleInputChange: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (e) => {
-    setValue(e.target.value);
-    if (e.target.value.trim() && conversationId) {
-      const username = currentUser?.fullName || 'Bạn';
-      emitTyping(username);
+  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
     }
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
-    const input = textInputRef.current;
+    const input = inputRef.current;
     const emoji = emojiData.emoji;
-
     if (!input) {
       setValue((prev) => prev + emoji);
       return;
@@ -261,9 +131,8 @@ export default function ChatInput({
 
     const start = input.selectionStart ?? value.length;
     const end = input.selectionEnd ?? value.length;
-
-    const nextValue = value.slice(0, start) + emoji + value.slice(end);
-    setValue(nextValue);
+    const newValue = value.slice(0, start) + emoji + value.slice(end);
+    setValue(newValue);
 
     requestAnimationFrame(() => {
       input.focus();
@@ -272,84 +141,62 @@ export default function ChatInput({
     });
   };
 
-  useEffect(() => {
-    if (editMessage) {
-      setValue(sanitizeInputText(editMessage.body));
-      setPendingAttachments([]);
-      requestAnimationFrame(() => textInputRef.current?.focus());
-    }
-  }, [editMessage]);
-
   return (
-    <ComposerContainer data-testid="chat-input">
-      <ComposerToolbar
-        disabled={toolbarDisabled}
-        uploading={uploading}
-        imageInputRef={imageInputRef}
-        fileInputRef={fileInputRef}
-        onImageChange={handleImageChange}
-        onFileChange={handleFileChange}
-      />
+    <ChatInputContainer>
+      <InputRow>
+        <ActionButton disabled={disabled}>
+          <AttachFileIcon fontSize="small" />
+        </ActionButton>
 
-      <PendingAttachmentList
-        attachments={pendingAttachments}
-        onRemove={handleRemoveAttachment}
-      />
+        <InputField
+          fullWidth
+          multiline
+          minRows={1}
+          maxRows={4}
+          placeholder="Nhập tin nhắn..."
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          inputRef={inputRef}
+        />
 
-      <ComposerActionPreview
-        replyMessage={replyMessage}
-        editMessage={editMessage}
-        onCancelReply={onCancelReply}
-        onCancelEdit={onCancelEdit}
-      />
+        <EmojiWrap>
+          <ActionButton onClick={() => setOpenEmoji((prev) => !prev)} disabled={disabled} aria-label="emoji">
+            <InsertEmoticonRoundedIcon fontSize="small" />
+          </ActionButton>
+          {openEmoji && (
+            <PickerBox>
+              <EmojiPicker
+                onEmojiClick={handleEmojiClick}
+                width={320}
+                height={400}
+                previewConfig={{ showPreview: false }}
+                searchDisabled={false}
+                skinTonesDisabled
+              />
+            </PickerBox>
+          )}
+        </EmojiWrap>
 
-      <ComposerWrap>
-        <ComposerRow>
-          <StyledTextField
-            fullWidth
-            multiline
-            minRows={1}
-            maxRows={1}
-            placeholder={t("CHAT.PLACEHOLDER")}
-            value={value}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            disabled={disabled || uploading}
-            inputRef={textInputRef}
-          />
+        <ActionButton disabled={disabled}>
+          <CameraAltIcon fontSize="small" />
+        </ActionButton>
 
-          <EmojiWrap>
-            <StyledIconButton
-              onClick={() => setOpenEmoji((prev) => !prev)}
-              disabled={disabled || uploading}
-              aria-label="emoji"
-            >
-              <InsertEmoticonRoundedIcon fontSize="small" />
-            </StyledIconButton>
+        <ActionButton disabled={disabled}>
+          <ImageIcon fontSize="small" />
+        </ActionButton>
 
-            {openEmoji && (
-              <PickerBox>
-                <EmojiPicker
-                  onEmojiClick={handleEmojiClick}
-                  width={320}
-                  height={400}
-                  previewConfig={{ showPreview: false }}
-                  searchDisabled={false}
-                  skinTonesDisabled
-                />
-              </PickerBox>
-            )}
-          </EmojiWrap>
-
-          <StyledIconButton
-            onClick={() => void handleSend()}
-            disabled={!canSubmit}
-            aria-label="send-message"
-          >
+        {hasText ? (
+          <SendButton onClick={handleSend} disabled={disabled} aria-label="send">
             <SendRoundedIcon fontSize="small" />
-          </StyledIconButton>
-        </ComposerRow>
-      </ComposerWrap>
-    </ComposerContainer>
+          </SendButton>
+        ) : (
+          <ActionButton disabled={disabled} aria-label="record">
+            <MicIcon fontSize="small" />
+          </ActionButton>
+        )}
+      </InputRow>
+    </ChatInputContainer>
   );
 }

@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   Avatar,
   Box,
+  Button,
   Card,
   CardContent,
-  CircularProgress,
-  InputAdornment,
-  Stack,
-  TextField,
+  Grid,
   Typography,
 } from "@mui/material";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import { styled } from "@mui/material/styles";
-import SearchIcon from "@mui/icons-material/Search";
-
-import { useChatStore } from "@/src/common/store/useChatStore";
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import GroupIcon from "@mui/icons-material/Group";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import CreateGroupModal from "../chat/CreateGroupModal";
 
 const Root = styled(Box)({
   height: "100%",
@@ -33,12 +29,11 @@ const Header = styled(Box)({
   display: "flex",
   alignItems: "center",
   padding: "0 20px",
-  gap:"8px"
 });
 
 const HeaderTitle = styled(Typography)({
-  fontSize: "16px",
-  fontWeight: 600,
+  fontSize: 24,
+  fontWeight: 700,
   color: "#0F172A",
 });
 
@@ -48,172 +43,139 @@ const Content = styled(Box)({
   overflowY: "auto",
 });
 
-const SectionTitle = styled(Typography)({
-  fontSize: 16,
-  fontWeight: 700,
-  color: "#0F172A",
-  marginBottom: 14,
-});
-
-const FilterWrap = styled(Box)({
-  padding: 16,
-  background: "#FFFFFF",
+const GroupCard = styled(Card)({
   borderRadius: 12,
   border: "1px solid #E5E7EB",
-  marginBottom: 16,
+  boxShadow: "none",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  "&:hover": {
+    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  },
 });
 
-const EmptyWrap = styled(Box)({
-  height: 260,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+const GroupAvatar = styled(Avatar)({
+  width: 48,
+  height: 48,
+  backgroundColor: "#005AE0",
+});
+
+const GroupName = styled(Typography)({
+  fontSize: 16,
+  fontWeight: 600,
+  color: "#0F172A",
+  marginBottom: 4,
+});
+
+const GroupInfo = styled(Typography)({
+  fontSize: 14,
   color: "#64748B",
 });
 
-function normalizeText(value?: string | null) {
-  return (value || "").trim().toLowerCase();
+interface GroupListProps {
+  groups?: Array<{
+    id: string;
+    name: string;
+    memberCount: number;
+    avatar?: string;
+    description?: string;
+  }>;
+  onCreateGroup?: () => void;
+  onGroupClick?: (groupId: string) => void;
 }
 
-function getConversationAvatar(item: any) {
-  return item?.avatarUrl || item?.avatar || item?.imageUrl || null;
-}
+const GroupList: React.FC<GroupListProps> = ({
+  groups = [],
+  onCreateGroup = () => {},
+  onGroupClick = () => {},
+}) => {
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState("");
 
-function getConversationMemberCount(item: any) {
-  return (
-    item?.memberCount ||
-    item?.participantCount ||
-    item?.members?.length ||
-    item?.participants?.length ||
-    0
-  );
-}
-
-function getLastMessageText(item: any) {
-  if (typeof item?.lastMessage === "string") return item.lastMessage;
-  if (item?.lastMessage?.content) return item.lastMessage.content;
-  return "Chưa có tin nhắn";
-}
-
-function isGroupConversation(item: any) {
-  if (item?.type === "group") return true;
-  if (item?.conversationType === "group") return true;
-  if (item?.isGroup === true) return true;
-  if (getConversationMemberCount(item) > 2) return true;
-  return false;
-}
-
-export default function GroupList() {
-  const t = useTrans();
-  const [keyword, setKeyword] = useState("");
-
-  const listConversation = useChatStore((s) => s.listConversation);
-  const conversationLoading = useChatStore((s) => s.conversationLoading);
-  const fetchListConversation = useChatStore((s) => s.fetchListConversation);
-
-  const getConversationName = (item: any) => {
-    return item?.name || item?.title || item?.conversationName || t("FRIEND.GROUP_NO_NAME");
+  const handleCreateGroup = () => {
+    console.log("Create group:", { name: groupName, description: groupDescription });
+    setShowCreateGroupModal(false);
+    setGroupName("");
+    setGroupDescription("");
+    onCreateGroup();
   };
 
-  useEffect(() => {
-    void fetchListConversation({ page: 1, limit: 100 });
-  }, [fetchListConversation]);
-
-  const groups = useMemo(() => {
-    return (listConversation || []).filter(isGroupConversation);
-  }, [listConversation]);
-
-  const filteredGroups = useMemo(() => {
-    const q = normalizeText(keyword);
-    if (!q) return groups;
-
-    return groups.filter((item: any) => {
-      const name = normalizeText(getConversationName(item));
-      return name.includes(q);
-    });
-  }, [groups, keyword]);
-
   return (
-    <Root>
-      <Header>
-        <GroupsOutlinedIcon/>
-        <HeaderTitle>{t("FRIEND.GROUP_TITLE")}</HeaderTitle>
-      </Header>
+    <>
+      <Root>
+        <Header>
+          <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+            <HeaderTitle>Nhóm của bạn</HeaderTitle>
+            <Button
+              variant="contained"
+              startIcon={<GroupIcon />}
+              onClick={() => setShowCreateGroupModal(true)}
+            >
+              Tạo nhóm
+            </Button>
+          </Box>
+        </Header>
 
-      <Content>
-        <SectionTitle>{t("FRIEND.GROUP_SECTION").replace("{count}", String(groups.length))}</SectionTitle>
+        <Content>
+          {groups.length === 0 ? (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              height={300}
+              color="#64748B"
+            >
+              <PeopleAltIcon sx={{ fontSize: 64, mb: 2 }} />
+              <Typography>Chưa có nhóm nào</Typography>
+              <Typography variant="body2" mt={1}>
+                Tạo nhóm mới để bắt đầu trò chuyện
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {groups.map((group) => (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={group.id}>
+                  <GroupCard onClick={() => onGroupClick(group.id)}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <GroupAvatar src={group.avatar}>
+                          <GroupIcon />
+                        </GroupAvatar>
+                        <Box flex={1}>
+                          <GroupName>{group.name}</GroupName>
+                          <GroupInfo>{group.memberCount} thành viên</GroupInfo>
+                          {group.description && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              noWrap
+                            >
+                              {group.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </GroupCard>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Content>
+      </Root>
 
-        <FilterWrap>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder={t("FRIEND.SEARCH_GROUP")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#64748B" }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </FilterWrap>
-
-        {conversationLoading ? (
-          <EmptyWrap>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <CircularProgress size={22} />
-              <Typography>{t("FRIEND.GROUP_LOADING")}</Typography>
-            </Stack>
-          </EmptyWrap>
-        ) : filteredGroups.length === 0 ? (
-          <Card sx={{ borderRadius: 3, border: "1px solid #E5E7EB", boxShadow: "none" }}>
-            <EmptyWrap>
-              <Typography>{t("FRIEND.NO_GROUPS")}</Typography>
-            </EmptyWrap>
-          </Card>
-        ) : (
-          <Card sx={{ borderRadius: 3, border: "1px solid #E5E7EB", boxShadow: "none" }}>
-            {filteredGroups.map((group: any, index: number) => (
-              <CardContent
-                key={group.id || group.conversationId || index}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  borderBottom:
-                    index < filteredGroups.length - 1 ? "1px solid #F1F5F9" : "none",
-                }}
-              >
-                <Avatar
-                  src={getConversationAvatar(group) || undefined}
-                  alt={getConversationName(group)}
-                  sx={{ width: 48, height: 48 }}
-                >
-                  {getConversationName(group).charAt(0).toUpperCase()}
-                </Avatar>
-
-                <Box>
-                  <Typography
-                    sx={{ fontSize: 16, fontWeight: 600, color: "#0F172A" }}
-                  >
-                    {getConversationName(group)}
-                  </Typography>
-
-                  <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.5 }}>
-                    {getConversationMemberCount(group)} {t("CONVO.MEMBERS")}
-                  </Typography>
-
-                  <Typography sx={{ fontSize: 13, color: "#475569", mt: 1 }}>
-                    {getLastMessageText(group)}
-                  </Typography>
-                </Box>
-              </CardContent>
-            ))}
-          </Card>
-        )}
-      </Content>
-    </Root>
+      <CreateGroupModal
+        open={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onCreate={(groupData) => {
+          console.log("Creating group:", groupData);
+          handleCreateGroup();
+        }}
+      />
+    </>
   );
-}
+};
+
+export default GroupList;

@@ -4,22 +4,15 @@ import * as React from "react";
 import { Box, Grid, Stack, Typography } from "@mui/material";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import HttpsRoundedIcon from "@mui/icons-material/HttpsRounded";
+import { TabContext } from "@mui/lab";
 
-import { COUNTRIES, Country } from "../../../constant";
 import {
     AuthTextField,
-    CountryDial,
-    CountryItem,
-    countryMenuProps,
-    CountryName,
-    CountryRow,
-    Forgot,
     GridIcon,
     GridPswFrm,
     HelperTextAuth,
     LoginButton,
     Panel,
-    PrefixSelect,
     ToRegisPage,
 } from "../../Auth.styles";
 import { FormikLike } from "@/src/common/interface/formik-interface";
@@ -48,8 +41,9 @@ export default function LoginPasswordTab(props: LoginPasswordTabProps) {
     const Trans = useTrans();
 
     return (
-        <Panel value="loginPsw">
-            <form autoComplete="off" onSubmit={formik.handleSubmit}>
+        <TabContext value="loginPsw">
+            <Panel value="loginPsw">
+                <form autoComplete="off" onSubmit={formik.handleSubmit}>
                 <PasswordFormStyled>
                     {/* EMAIL */}
                     <Box>
@@ -124,10 +118,6 @@ export default function LoginPasswordTab(props: LoginPasswordTabProps) {
                         {loading ? Trans("LOGIN.LOADING") : Trans("LOGIN.SUBMIT")}
                     </LoginButton>
 
-                    <Forgot>
-                        {Trans("LOGIN.FORGOT_PASSWORD")}
-                    </Forgot>
-
                     <ToRegisPage
                         onClick={onGoRegister}
                         variant="body2"
@@ -136,7 +126,8 @@ export default function LoginPasswordTab(props: LoginPasswordTabProps) {
                         {Trans("LOGIN.NO_ACCOUNT")}
                     </ToRegisPage>
                 </PasswordFormStyled>
-            </form>
-        </Panel>
+                </form>
+            </Panel>
+        </TabContext>
     );
 }

@@ -1,26 +1,22 @@
 "use client";
 
-import type { RefObject } from "react";
-import { CircularProgress, Box, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { UiMessage } from "@/src/common/interface/chat-interface";
+import { PaginationState, UiMessage } from "@/src/common/interface/chat-interface";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import MessageItem from "./MessageItem";
-import SystemMessageBanner from "./message-system/SystemMessageBanner";
-import { MediaPreviewItem } from "@/src/shared/component/MediaPreviewModal";
 
 interface MessageListProps {
-  listRef: RefObject<HTMLDivElement | null>;
+  listRef: React.RefObject<HTMLDivElement | null>;
   messages: UiMessage[];
   currentUserId: string;
   conversationId: string;
   onReplyMessage: (message: UiMessage) => void;
+  pagination?: PaginationState;
+  onLoadMore: (conversationId: string) => void;
+  onDeleteMessage: (conversationId: string, messageId: string) => void;
   onScroll: () => void;
   showScrollbar: boolean;
-  onMediaLoad?: (messageId: UiMessage["messageId"]) => void;
-  onForwardMessage: (message: UiMessage) => void;
-  highlightedMessageId?: string | null;
-  onOpenMedia?: (media: MediaPreviewItem, allMedia?: MediaPreviewItem[], initialIndex?: number) => void;
 }
 
 const MessagesWrap = styled(Box, {
@@ -28,7 +24,10 @@ const MessagesWrap = styled(Box, {
 })<{ showScrollbar: boolean }>(({ showScrollbar }) => ({
   flex: 1,
   overflowY: "auto",
-  background: "#EBECF0",
+  backgroundColor: "#F7F8FA",
+  backgroundImage:
+    "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.10) 1px, transparent 0)",
+  backgroundSize: "16px 16px",
   padding: 12,
   display: "flex",
   flexDirection: "column",
@@ -43,9 +42,6 @@ const MessagesWrap = styled(Box, {
     transition: "background-color 0.2s ease",
   },
   "&::-webkit-scrollbar-track": {
-    background: "transparent",
-  },
-  "&::-webkit-scrollbar-corner": {
     background: "transparent",
   },
 }));
@@ -91,54 +87,21 @@ export default function MessageList({
   currentUserId,
   conversationId,
   onReplyMessage,
+  onDeleteMessage,
   onScroll,
   showScrollbar,
-  onMediaLoad,
-  onForwardMessage,
-  highlightedMessageId,
-  onOpenMedia,
 }: MessageListProps) {
   const paginationByConversation = useChatStore((s) => s.paginationByConversation);
-  const deleteMessage = useChatStore((s) => s.deleteMessage);
-
-  const scrollToRepliedMessage = (
-    targetMessageId?: UiMessage["messageId"] | null
-  ) => {
-    if (targetMessageId === null || targetMessageId === undefined) return;
-
-    const wrap = listRef.current;
-    if (!wrap) return;
-
-    const target = wrap.querySelector(
-      `[data-message-id="${String(targetMessageId)}"]`
-    ) as HTMLDivElement | null;
-
-    if (!target) return;
-
-    target.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-
-    target.classList.add("reply-target-highlight");
-
-    window.setTimeout(() => {
-      target.classList.remove("reply-target-highlight");
-    }, 1600);
-  };
-
-  const loadingMore = paginationByConversation[conversationId]?.loadingMore;
-  const loading = paginationByConversation[conversationId]?.loading;
 
   return (
     <MessagesWrap ref={listRef} onScroll={onScroll} showScrollbar={showScrollbar}>
-      {loadingMore && (
+      {paginationByConversation[conversationId]?.loadingMore && (
         <LoadMoreWrap>
           <CircularProgress size={18} />
         </LoadMoreWrap>
       )}
 
-      {loading ? (
+      {paginationByConversation[conversationId]?.loading ? (
         <EmptyState>
           <CircularProgress size={28} />
           <EmptyDesc>Đang tải tin nhắn...</EmptyDesc>
@@ -150,25 +113,40 @@ export default function MessageList({
         </EmptyState>
       ) : (
         <MessagesContent>
-          {messages.map((message) => {
-            const isSystemMessage = message.type === 'system' || message.senderId === 'SYSTEM';
-
-            if (isSystemMessage) {
-              return <SystemMessageBanner key={message.messageId} message={message} />;
-            }
+          {messages.map((msg) => {
+            const mine = msg.senderId === currentUserId;
+            const timestamp = new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
 
             return (
               <MessageItem
-                key={message.messageId}
-                message={message}
-                currentUserId={currentUserId}
-                onReplyMessage={onReplyMessage}
-                onDeleteMessage={deleteMessage}
-                onScrollToMessage={scrollToRepliedMessage}
-                onMediaLoad={onMediaLoad}
-                onForwardMessage={onForwardMessage}
-                isHighlighted={message.messageId === highlightedMessageId}
-                onOpenMedia={onOpenMedia}
+                key={msg.messageId}
+                id={msg.messageId}
+                content={msg.isDeleted ? "Tin nhắn đã được thu hồi" : msg.body}
+                sender={
+                  mine
+                    ? undefined
+                    : {
+                        id: msg.senderId,
+                        name: "User",
+                        avatar: undefined,
+                      }
+                }
+                timestamp={timestamp}
+                isOwn={mine}
+                isDeleted={msg.isDeleted}
+                isPinned={false}
+                deliveryStatus="read"
+                isEdited={false}
+                reactions={[]}
+                onReply={() => onReplyMessage(msg)}
+                onForward={() => console.log("Forward message:", msg.messageId)}
+                onPin={() => console.log("Pin message:", msg.messageId)}
+                onEdit={() => console.log("Edit message:", msg.messageId)}
+                onReact={(reaction) => console.log("React to message:", msg.messageId, reaction)}
+                onDelete={() => onDeleteMessage(conversationId, msg.messageId)}
               />
             );
           })}

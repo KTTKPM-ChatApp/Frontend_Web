@@ -1,73 +1,123 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Box, Button, Menu, MenuItem, Typography } from "@mui/material";
-import LanguageIcon from "@mui/icons-material/Language";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import AppModal from "@/src/shared/component/AppModal";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  List,
+  ListItemText,
+  Radio,
+  Box,
+  Typography,
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
+import i18n from "@/src/common/i18n/i18n";
 
-const LANGUAGES = [
-  { code: "vi", name: "Tiếng Việt", flag: "🇻🇳" },
-  { code: "en", name: "English", flag: "🇬🇧" },
-];
+const LanguageItem = styled(Button)(({ theme }) => ({
+  borderRadius: 8,
+  margin: "4px 0",
+  padding: "12px 16px",
+  justifyContent: "flex-start",
+  textTransform: "none",
+  backgroundColor: "transparent",
+  border: "1px solid #E5E7EB",
+  "&:hover": {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#D1D5DB",
+  },
+}));
 
 interface LanguageSwitcherProps {
-  open?: boolean;
-  onClose?: () => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export default function LanguageSwitcher({ open, onClose }: LanguageSwitcherProps) {
-  const { i18n } = useTranslation();
-  const [currentLang, setCurrentLang] = useState(i18n.language);
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ open, onClose }) => {
+  const { t } = useTranslation();
+  const [selectedLanguage, setSelectedLanguage] = React.useState(i18n.language);
 
-  useEffect(() => {
-    // Load saved language from localStorage
-    const savedLang = localStorage.getItem("language");
-    if (savedLang && savedLang !== i18n.language) {
-      i18n.changeLanguage(savedLang);
-      setCurrentLang(savedLang);
-    }
-  }, [i18n]);
+  const languages = [
+    { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt" },
+    { code: "en", name: "English", nativeName: "English" },
+  ];
 
-  const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
-    setCurrentLang(langCode);
-    localStorage.setItem("language", langCode);
-    onClose?.();
+  React.useEffect(() => {
+    setSelectedLanguage(i18n.language);
+  }, [open]);
+
+  const handleLanguageSelect = (languageCode: string) => {
+    setSelectedLanguage(languageCode);
   };
 
-  const currentLanguage = LANGUAGES.find((lang) => lang.code === currentLang) || LANGUAGES[0];
+  const handleConfirm = () => {
+    if (selectedLanguage !== i18n.language) {
+      i18n.changeLanguage(selectedLanguage);
+      // Save to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("language", selectedLanguage);
+      }
+    }
+    onClose();
+  };
 
   return (
-    <AppModal
-      open={open ?? false}
-      onClose={onClose ?? (() => {})}
-      title={currentLanguage.flag + " " + currentLanguage.name}
-      headerDivider
-      actions={
-        <Button onClick={onClose}>
-          Close
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          {t("COMMON.LANGUAGE")}
+        </Typography>
+      </DialogTitle>
+      
+      <DialogContent>
+        <Box sx={{ py: 1 }}>
+          {languages.map((language) => (
+            <LanguageItem
+              key={language.code}
+              onClick={() => handleLanguageSelect(language.code)}
+              variant={selectedLanguage === language.code ? "contained" : "outlined"}
+              color={selectedLanguage === language.code ? "primary" : "inherit"}
+              sx={{
+                backgroundColor: selectedLanguage === language.code ? "#E5F1FF" : "transparent",
+                borderColor: selectedLanguage === language.code ? "#005AE0" : "#E5E7EB",
+                "&:hover": {
+                  backgroundColor: selectedLanguage === language.code ? "#E5F1FF" : "#F8FAFC",
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {language.nativeName}
+                </Typography>
+                <Typography variant="body2" color="#64748B">
+                  {language.name}
+                </Typography>
+              </Box>
+              {selectedLanguage === language.code && (
+                <Radio
+                  checked={true}
+                  sx={{ ml: 2 }}
+                  color="primary"
+                />
+              )}
+            </LanguageItem>
+          ))}
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onClose} variant="outlined">
+          {t("COMMON.BACK")}
         </Button>
-      }
-    >
-      <Box sx={{ py: 2 }}>
-        {LANGUAGES.map((lang) => (
-          <MenuItem
-            key={lang.code}
-            onClick={() => handleLanguageChange(lang.code)}
-            selected={lang.code === currentLang}
-            sx={{
-              minWidth: 200,
-              mb: 1,
-            }}
-          >
-            <Typography variant="body2" sx={{ mr: 2, fontSize: 24 }}>
-              {lang.flag}
-            </Typography>
-            <Typography variant="body1">{lang.name}</Typography>
-          </MenuItem>
-        ))}
-      </Box>
-    </AppModal>
+        <Button onClick={handleConfirm} variant="contained">
+          {t("COMMON.CONFIRM")}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
-}
+};
+
+export default LanguageSwitcher;

@@ -1,9 +1,13 @@
-// TODO: Replace with your new backend search service
-// This service needs to be updated to match your new backend API structure
+import http from "../api/http";
+import { API } from "../api/path";
+import { IUserSearchResponse } from "../interface/search-interface";
 
 export const searchService = {
     searchUsers(params: { q: string; page?: number; limit?: number }) {
-        console.log('searchUsers called with:', params);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        const { q, page = 1, limit = 20 } = params;
+
+        return http.get<IUserSearchResponse>(
+            `${API.API_USERS_SEARCH}?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`
+        );
     },
-};
+}

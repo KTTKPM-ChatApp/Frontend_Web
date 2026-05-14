@@ -19,14 +19,21 @@ import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
 import { useState, useMemo, useEffect } from "react";
 import { useChatStore } from "@/src/common/store/useChatStore";
-
+import { ConversationDto } from "@/src/common/interface/chat-interface";
+import {
+    userService,
+} from "@/src/common/service/user-service";
+// import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { searchService } from "@/src/common/service/search-service";
+import { chatService } from "@/src/common/service/chat-service";
 import { IUserSearchItem, SearchResult } from "@/src/common/interface/search-interface";
 import { useDebounce } from "@/src/common/utilities/hook/debounce";
-import AddFriendDialog from "./friend/ModalAddFriend";
-import { friendService } from "@/src/common/service/friend-service";
-import { useFriendStore } from "@/src/common/store/useFriendStore";
-import CreateGroupModal from "./chat/CreateGroupModal";
+
+interface SearchBarProps {
+    onResultSelect?: (result: SearchResult) => void;
+    onAddFriend?: () => void;
+    onCreateGroup?: () => void;
+}
 
 const BoxSearchBar = styled(Box)({
     height: 32,
@@ -96,100 +103,54 @@ const SearchResultItem = styled(ListItem)({
         backgroundColor: "#f0f0f0",
     },
 });
-const SearchBar = () => {
+const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProps) => {
     const [focusOnSearch, setFocusOnSearch] = useState(false);
     const [searchValue, setSearchValue] = useState("");
     const [userResults, setUserResults] = useState<IUserSearchItem[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
-    const [openAddFriendDialog, setOpenAddFriendDialog] = useState(false);
     const debounceSearch = useDebounce(searchValue, 300);
     const { listConversation } = useChatStore();
     const setActiveConversationId = useChatStore((s) => s.setActiveConversationId);
-    const friends = useFriendStore((s) => s.friends);
-    const pendingRequests = useFriendStore((s) => s.pendingRequests);
-    const sentRequests = useFriendStore((s) => s.sentRequests);
 
-    const fetchFriends = useFriendStore((s) => s.fetchFriends);
-    const fetchPendingRequests = useFriendStore((s) => s.fetchPendingRequests);
-    const fetchSentRequests = useFriendStore((s) => s.fetchSentRequests);
-    const getRelationStatus = useFriendStore((s) => s.getRelationStatus);
-    const [openCreateGroupModal, setOpenCreateGroupModal] = useState(false);
     const handleFocusSearchBar = () => {
         setFocusOnSearch(true);
     };
 
-    const isPhoneNumber = (input: string): boolean => {
-        const phoneRegex = /^[\d\s\-()+]*$/;
-        const digitsOnly = input.replace(/\D/g, "");
-        return phoneRegex.test(input) && digitsOnly.length >= 3;
-    };
-
-    const normalizePhoneQuery = (input: string) => {
-        const digits = input.replace(/\D/g, "");
-
-        if (!digits) return "";
-
-        if (digits.startsWith("84")) {
-            return `+${digits}`;
-        }
-
-        if (digits.startsWith("0")) {
-            return `+84${digits.slice(1)}`;
-        }
-
-        return `+84${digits}`;
-    };
-    const isPhoneSearch = useMemo(() => {
-        return isPhoneNumber(debounceSearch.trim());
-    }, [debounceSearch]);
-
+    
     const friendConversationResults = useMemo<SearchResult[]>(() => {
         const keyword = debounceSearch.trim().toLowerCase();
-        if (!keyword || isPhoneSearch) return [];
+        if (!keyword) return [];
 
         return listConversation
             .filter((conv) => conv.name?.toLowerCase().includes(keyword))
             .map((conv) => ({
                 kind: "conversation" as const,
                 id: conv.id,
-                name: conv.name ?? "",
-                avatarUrl: conv.avatarUrl ?? null,
+                name: conv.name,
+                avatarUrl: (conv as any).avatarUrl ?? null,
                 memberCount: conv.memberCount,
                 conversation: conv,
             }));
-    }, [debounceSearch, isPhoneSearch, listConversation]);
-    useEffect(() => {
-        if (!focusOnSearch) return;
+    }, [debounceSearch, listConversation]);
 
-        void Promise.all([
-            fetchFriends(),
-            fetchPendingRequests(),
-            fetchSentRequests(),
-        ]);
-    }, [focusOnSearch, fetchFriends, fetchPendingRequests, fetchSentRequests]);
     useEffect(() => {
-        if (!focusOnSearch) return;
-
         const keyword = debounceSearch.trim();
-
-        if (!keyword || !isPhoneSearch) {
+        if (!keyword) {
             setUserResults([]);
             setSearchError(null);
-            setLoadingSearch(false);
             return;
         }
 
-        const fetchUsers = async () => {
+        const timer = setTimeout(async () => {
             try {
                 setLoadingSearch(true);
                 setSearchError(null);
 
-                const q = normalizePhoneQuery(keyword);
                 const response = await searchService.searchUsers({
-                    q,
+                    q: keyword,
                     page: 1,
-                    limit: 30,
+                    limit: 20,
                 });
 
                 const users = response?.payload?.data || [];
@@ -201,41 +162,27 @@ const SearchBar = () => {
             } finally {
                 setLoadingSearch(false);
             }
-        };
+        }, 300);
 
-        fetchUsers();
-    }, [debounceSearch, focusOnSearch, isPhoneSearch]);
+        return () => clearTimeout(timer);
+    }, [searchValue]);
 
     const searchResults = useMemo<SearchResult[]>(() => {
-        if (!debounceSearch.trim()) return [];
+        if (!searchValue.trim()) return [];
 
-        if (isPhoneSearch) {
-            return userResults.map((user) => {
-                const relationStatus = getRelationStatus(user.id);
+        // Hiển thị cả user search và conversation search
+        const userSearchResults = userResults.map((user) => ({
+            kind: "user" as const,
+            id: user.id,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            phone: user.phone,
+            friendshipStatus: user.friendshipStatus,
+            user,
+        }));
 
-                return {
-                    kind: "user" as const,
-                    id: user.id,
-                    fullName: user.fullName ?? "",
-                    avatarUrl: user.avatarUrl ?? null,
-                    phone: user.phone ?? "",
-                    friendshipStatus: relationStatus,
-                    user,
-                };
-            });
-        }
-
-        return friendConversationResults;
-    }, [
-        debounceSearch,
-        isPhoneSearch,
-        userResults,
-        friendConversationResults,
-        getRelationStatus,
-        friends,
-        pendingRequests,
-        sentRequests,
-    ]);
+        return [...userSearchResults, ...friendConversationResults];
+    }, [searchValue, userResults, friendConversationResults]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchValue(e.target.value);
@@ -246,10 +193,29 @@ const SearchBar = () => {
             setActiveConversationId(result.conversation.id);
             setSearchValue("");
             setFocusOnSearch(false);
+            onResultSelect?.(result);
             return;
         }
-        setSearchValue("");
-        setFocusOnSearch(false);
+
+        // Handle user click - create direct conversation
+        try {
+            const response = await chatService.createDirectConversation({
+                participantId: result.id
+            });
+            
+            if (response.ok && response.payload?.data) {
+                const newConversation = response.payload.data;
+                setActiveConversationId(newConversation.id);
+                setSearchValue("");
+                setFocusOnSearch(false);
+                onResultSelect?.(result);
+            }
+        } catch (error) {
+            console.error("Failed to create direct conversation:", error);
+            // Still close search even if conversation creation fails
+            setSearchValue("");
+            setFocusOnSearch(false);
+        }
     };
 
     return (
@@ -299,7 +265,7 @@ const SearchBar = () => {
                                                 >
                                                     {(result.kind === "conversation"
                                                         ? result.name
-                                                        : result.fullName
+                                                        : result.displayName
                                                     )
                                                         ?.charAt(0)
                                                         ?.toUpperCase()}
@@ -309,8 +275,13 @@ const SearchBar = () => {
                                                     primary={
                                                         result.kind === "conversation"
                                                             ? result.name
-                                                            : result.fullName
+                                                            : result.displayName
                                                     }
+                                                    // secondary={
+                                                    //     result.kind === "conversation"
+                                                    //         ? `${result.memberCount || 1} thành viên`
+                                                    //         : `${result.phone} • ${result.friendshipStatus}`
+                                                    // }
                                                 />
                                             </Box>
                                         </SearchResultItem>
@@ -340,39 +311,16 @@ const SearchBar = () => {
                     </ActionBtn>
                 ) : (
                     <>
-                        <ActionBtn onClick={() => setOpenAddFriendDialog(true)}>
-                            <PersonAddAltOutlinedIcon
-
-                                sx={{ fontSize: 22, color: "#353535" }} />
+                        <ActionBtn onClick={onAddFriend}>
+                            <PersonAddAltOutlinedIcon sx={{ fontSize: 22, color: "#353535" }} />
                         </ActionBtn>
-                        <ActionBtn onClick={() => setOpenCreateGroupModal(true)}>
+                        <ActionBtn onClick={onCreateGroup}>
                             <GroupAddOutlinedIcon sx={{ fontSize: 22, color: "#353535" }} />
                         </ActionBtn>
                     </>
                 )}
             </GridSearch>
-            <AddFriendDialog
-                open={openAddFriendDialog}
-                onClose={() => setOpenAddFriendDialog(false)}
-                onSendFriendRequest={async ({ user, message }) => {
-                    await friendService.sendRequest({
-                        message,
-                        userId: user.id,
-                    });
-
-                    await fetchSentRequests();
-                }}
-                onCancelFriendRequest={async ({ user, requestId }) => {
-                    await friendService.cancelRequest(requestId);
-                    await fetchSentRequests();
-                }}
-            />
-            <CreateGroupModal
-                open={openCreateGroupModal}
-                onClose={() => setOpenCreateGroupModal(false)}
-            />
         </Box>
-
     );
 };
 

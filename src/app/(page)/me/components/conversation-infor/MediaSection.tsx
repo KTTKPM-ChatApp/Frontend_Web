@@ -5,12 +5,9 @@ import { styled } from "@mui/material/styles";
 import InsertPhotoOutlinedIcon from "@mui/icons-material/InsertPhotoOutlined";
 import SectionBlock from "./SectionBlock";
 import { AttachmentDto } from "@/src/common/interface/chat-interface";
-import { buildS3Url, MediaPreviewItem } from "@/src/common/components/MediaPreviewModal";
-import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface MediaSectionProps {
   items: AttachmentDto[];
-  onMediaClick?: (media: MediaPreviewItem) => void;
 }
 
 const EmptyHint = styled(Typography)({
@@ -35,11 +32,6 @@ const MediaItem = styled(Box)({
   overflow: "hidden",
   background: "#E5E7EB",
   border: "1px solid #E5E7EB",
-  cursor: "pointer",
-  transition: "opacity 0.2s ease",
-  "&:hover": {
-    opacity: 0.85,
-  },
 });
 
 const MediaImage = styled("img")({
@@ -75,34 +67,16 @@ const ViewAllButton = styled(Button)({
   },
 });
 
-export default function MediaSection({ items, onMediaClick }: MediaSectionProps) {
-  const t = useTrans();
-  const handleMediaClick = (item: AttachmentDto) => {
-    if (!onMediaClick || !item.key) return;
-
-    const mediaItem: MediaPreviewItem = {
-      key: item.key,
-      name: item.name,
-      type: item.type as "image" | "video" | string,
-    };
-    onMediaClick(mediaItem);
-  };
-
+export default function MediaSection({ items }: MediaSectionProps) {
   return (
-    <SectionBlock title={t("CONVO.MEDIA_TITLE")} defaultOpen>
+    <SectionBlock title="Ảnh/Video" defaultOpen>
       {items.length > 0 ? (
         <>
           <MediaGrid>
             {items.slice(0, 8).map((item) => (
-              <MediaItem
-                key={item.key || item?.url}
-                onClick={() => handleMediaClick(item)}
-              >
-                {item.key ? (
-                  <MediaImage
-                    src={buildS3Url(item.key)}
-                    alt={item.name || "media"}
-                  />
+              <MediaItem key={item.key || item?.url}>
+                {item.url ? (
+                  <MediaImage src={item?.url} alt={item.name || "media"} />
                 ) : (
                   <MediaFallback>
                     <InsertPhotoOutlinedIcon />
@@ -112,10 +86,10 @@ export default function MediaSection({ items, onMediaClick }: MediaSectionProps)
             ))}
           </MediaGrid>
 
-          {items.length > 8 && <ViewAllButton fullWidth>{t("CONVO.VIEW_ALL")}</ViewAllButton>}
+          {items.length > 8 && <ViewAllButton fullWidth>Xem tất cả</ViewAllButton>}
         </>
       ) : (
-        <EmptyHint>{t("CONVO.MEDIA_EMPTY")}</EmptyHint>
+        <EmptyHint>Chưa có ảnh hoặc video trong hội thoại</EmptyHint>
       )}
     </SectionBlock>
   );

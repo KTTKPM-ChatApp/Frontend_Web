@@ -2,11 +2,18 @@ import { ConversationDto } from "./chat-interface";
 
 export interface IUserSearchItem {
   id: string;
-  fullName: string;
+  username: string;
+  displayName: string;
+  email: string;
   avatarUrl: string | null;
-  phone: string;
-  friendshipStatus?: "none" | "pending_sent" | "pending_received" | "friend";
-  requestId?: string;
+  bio: string | null;
+  gender: string | null;
+  dateOfBirth: string | null;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  friendshipStatus: "none" | "pending" | "friend" | string;
 }
 
 export interface IUserSearchResponse {
@@ -20,20 +27,20 @@ export interface IUserSearchResponse {
 }
 
 export type SearchResult =
-  | {
-    kind: "conversation";
-    id: string;
-    name: string;
-    avatarUrl?: string | null;
-    memberCount?: number;
-    conversation: ConversationDto;
-  }
-  | {
-    kind: "user";
-    id: string;
-    fullName: string;
-    avatarUrl?: string | null;
-    phone: string;
-    friendshipStatus: string;
-    user: IUserSearchItem;
-  };
+    | {
+        kind: "conversation";
+        id: string;
+        name: string;
+        avatarUrl?: string | null;
+        memberCount?: number;
+        conversation: ConversationDto;
+    }
+    | {
+        kind: "user";
+        id: string;
+        displayName: string;
+        avatarUrl?: string | null;
+        phone: string | null;
+        friendshipStatus: string;
+        user: IUserSearchItem;
+    };

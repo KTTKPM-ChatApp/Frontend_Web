@@ -1,5 +1,4 @@
 import type { ConversationDto, UiMessage } from "@/src/common/interface/chat-interface";
-import { cleanMessageBody } from "./cleanBodyMedia";
 
 const LINK_REGEX = /(https?:\/\/[^\s]+)/g;
 
@@ -46,124 +45,46 @@ export const extractLinksFromMessage = (message: Partial<UiMessage>) => {
   return body.match(LINK_REGEX) || [];
 };
 
-const normalizeReplyPreview = (rawReply: any) => {
-  if (!rawReply) return null;
-
-  const replyMessageId =
-    rawReply?.messageId ??
-    rawReply?.message_id ??
-    rawReply?.id ??
-    null;
-
-  if (!replyMessageId) return null;
-
-  return {
-    messageId: String(replyMessageId),
-    senderId: String(
-      rawReply?.senderId ??
-      rawReply?.sender_id ??
-      rawReply?.sender?.id ??
-      rawReply?.userId ??
-      rawReply?.user_id ??
-      ""
-    ),
-    body:
-      rawReply?.body ??
-      rawReply?.content ??
-      rawReply?.message ??
-      rawReply?.text ??
-      "",
-    attachments: Array.isArray(rawReply?.attachments) ? rawReply.attachments : [],
-    isDeleted: Boolean(rawReply?.isDeleted ?? rawReply?.is_deleted ?? false),
-  };
-};
-
 export const normalizeMessage = (raw: any): UiMessage & {
   clientMessageId?: string | null;
   errorMessage?: string | null;
 } => {
   const senderId =
     raw?.senderId ??
-    raw?.sender_id ??
-    raw?.sender?.id ??
-    raw?.userId ??
-    raw?.user_id ??
     "";
 
   const messageId =
     raw?.messageId ??
-    raw?.message_id ??
-    raw?.id ??
     `msg-${Date.now()}-${Math.random()}`;
-
-  const conversationId =
-    raw?.conversationId ??
-    raw?.conversation_id ??
-    raw?.conversation?.id ??
-    "";
-
-  const replyPayload =
-    raw?.replyTo ??
-    raw?.reply_to ??
-    raw?.replyMessage ??
-    raw?.reply_message ??
-    raw?.quotedMessage ??
-    raw?.quoted_message ??
-    null;
-
-  const normalizedReply = normalizeReplyPreview(replyPayload);
-
-  const replyToMessageId =
-    raw?.replyToMessageId ??
-    raw?.reply_to_message_id ??
-    raw?.replyTo?.messageId ??
-    raw?.replyTo?.message_id ??
-    raw?.replyTo?.id ??
-    raw?.reply_to?.messageId ??
-    raw?.reply_to?.message_id ??
-    raw?.reply_to?.id ??
-    normalizedReply?.messageId ??
-    null;
 
   return {
     messageId: String(messageId),
-    clientMessageId:
-      raw?.clientMessageId ??
-      raw?.client_message_id ??
-      null,
-    conversationId: String(conversationId),
-    senderId: String(senderId),
-    body: cleanMessageBody(
-      raw?.body ??
-      raw?.content ??
-      raw?.message ??
-      raw?.text ??
+    clientMessageId: raw?.clientMessageId ?? null,
+    conversationId: String(
+      raw?.conversationId ??
       ""
     ),
+    senderId: String(senderId),
+    body: raw?.body ?? raw?.content ?? "",
     createdAt: Number(
       raw?.createdAt ??
-      raw?.created_at ??
-      raw?.sent_at ??
-      raw?.timestamp ??
       Date.now()
     ),
     attachments: Array.isArray(raw?.attachments) ? raw.attachments : [],
-    replyTo: normalizedReply,
-    replyToMessageId: replyToMessageId ? String(replyToMessageId) : null,
+    replyToMessageId:
+      raw?.replyToMessageId ??
+      raw?.reply_to_message_id ??
+      raw?.replyTo?.id ??
+      null,
     editedAt: raw?.editedAt ?? raw?.edited_at ?? null,
     deletedAt: raw?.deletedAt ?? raw?.deleted_at ?? null,
     isDeleted: Boolean(raw?.isDeleted ?? raw?.is_deleted ?? false),
     pending: Boolean(raw?.pending ?? false),
     failed: Boolean(raw?.failed ?? false),
-    errorMessage: raw?.errorMessage ?? raw?.error_message ?? null,
-    type: raw?.type ?? raw?.message_type ?? raw?.messageType ?? "user",
-    message_type: raw?.message_type ?? raw?.messageType ?? "user",
-    system_event_type: raw?.system_event_type ?? raw?.systemEventType ?? undefined,
-    metadata: raw?.metadata ?? undefined,
-    isPinned: Boolean(raw?.isPinned ?? raw?.is_pinned ?? false),
-    pinnedAt: raw?.pinnedAt ?? raw?.pinned_at ?? null,
+    errorMessage: raw?.errorMessage ?? null,
   };
 };
+
 export const sortMessages = (items: UiMessage[]) =>
   [...items].sort((a, b) => Number(a.createdAt) - Number(b.createdAt));
 

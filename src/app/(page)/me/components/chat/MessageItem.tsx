@@ -1,42 +1,42 @@
 "use client";
 
-import { Box, Typography } from "@mui/material";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Avatar,
+  Box,
+  IconButton,
+  Typography,
+  Chip,
+  Tooltip,
+  Menu,
+  MenuItem,
+  Badge,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { UiMessage } from "@/src/common/interface/chat-interface";
-import MessageActions from "./MessageActions";
-import MessageMediaGroup from "./MessageMediaGroup";
-import MessageReplyPreview from "./MessageReplyPreview";
-import { formatMessageTime, getMessageTextContent, shouldShowMessageBubble, splitMessageAttachments } from "@/src/common/helpers/message.helpers";
-import { useChatStore } from "@/src/common/store/useChatStore";
-import { useMessagePin } from "@/src/common/hooks/useMessagePin";
-import AppAvatar from "@/src/shared/component/Avatar";
+import ReplyIcon from "@mui/icons-material/Reply";
+import ForwardIcon from "@mui/icons-material/Forward";
 import PushPinIcon from "@mui/icons-material/PushPin";
-import { MediaPreviewItem } from "@/src/shared/component/MediaPreviewModal";
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
+import CheckIcon from "@mui/icons-material/Check";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 
-interface MessageItemProps {
-  message: UiMessage;
-  currentUserId: string;
-  onReplyMessage: (message: UiMessage) => void;
-  onDeleteMessage: (
-    conversationId: UiMessage["conversationId"],
-    messageId: UiMessage["messageId"],
-    createdAt: UiMessage["createdAt"]
-  ) => void;
-  onScrollToMessage: (targetMessageId?: UiMessage["messageId"] | null) => void;
-  onMediaLoad?: (messageId: UiMessage["messageId"]) => void;
-  onForwardMessage: (message: UiMessage) => void;
-  onOpenMedia?: (media: MediaPreviewItem, allMedia?: MediaPreviewItem[], initialIndex?: number) => void;
-  isHighlighted?: boolean;
-}
+// ==================== STYLED COMPONENTS ====================
 
 const MessageRow = styled(Box, {
   shouldForwardProp: (prop) => prop !== "mine" && prop !== "isHighlighted",
 })<{ mine?: boolean; isHighlighted?: boolean }>(({ mine, isHighlighted }) => ({
   display: "flex",
   justifyContent: mine ? "flex-end" : "flex-start",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: 8,
+  marginBottom: 16,
   position: "relative",
   transition: "background-color 0.3s ease",
   borderRadius: 8,
@@ -45,360 +45,305 @@ const MessageRow = styled(Box, {
     backgroundColor: "rgba(0, 168, 132, 0.2)",
     animation: "highlight-pulse 1.5s ease-in-out",
   }),
-  "&:hover .message-actions": {
-    opacity: 1,
-    visibility: "visible",
-    transform: "translateY(0)",
-  },
-  "@keyframes highlight-pulse": {
-    "0%": {
-      backgroundColor: "rgba(0, 168, 132, 0.4)",
-    },
-    "100%": {
-      backgroundColor: "rgba(0, 168, 132, 0.2)",
-    },
-  },
 }));
 
-const MessageContent = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "mine",
-})<{ mine?: boolean }>(({ mine }) => ({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: mine ? "flex-end" : "flex-start",
-  gap: 6,
-  maxWidth: "72%",
-}));
-
-const Bubble = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "mine",
-})<{ mine?: boolean }>(({ mine }) => ({
-  maxWidth: "100%",
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: mine ? "1px solid #D7E8FF" : "1px solid #E5E7EB",
-  background: mine ? "#E5F1FF" : "#FFFFFF",
-  boxShadow: "0 1px 2px rgba(16, 24, 40, 0.04)",
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-}));
-
-const MessageText = styled(Typography, {
-  shouldForwardProp: (prop) => prop !== "isDeleted",
-})<{ isDeleted?: boolean }>(({ isDeleted }) => ({
-  fontSize: isDeleted ? 13 : 14,
-  color: isDeleted ? "#6B7280" : "#111827",
+const MessageBubble = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "mine" && prop !== "isDeleted",
+})<{ mine?: boolean; isDeleted?: boolean }>(({ mine, isDeleted }) => ({
+  maxWidth: "70%",
+  minWidth: 100,
+  padding: "12px 16px",
+  borderRadius: 16,
+  background: mine ? "#0078FF" : "#F1F5F9",
+  color: mine ? "#fff" : "#0F172A",
+  position: "relative",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+  opacity: isDeleted ? 0.6 : 1,
   fontStyle: isDeleted ? "italic" : "normal",
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-word",
-  lineHeight: 1.5,
-  opacity: isDeleted ? 0.8 : 1,
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    width: 0,
+    height: 0,
+    border: mine ? "8px solid transparent" : "8px solid transparent",
+    ...(mine
+      ? {
+          right: -6,
+          borderLeftColor: "#0078FF",
+          borderTopColor: "#0078FF",
+        }
+      : {
+          left: -6,
+          borderRightColor: "#F1F5F9",
+          borderTopColor: "#F1F5F9",
+        }),
+  },
 }));
 
-const MetaRow = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-});
-const LeftMessageWrap = styled(Box)({
-  display: "flex",
-  alignItems: "flex-end",
-  gap: 8,
-  maxWidth: "100%",
-});
-const MetaLeft = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  flexWrap: "wrap",
-});
-
-const MetaText = styled(Typography)({
-  fontSize: 11,
-  color: "#6B7280",
-  lineHeight: 1.2,
-});
-
-const AttachmentList = styled(Box)({
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-});
-
-const AttachmentItem = styled(Typography)({
-  fontSize: 12,
-  color: "#005AE0",
+const MessageText = styled(Typography)({
+  fontSize: 14,
+  lineHeight: 1.4,
   wordBreak: "break-word",
 });
 
-export default function MessageItem({
-  message,
-  currentUserId,
-  onReplyMessage,
-  onDeleteMessage,
-  onScrollToMessage,
-  onMediaLoad,
-  onForwardMessage,
-  onOpenMedia,
-  isHighlighted = false,
-}: MessageItemProps) {
-  const t = useTrans();
-  const mine = message.senderId === currentUserId;
-  const senderId = message.senderId;
-  const canDelete = mine && !message.isDeleted;
-  const canReply = !message.isDeleted;
-  const canForward = !message.isDeleted;
+const MessageTime = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "isOwn",
+})<{ isOwn?: boolean }>(({ isOwn }) => ({
+  fontSize: 11,
+  color: isOwn ? "#B3D9FF" : "#9CA3AF",
+  marginTop: 4,
+  textAlign: isOwn ? "right" : "left",
+}));
 
-  // Get conversation detail to check role for pin permission
-  const conversationDetail = useChatStore((s) =>
-    message.conversationId
-      ? s.conversationDetailById[message.conversationId]
-      : null
-  );
-  const isGroup = conversationDetail?.type === 'group';
-  const myRole = conversationDetail?.mySettings?.role;
-  // Only owner/admin can pin in group conversations, anyone can pin in direct
-  const canPin = !message.isDeleted && (!isGroup || myRole === 'owner' || myRole === 'admin');
+const MessageAvatar = styled(Avatar)({
+  width: 32,
+  height: 32,
+  flexShrink: 0,
+});
 
-  const { togglePin } = useMessagePin();
-  const isPinned = useChatStore((s) => s.isMessagePinned(message.conversationId, message.messageId));
+const OnlineIndicator = styled(Box)(({ theme }) => ({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: "#10B981",
+  border: "2px solid #fff",
+  position: "absolute",
+  bottom: 0,
+  right: 0,
+}));
 
-  const { imageAttachments, videoAttachments, otherAttachments } =
-    splitMessageAttachments(message.attachments);
+const OfflineIndicator = styled(Box)(({ theme }) => ({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: "#94A3B8",
+  border: "2px solid #fff",
+  position: "absolute",
+  bottom: 0,
+  right: 0,
+}));
 
-  const textContent = getMessageTextContent(message.body);
-  const hasText = !message.isDeleted && !!textContent;
+const ActionButtons = styled(Box)({
+  display: "flex",
+  gap: 4,
+  opacity: 0,
+  transition: "opacity 0.2s ease",
+});
 
-  const showBubble = shouldShowMessageBubble({
-    isDeleted: message.isDeleted,
-    hasText,
-    otherAttachmentCount: otherAttachments.length,
-    hasReply: !!message.replyTo,
-  });
+const MessageActionsContainer = styled(Box)({
+  position: "relative",
+  "&:hover .action-buttons": {
+    opacity: 1,
+  },
+});
 
-  const hasOnlyMedia =
-    !message.isDeleted &&
-    (imageAttachments.length > 0 || videoAttachments.length > 0) &&
-    !hasText &&
-    otherAttachments.length === 0;
+const DeliveryStatus = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 2,
+  marginTop: 4,
+}));
 
-  const timeText = formatMessageTime(message.createdAt);
+const ReactionChip = styled(Chip)(({ theme }) => ({
+  height: 24,
+  fontSize: 12,
+  margin: "2px",
+  cursor: "pointer",
+  "&:hover": {
+    backgroundColor: "#E5E7EB",
+  },
+}));
 
-  const member =
-    conversationDetail?.members?.find((m) => m.userId === message.senderId) ?? null;
-  const messagesInConversation = useChatStore((s) =>
-    message.conversationId
-      ? s.messagesByConversation[message.conversationId] ?? []
-      : []
-  );
+interface MessageItemProps {
+  id: string;
+  content: string;
+  sender?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  timestamp: string;
+  isOwn?: boolean;
+  isDeleted?: boolean;
+  isPinned?: boolean;
+  deliveryStatus?: "sending" | "sent" | "delivered" | "read" | "failed";
+  isEdited?: boolean;
+  reactions?: Array<{
+    userId: string;
+    type: string;
+    user: {
+      fullName: string;
+      avatar?: string;
+    };
+  }>;
+  onReply?: () => void;
+  onForward?: () => void;
+  onPin?: () => void;
+  onDelete?: () => void;
+  onEdit?: () => void;
+  onReact?: (reaction: string) => void;
+}
 
-  const repliedMessage = message.replyTo?.messageId
-    ? messagesInConversation.find((m) => m.messageId === message.replyTo?.messageId)
-    : null;
+const MessageItem: React.FC<MessageItemProps> = ({
+  id,
+  content,
+  sender,
+  timestamp,
+  isOwn = false,
+  isDeleted = false,
+  isPinned = false,
+  deliveryStatus = "sent",
+  isEdited = false,
+  reactions = [],
+  onReply,
+  onForward,
+  onPin,
+  onDelete,
+  onEdit,
+  onReact,
+}) => {
+  const { t } = useTranslation();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const displayReplyTo =
-    message.replyTo && repliedMessage
-      ? {
-        ...message.replyTo,
-        body: repliedMessage.isDeleted ? "" : repliedMessage.body,
-        attachments: repliedMessage.isDeleted ? [] : repliedMessage.attachments ?? [],
-        isDeleted: Boolean(repliedMessage.isDeleted),
-      }
-      : message.replyTo;
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-  const avatarSrc = member?.avatarUrl
-    ? `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${member.avatarUrl}`
-    : "";
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const getDeliveryIcon = () => {
+    switch (deliveryStatus) {
+      case "sending":
+        return <ScheduleIcon sx={{ fontSize: 14, color: "#9CA3AF" }} />;
+      case "sent":
+        return <CheckIcon sx={{ fontSize: 14, color: "#9CA3AF" }} />;
+      case "delivered":
+        return <DoneAllIcon sx={{ fontSize: 14, color: "#9CA3AF" }} />;
+      case "read":
+        return <DoneAllIcon sx={{ fontSize: 14, color: "#0078FF" }} />;
+      case "failed":
+        return <ScheduleIcon sx={{ fontSize: 14, color: "#EF4444" }} />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <MessageRow
-      id={`message-${message.messageId}`}
-      data-testid="message-row"
-      data-message-id={String(message.messageId)}
-      mine={mine}
-      isHighlighted={isHighlighted}
-    >
-      {!mine ? (
-        <LeftMessageWrap>
-          <AppAvatar
-            name={member?.fullName ?? ""}
-            src={avatarSrc}
-            alt={member?.nickname || member?.fullName || "User"}
-          />
-
-          <MessageContent mine={mine}>
-            {!message.isDeleted && (
-              <>
-                <MessageMediaGroup
-                  attachments={imageAttachments}
-                  type="image"
-                  mine={mine}
-                  messageId={message.messageId}
-                  onMediaLoad={onMediaLoad}
-                  onOpenMedia={onOpenMedia}
-                />
-
-                <MessageMediaGroup
-                  attachments={videoAttachments}
-                  type="video"
-                  mine={mine}
-                  messageId={message.messageId}
-                  onMediaLoad={onMediaLoad}
-                  onOpenMedia={onOpenMedia}
-                />
-              </>
-            )}
-
-            {showBubble && (
-              <Bubble mine={mine}>
-                {!message.isDeleted && (
-                  <MessageReplyPreview
-                    senderId={senderId}
-                    replyTo={displayReplyTo}
-                    onClick={() => onScrollToMessage(displayReplyTo?.messageId)}
-                    mine={mine}
+    <MessageRow mine={isOwn} id={`message-${id}`}>
+      {!isOwn && sender && (
+        <Box sx={{ position: "relative" }}>
+          <MessageAvatar src={sender.avatar}>
+            {sender.name.charAt(0)}
+          </MessageAvatar>
+          <OnlineIndicator />
+        </Box>
+      )}
+      
+      <Box sx={{ maxWidth: "70%" }}>
+        <MessageActionsContainer>
+          <MessageBubble mine={isOwn} isDeleted={isDeleted}>
+            <MessageText>{content}</MessageText>
+            
+            {/* Reactions */}
+            {reactions.length > 0 && (
+              <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {reactions.map((reaction, index) => (
+                  <ReactionChip
+                    key={index}
+                    label={`${reaction.type} ${reaction.user.fullName}`}
+                    size="small"
+                    onClick={() => onReact?.(reaction.type)}
                   />
-                )}
-
-                {message.isDeleted ? (
-                  <MessageText isDeleted>{t("CHAT.MESSAGE_DELETED")}</MessageText>
-                ) : hasText ? (
-                  <MessageText>{textContent}</MessageText>
-                ) : null}
-
-                {!message.isDeleted && otherAttachments.length > 0 && (
-                  <AttachmentList>
-                    {otherAttachments.map((file) => (
-                      <AttachmentItem
-                        key={`${process.env.NEXT_PUBLIC_S3_BASE_URL}/${file.key}`}
-                      >
-                        {file.name}
-                      </AttachmentItem>
-                    ))}
-                  </AttachmentList>
-                )}
-
-                <MetaRow>
-                  <MetaLeft>
-                    <MetaText>{timeText}</MetaText>
-                    {message.failed && <MetaText>{t("CHAT.MESSAGE_SEND_FAILED")}</MetaText>}
-                    {message.editedAt && <MetaText>{t("CHAT.MESSAGE_EDITED")}</MetaText>}
-                  </MetaLeft>
-                </MetaRow>
-              </Bubble>
+                ))}
+              </Box>
             )}
-
-            {hasOnlyMedia && <MetaText>{timeText}</MetaText>}
-          </MessageContent>
-
-          <MessageActions
-            mine={mine}
-            canReply={canReply}
-            canDelete={canDelete}
-            canForward={canForward}
-            canPin={canPin}
-            onReply={() => onReplyMessage(message)}
-            onForward={() => onForwardMessage(message)}
-            onDelete={() =>
-              onDeleteMessage(
-                message.conversationId,
-                message.messageId,
-                message.createdAt
-              )
-            }
-            isPinned={isPinned}
-            onTogglePin={() => togglePin(message.conversationId, message.createdAt, message.messageId)}
-          />
-        </LeftMessageWrap>
-      ) : (
-        <>
-          <MessageContent mine={mine}>
-            {!message.isDeleted && (
-              <>
-                <MessageMediaGroup
-                  attachments={imageAttachments}
-                  type="image"
-                  mine={mine}
-                  messageId={message.messageId}
-                  onMediaLoad={onMediaLoad}
-                  onOpenMedia={onOpenMedia}
-                />
-
-                <MessageMediaGroup
-                  attachments={videoAttachments}
-                  type="video"
-                  mine={mine}
-                  messageId={message.messageId}
-                  onMediaLoad={onMediaLoad}
-                  onOpenMedia={onOpenMedia}
-                />
-              </>
+          </MessageBubble>
+          
+          <ActionButtons className="action-buttons">
+            {onReply && (
+              <Tooltip title={t("CHAT.ACTION_REPLY")}>
+                <IconButton size="small" onClick={onReply}>
+                  <ReplyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             )}
-
-            {showBubble && (
-              <Bubble mine={mine}>
-                {!message.isDeleted && (
-                  <MessageReplyPreview
-                    senderId={senderId}
-                    replyTo={displayReplyTo}
-                    onClick={() => onScrollToMessage(message.replyTo?.messageId)}
-                    mine={mine}
-                  />
-                )}
-
-                {message.isDeleted ? (
-                  <MessageText isDeleted>{t("CHAT.MESSAGE_DELETED")}</MessageText>
-                ) : hasText ? (
-                  <MessageText>{textContent}</MessageText>
-                ) : null}
-
-                {!message.isDeleted && otherAttachments.length > 0 && (
-                  <AttachmentList>
-                    {otherAttachments.map((file) => (
-                      <AttachmentItem
-                        key={`${process.env.NEXT_PUBLIC_S3_BASE_URL}/${file.key}`}
-                      >
-                        {file.name}
-                      </AttachmentItem>
-                    ))}
-                  </AttachmentList>
-                )}
-
-                <MetaRow>
-                  <MetaLeft>
-                    <MetaText>{timeText}</MetaText>
-                    {message.failed && <MetaText>{t("CHAT.MESSAGE_SEND_FAILED")}</MetaText>}
-                    {message.editedAt && <MetaText>{t("CHAT.MESSAGE_EDITED")}</MetaText>}
-                  </MetaLeft>
-                </MetaRow>
-              </Bubble>
+            
+            {onReact && (
+              <Tooltip title={t("CHAT.ADD_REACTION")}>
+                <IconButton size="small" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+                  <EmojiEmotionsIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             )}
-
-            {hasOnlyMedia && <MetaText>{timeText}</MetaText>}
-          </MessageContent>
-
-          <MessageActions
-            mine={mine}
-            canReply={canReply}
-            canDelete={canDelete}
-            canForward={canForward}
-            canPin={canPin}
-            onReply={() => onReplyMessage(message)}
-            onForward={() => onForwardMessage(message)}
-            onDelete={() =>
-              onDeleteMessage(
-                message.conversationId,
-                message.messageId,
-                message.createdAt
-              )
-            }
-            isPinned={isPinned}
-            onTogglePin={() => togglePin(message.conversationId, message.createdAt, message.messageId)}
-          />
-        </>
+            
+            <Tooltip title={t("CHAT.MORE_OPTIONS")}>
+              <IconButton size="small" onClick={handleMenuClick}>
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+            >
+              {onForward && (
+                <MenuItem onClick={handleMenuClose}>
+                  <ForwardIcon sx={{ mr: 1 }} fontSize="small" />
+                  {t("CHAT.ACTION_FORWARD")}
+                </MenuItem>
+              )}
+              
+              {onPin && (
+                <MenuItem onClick={handleMenuClose}>
+                  {isPinned ? <StarIcon sx={{ mr: 1 }} fontSize="small" /> : <StarBorderIcon sx={{ mr: 1 }} fontSize="small" />}
+                  {isPinned ? t("CHAT.ACTION_UNPIN") : t("CHAT.ACTION_PIN")}
+                </MenuItem>
+              )}
+              
+              {onEdit && isOwn && (
+                <MenuItem onClick={handleMenuClose}>
+                  <EditIcon sx={{ mr: 1 }} fontSize="small" />
+                  {t("CHAT.ACTION_EDIT")}
+                </MenuItem>
+              )}
+              
+              {onDelete && isOwn && (
+                <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
+                  <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
+                  {t("CHAT.ACTION_DELETE")}
+                </MenuItem>
+              )}
+            </Menu>
+          </ActionButtons>
+        </MessageActionsContainer>
+        
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+          <MessageTime isOwn={isOwn}>{timestamp}</MessageTime>
+          {isEdited && (
+            <Typography variant="caption" sx={{ color: "#9CA3AF", fontStyle: "italic" }}>
+              ({t("CHAT.MESSAGE_EDITED")})
+            </Typography>
+          )}
+          {isOwn && (
+            <DeliveryStatus>
+              {getDeliveryIcon()}
+            </DeliveryStatus>
+          )}
+        </Box>
+      </Box>
+      
+      {isOwn && sender && (
+        <MessageAvatar src={sender.avatar}>
+          {sender.name.charAt(0)}
+        </MessageAvatar>
       )}
     </MessageRow>
   );
-}
+};
+
+export default MessageItem;

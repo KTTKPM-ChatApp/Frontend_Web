@@ -7,12 +7,12 @@ export interface InfoRowProps {
 const BoxInfo = styled(Box)({
     width: "100%",
     display: "flex",
-    gap:"24px"
+    gap:"16px"
 })
 const InfoRow = ({ label, value }: InfoRowProps) => {
     return (
         <BoxInfo >
-            <Typography minWidth="80px" fontWeight={500} fontSize={14} color="text.secondary">
+            <Typography minWidth="80px" fontSize={13} color="text.secondary">
                 {label}
             </Typography>
             <Typography fontSize={14} fontWeight={500}>

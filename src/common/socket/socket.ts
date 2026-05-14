@@ -1,101 +1,52 @@
-import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
+import { io, Socket } from "socket.io-client";
 
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080";
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
 
-let stompClient: Client | null = null;
-let currentUserId: string | null = null;
+let socketInstance: Socket | null = null;
 
-export const connectSocket = (accessToken?: string, userId?: string) => {
-  if (!stompClient) {
-    const socket = new SockJS(`${socketUrl}/ws`);
-    
-    stompClient = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: accessToken ? {
-        Authorization: `Bearer ${accessToken}`
-      } : {},
-      debug: (str) => {
-        console.log('STOMP Debug:', str);
-      },
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
+export const connectSocket = (accessToken?: string) => {
+  if (!socketInstance) {
+    socketInstance = io(socketUrl, {
+      autoConnect: false,
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+      path: "/socket.io",
     });
 
-    stompClient.onConnect = (frame) => {
-      console.log('STOMP connected:', frame);
-      console.log('STOMP connected headers:', frame.headers);
-      
-      // Subscribe to private messages for this user
-      if (currentUserId) {
-        stompClient?.subscribe(`/user/${currentUserId}/queue/messages`, (message) => {
-          console.log('Received private message:', message);
-          const messageData = JSON.parse(message.body);
-          // Trigger message event for frontend
-          const event = new CustomEvent('chat:new', { detail: messageData });
-          window.dispatchEvent(event);
-        });
+    socketInstance.on("connect", () => {
+      console.log("[Socket] Connected:", socketInstance?.id);
+    });
 
-        // Subscribe to presence updates
-        stompClient?.subscribe('/topic/presence-updates', (message) => {
-          console.log('Received presence update:', message);
-          const presenceData = JSON.parse(message.body);
-          // Trigger presence event for frontend
-          const event = new CustomEvent('presence:update', { detail: presenceData });
-          window.dispatchEvent(event);
-        });
-      }
-    };
+    socketInstance.on("connect_error", (err) => {
+      console.error("[Socket] Connection error:", err.message, err);
+    });
 
-    stompClient.onStompError = (frame) => {
-      console.error('STOMP error:', frame);
-      const event = new CustomEvent('socket:error', { detail: frame });
-      window.dispatchEvent(event);
-    };
+    socketInstance.on("disconnect", (reason) => {
+      console.log("[Socket] Disconnected:", reason);
+    });
+  }
 
-    stompClient.onDisconnect = (frame) => {
-      console.log('STOMP disconnected:', frame);
-      const event = new CustomEvent('socket:disconnect', { detail: frame });
-      window.dispatchEvent(event);
+  if (accessToken) {
+    socketInstance.auth = {
+      token: `Bearer ${accessToken}`,
     };
   }
 
-  currentUserId = userId || null;
-
-  if (!stompClient.connected) {
-    console.log('STOMP connecting with headers:', accessToken ? { Authorization: `Bearer ${accessToken}` } : {});
-    stompClient.activate();
+  if (!socketInstance.connected) {
+    socketInstance.connect();
   }
 
-  return stompClient;
+  return socketInstance;
 };
 
-export const getSocket = () => stompClient;
+export const getSocket = () => socketInstance;
 
 export const disconnectSocket = () => {
-  if (!stompClient) return;
-  if (stompClient.connected) {
-    stompClient.deactivate();
-  }
-  stompClient = null;
-  currentUserId = null;
-};
-
-export const sendSocketMessage = (destination: string, body: any) => {
-  if (!stompClient || !stompClient.connected) {
-    console.warn('Socket not connected, cannot send message');
-    return false;
-  }
-  
-  try {
-    stompClient.publish({
-      destination,
-      body: JSON.stringify(body)
-    });
-    return true;
-  } catch (error) {
-    console.error('Failed to send socket message:', error);
-    return false;
-  }
+  if (!socketInstance) return;
+  socketInstance.removeAllListeners();
+  socketInstance.disconnect();
+  socketInstance = null;
 };

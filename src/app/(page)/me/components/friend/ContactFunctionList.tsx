@@ -1,82 +1,76 @@
 "use client";
 
-import { Box, Typography } from "@mui/material";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { Box, Typography, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
-import ForwardToInboxOutlinedIcon from '@mui/icons-material/ForwardToInboxOutlined';
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import PeopleIcon from "@mui/icons-material/People";
+import GroupsIcon from "@mui/icons-material/Groups";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import SendIcon from "@mui/icons-material/Send";
 
-export type ContactView =
-    | "friends"
-    | "groups"
-    | "friendRequests"
-    | "sentRequests";
-
-interface Props {
-    value: ContactView;
-    onChange: (value: ContactView) => void;
-}
-
-const Wrap = styled(Box)({
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    padding: 12,
-});
-
-const Item = styled(Box, {
-    shouldForwardProp: (prop) => prop !== "active",
-})<{ active?: boolean }>(({ active }) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "14px 16px",
-    borderRadius: 10,
-    cursor: "pointer",
-    color: "#0F172A",
-    background: active ? "#EAF2FF" : "transparent",
-    fontWeight: active ? 600 : 500,
-    transition: "all 0.2s ease",
-    "&:hover": {
-        background: active ? "#EAF2FF" : "#F8FAFC",
-    },
+const FunctionList = styled(List)(({ theme }) => ({
+  padding: 0,
 }));
 
-const Label = styled(Typography)({
-    fontSize: 15,
-});
+const FunctionItem = styled(ListItemButton)(({ theme }) => ({
+  borderRadius: 8,
+  margin: "4px 8px",
+  "&:hover": {
+    backgroundColor: "#F8FAFC",
+  },
+  "&.active": {
+    backgroundColor: "#E5F1FF",
+    color: "#005AE0",
+  },
+}));
 
-export default function ContactFunctionList({ value, onChange }: Props) {
-    const t = useTrans();
-    return (
-        <Wrap>
-            <Item active={value === "friends"} onClick={() => onChange("friends")}>
-                <PeopleOutlineIcon fontSize="small" />
-                <Label>{t("FRIEND.LABEL_FRIENDS")}</Label>
-            </Item>
+export type ContactView = "friends" | "groups" | "friendRequests" | "sentRequests";
 
-            <Item active={value === "groups"} onClick={() => onChange("groups")}>
-                <GroupsOutlinedIcon fontSize="small" />
-                <Label>{t("FRIEND.LABEL_GROUPS")}</Label>
-            </Item>
-
-            <Item
-                active={value === "friendRequests"}
-                onClick={() => onChange("friendRequests")}
-            >
-                <PersonAddAltOutlinedIcon fontSize="small" />
-                <Label>{t("FRIEND.LABEL_REQUESTS")}</Label>
-            </Item>
-
-            <Item
-                active={value === "sentRequests"}
-                onClick={() => onChange("sentRequests")}
-            >
-                <ForwardToInboxOutlinedIcon fontSize="small" />
-                <Label>{t("FRIEND.LABEL_SENT")}</Label>
-            </Item>
-        </Wrap>
-    );
+interface ContactFunctionListProps {
+  value: ContactView;
+  onChange: (value: ContactView) => void;
 }
+
+const ContactFunctionList: React.FC<ContactFunctionListProps> = ({ value, onChange }) => {
+  const { t } = useTranslation();
+  const functions = [
+    {
+      key: "friends" as ContactView,
+      label: t("CONTACT.FRIENDS"),
+      icon: <PeopleIcon />,
+    },
+    {
+      key: "groups" as ContactView,
+      label: t("CONTACT.GROUPS"),
+      icon: <GroupsIcon />,
+    },
+    {
+      key: "friendRequests" as ContactView,
+      label: t("CONTACT.FRIEND_REQUESTS"),
+      icon: <PersonAddIcon />,
+    },
+    {
+      key: "sentRequests" as ContactView,
+      label: t("CONTACT.SENT_REQUESTS"),
+      icon: <SendIcon />,
+    },
+  ];
+
+  return (
+    <FunctionList>
+      {functions.map((func) => (
+        <FunctionItem
+          key={func.key}
+          className={value === func.key ? "active" : ""}
+          onClick={() => onChange(func.key)}
+        >
+          <ListItemIcon>{func.icon}</ListItemIcon>
+          <ListItemText primary={func.label} />
+        </FunctionItem>
+      ))}
+    </FunctionList>
+  );
+};
+
+export default ContactFunctionList;

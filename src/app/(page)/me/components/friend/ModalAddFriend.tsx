@@ -1,50 +1,47 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  Avatar,
-  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   Button,
-  CircularProgress,
-  InputBase,
+  Box,
+  Typography,
   List,
   ListItem,
   ListItemText,
-  Typography,
+  Avatar,
+  CircularProgress,
+  InputBase,
+  InputAdornment,
+  Chip,
+  Alert,
+  Card,
+  CardContent,
+  Stack,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import AppModal from "@/src/shared/component/AppModal";
-import { searchService } from "@/src/common/service/search-service";
-import { useDebounce } from "@/src/common/utilities/hook/debounce";
-import { IUserSearchItem } from "@/src/common/interface/search-interface";
-import FriendRequestConfirmModal from "./FriendRequestConfirmModal";
-import { friendService } from "@/src/common/service/friend-service";
-import { useFriendStore } from "@/src/common/store/useFriendStore";
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import SearchIcon from "@mui/icons-material/Search";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import SendIcon from "@mui/icons-material/Send";
+import CancelIcon from "@mui/icons-material/Cancel";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-interface AddFriendDialogProps {
-  open: boolean;
-  onClose: () => void;
-  suggestions?: IUserSearchItem[];
-  onSendFriendRequest?: (payload: {
-    user: IUserSearchItem;
-    message: string;
-  }) => Promise<void> | void;
-  onCancelFriendRequest?: (payload: {
-    user: IUserSearchItem;
-    requestId: string;
-  }) => Promise<void> | void;
-}
+// ==================== STYLED COMPONENTS ====================
 
-const PhoneBar = styled(Box)({
+const PhoneBar = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   minHeight: 44,
   borderBottom: "1px solid #DDE1E6",
-});
+  padding: "0 16px",
+}));
 
-const CountryWrap = styled(Box)({
+const CountryWrap = styled(Box)(({ theme }) => ({
   minWidth: 120,
   display: "flex",
   alignItems: "center",
@@ -54,458 +51,288 @@ const CountryWrap = styled(Box)({
   color: "#1E293B",
   fontSize: 16,
   fontWeight: 500,
-});
+  cursor: "pointer",
+  "&:hover": {
+    backgroundColor: "#F8FAFC",
+  },
+}));
 
-const PhoneInput = styled(InputBase)({
+const PhoneInput = styled(InputBase)(({ theme }) => ({
   flex: 1,
   paddingLeft: 16,
   fontSize: 16,
-});
+  "& input": {
+    "&::placeholder": {
+      color: "#94A3B8",
+    },
+  },
+}));
 
-const SectionTitle = styled(Typography)({
+const SectionTitle = styled(Typography)(({ theme }) => ({
   fontSize: 14,
   fontWeight: 500,
   color: "#64748B",
   marginBottom: 12,
-});
+}));
 
-const UserRow = styled(ListItem)({
+const UserRow = styled(ListItem)(({ theme }) => ({
   paddingLeft: 0,
   paddingRight: 0,
-});
+  borderRadius: 8,
+  marginBottom: 8,
+  "&:hover": {
+    backgroundColor: "#F8FAFC",
+  },
+}));
 
-const RowContent = styled(Box)({
+const RowContent = styled(Box)(({ theme }) => ({
   width: "100%",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
-});
+}));
 
-const LeftUser = styled(Box)({
+const LeftUser = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   gap: 12,
   minWidth: 0,
   flex: 1,
-});
+}));
 
-const SuggestText = styled(Typography)({
+const SuggestText = styled(Typography)(({ theme }) => ({
   fontSize: 13,
   color: "#64748B",
-});
+}));
 
-const FooterButton = styled(Button)({
+const FooterButton = styled(Button)(({ theme }) => ({
   minWidth: 88,
   textTransform: "none",
-  fontWeight: 600,
-  borderRadius: 4,
-});
+  fontSize: 14,
+  fontWeight: 500,
+}));
 
-const normalizePhoneQuery = (input: string) => {
-  const digits = input.replace(/\D/g, "");
+const FriendCard = styled(Card)(({ theme }) => ({
+  marginBottom: 12,
+  borderRadius: 12,
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  "&:hover": {
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    transform: "translateY(-2px)",
+    transition: "all 0.2s ease",
+  },
+}));
 
-  if (!digits) return "";
+const FriendCardContent = styled(CardContent)(({ theme }) => ({
+  padding: "16px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+}));
 
-  if (digits.startsWith("84")) {
-    return `+${digits}`;
-  }
+interface User {
+  id: string;
+  name: string;
+  phone?: string;
+  avatar?: string;
+  friendshipStatus?: "none" | "friend" | "incoming" | "outgoing" | "pending_sent";
+}
 
-  if (digits.startsWith("0")) {
-    return `+84${digits.slice(1)}`;
-  }
+interface ModalAddFriendProps {
+  open: boolean;
+  onClose: () => void;
+  onSearch?: (value: string) => void;
+  onSendRequest?: (userId: string) => void;
+}
 
-  return `+84${digits}`;
-};
-
-const isPhoneNumber = (input: string) => {
-  const phoneRegex = /^[\d\s\-()+]*$/;
-  const digitsOnly = input.replace(/\D/g, "");
-  return phoneRegex.test(input) && digitsOnly.length >= 3;
-};
-
-export default function AddFriendDialog({
+const ModalAddFriend: React.FC<ModalAddFriendProps> = ({
   open,
   onClose,
-  suggestions = [],
-  onSendFriendRequest,
-  onCancelFriendRequest,
-}: AddFriendDialogProps) {
-  const t = useTrans();
+  onSearch = () => {},
+  onSendRequest = () => {},
+}) => {
+  const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
-  const [results, setResults] = useState<IUserSearchItem[]>([]);
+  const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [recentUsers, setRecentUsers] = useState<IUserSearchItem[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<IUserSearchItem | null>(null);
-  const [openConfirmModal, setOpenConfirmModal] = useState(false);
-  const [requestMessage, setRequestMessage] = useState(
-    "Xin chào, kết bạn với mình nhé!"
-  );
-  const [blockDiary, setBlockDiary] = useState(false);
-  const [sendingRequest, setSendingRequest] = useState(false);
+  const [countryCode, setCountryCode] = useState("+84");
 
-  const friends = useFriendStore((s) => s.friends);
-  const pendingRequests = useFriendStore((s) => s.pendingRequests);
-  const sentRequests = useFriendStore((s) => s.sentRequests);
-
-  const fetchFriends = useFriendStore((s) => s.fetchFriends);
-  const fetchPendingRequests = useFriendStore((s) => s.fetchPendingRequests);
-  const fetchSentRequests = useFriendStore((s) => s.fetchSentRequests);
-  const getRelationStatus = useFriendStore((s) => s.getRelationStatus);
-  const getOutgoingRequestByUserId = useFriendStore(
-    (s) => s.getOutgoingRequestByUserId
-  );
-
-  const hasInput = searchValue.trim().length > 0;
-  const displayUsers = hasInput
-    ? results
-    : recentUsers.length > 0
-      ? recentUsers
-      : suggestions;
-  const showNotFound =
-    hasInput && hasSearched && !loading && !error && results.length === 0;
-  const debouncedSearch = useDebounce(searchValue, 500);
-
-  const hasKeyword = debouncedSearch.trim().length > 0;
-  const isPhoneSearch = useMemo(
-    () => isPhoneNumber(debouncedSearch.trim()),
-    [debouncedSearch]
-  );
-
-  useEffect(() => {
-    if (!open) return;
-
-    void Promise.all([
-      fetchFriends(),
-      fetchPendingRequests(),
-      fetchSentRequests(),
-    ]);
-  }, [open, fetchFriends, fetchPendingRequests, fetchSentRequests]);
-
-  const fetchUsers = async (rawKeyword: string) => {
-    const keyword = rawKeyword.trim();
-
-    if (!keyword) {
-      setResults([]);
-      setError(null);
-      setLoading(false);
-      setHasSearched(false);
-      return;
-    }
-
-    if (!isPhoneNumber(keyword)) {
-      setResults([]);
-      setError("Vui lòng nhập đúng số điện thoại");
-      setLoading(false);
-      setHasSearched(false);
-      return;
-    }
-
+  const handleSearch = async () => {
+    if (!searchValue.trim()) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-
-      const q = normalizePhoneQuery(keyword);
-
-      const response = await searchService.searchUsers({
-        q,
-        page: 1,
-        limit: 20,
-      });
-
-      const users = Array.isArray(response?.payload?.data)
-        ? response.payload.data
-        : [];
-
-      setResults(users);
-      setHasSearched(true);
-
-      if (users.length > 0) {
-        setRecentUsers((prev) => {
-          const merged = [...users, ...prev].filter(
-            (user, index, arr) =>
-              arr.findIndex((item) => item.id === user.id) === index
-          );
-          return merged.slice(0, 5);
-        });
-      }
-    } catch (err: any) {
-      console.error("search user error:", err);
-      setError(err?.message || t("COMMON.SEARCH_ERROR"));
-      setResults([]);
-      setHasSearched(true);
-    } finally {
+      onSearch(searchValue);
+      // Mock results with friendship status
+      setTimeout(() => {
+        setResults([
+          { 
+            id: "1", 
+            name: "Nguyễn Văn A", 
+            phone: "0987654321",
+            avatar: "/avatar1.jpg",
+            friendshipStatus: "none"
+          },
+          { 
+            id: "2", 
+            name: "Trần Thị B", 
+            phone: "0123456789",
+            avatar: "/avatar2.jpg",
+            friendshipStatus: "friend"
+          },
+          { 
+            id: "3", 
+            name: "Lê Văn C", 
+            phone: "0912345678",
+            avatar: "/avatar3.jpg",
+            friendshipStatus: "incoming"
+          },
+        ]);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Search error:", error);
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (!open) return;
-
-    const keyword = debouncedSearch.trim();
-
-    if (!keyword) {
-      setResults([]);
-      setError(null);
-      setLoading(false);
-      setHasSearched(false);
-      return;
-    }
-
-    if (!isPhoneSearch) {
-      setResults([]);
-      setError("Vui lòng nhập đúng số điện thoại");
-      setLoading(false);
-      setHasSearched(false);
-      return;
-    }
-
-    void fetchUsers(keyword);
-  }, [open, debouncedSearch, isPhoneSearch]);
-
-  const updateUserInLists = (
-    userId: string,
-    updater: (item: IUserSearchItem) => IUserSearchItem
-  ) => {
-    setResults((prev) =>
-      prev.map((item) => (item.id === userId ? updater(item) : item))
-    );
-    setRecentUsers((prev) =>
-      prev.map((item) => (item.id === userId ? updater(item) : item))
-    );
+  const handleAddFriend = (user: User) => {
+    onSendRequest(user.id);
+    // Update local status
+    setResults(prev => prev.map(item => 
+      item.id === user.id 
+        ? { ...item, friendshipStatus: "pending_sent" as const }
+        : item
+    ));
   };
 
-  const handleClose = () => {
-    setSearchValue("");
-    setResults([]);
-    setError(null);
-    setLoading(false);
-    setHasSearched(false);
-    setSelectedUser(null);
-    setOpenConfirmModal(false);
-    onClose();
-  };
-
-  const handleManualSearch = async () => {
-    await fetchUsers(searchValue);
-  };
-
-  const handleAddFriend = (user: IUserSearchItem) => {
-    setSelectedUser(user);
-    setRequestMessage("Xin chào, Kết bạn với mình nhé!");
-    setBlockDiary(false);
-    setOpenConfirmModal(true);
-  };
-
-  const handleCancelRequest = async (
-    user: IUserSearchItem,
-    requestId?: string
-  ) => {
-    try {
-      if (!requestId) return;
-
-      setSendingRequest(true);
-
-      if (onCancelFriendRequest) {
-        await onCancelFriendRequest({ user, requestId });
-      } else {
-        await friendService.cancelRequest(requestId);
-      }
-
-      await fetchSentRequests();
-
-      updateUserInLists(user.id, (item) => ({
-        ...item,
-        friendshipStatus: "none",
-      }));
-    } catch (err) {
-      console.error("cancel request error:", err);
-    } finally {
-      setSendingRequest(false);
+  const getStatusChip = (status?: string) => {
+    switch (status) {
+      case "friend":
+        return <Chip label={t("FRIEND.STATUS_FRIEND")} color="success" size="small" />;
+      case "incoming":
+        return <Chip label={t("FRIEND.STATUS_INCOMING")} color="info" size="small" />;
+      case "outgoing":
+      case "pending_sent":
+        return <Chip label={t("FRIEND.STATUS_OUTGOING")} color="warning" size="small" />;
+      default:
+        return null;
     }
   };
 
-  const handleConfirmSendFriendRequest = async () => {
-    if (!selectedUser) return;
-
-    try {
-      setSendingRequest(true);
-
-      if (onSendFriendRequest) {
-        await onSendFriendRequest({
-          user: selectedUser,
-          message: requestMessage.trim(),
-        });
-      } else {
-        await friendService.sendRequest({
-          message: requestMessage.trim(),
-          userId: selectedUser.id,
-        });
-      }
-
-      await fetchSentRequests();
-
-      updateUserInLists(selectedUser.id, (item) => ({
-        ...item,
-        friendshipStatus: "pending_sent",
-      }));
-
-      setOpenConfirmModal(false);
-      setSelectedUser(null);
-    } catch (err) {
-      console.error("send friend request error:", err);
-    } finally {
-      setSendingRequest(false);
+  const getActionButton = (user: User) => {
+    switch (user.friendshipStatus) {
+      case "friend":
+        return (
+          <Button variant="outlined" size="small" disabled>
+            {t("FRIEND.ALREADY_FRIEND")}
+          </Button>
+        );
+      case "incoming":
+        return (
+          <Button variant="contained" size="small" color="success">
+            {t("FRIEND.ACCEPT")}
+          </Button>
+        );
+      case "outgoing":
+      case "pending_sent":
+        return (
+          <Button variant="outlined" size="small" disabled>
+            {t("FRIEND.REQUEST_SENT")}
+          </Button>
+        );
+      default:
+        return (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<PersonAddIcon />}
+            onClick={() => handleAddFriend(user)}
+          >
+            {t("FRIEND.ADD_FRIEND")}
+          </Button>
+        );
     }
   };
 
   return (
-    <React.Fragment>
-      <AppModal
-        open={open}
-        onClose={handleClose}
-        title={t("FRIEND.ADD_TITLE")}
-        maxWidth="xs"
-        fullWidth
-        headerDivider
-        actions={
-          <>
-            <FooterButton
-              variant="outlined"
-              color="inherit"
-              onClick={handleClose}
-            >
-              {t("COMMON.BACK")}
-            </FooterButton>
-            <FooterButton
-              variant="contained"
-              onClick={handleManualSearch}
-              disabled={!searchValue.trim() || loading}
-            >
-              {t("FRIEND.SEARCH_RESULTS")}
-            </FooterButton>
-          </>
-        }
-      >
-        <Box>
-          <PhoneBar>
-            <CountryWrap>
-              <Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>
-                🇻🇳
-              </Box>
-              <Typography sx={{ fontSize: 16, fontWeight: 500 }}>
-                (+84)
-              </Typography>
-              <KeyboardArrowDownIcon sx={{ color: "#64748B" }} />
-            </CountryWrap>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>{t("FRIEND.ADD_FRIEND_TITLE")}</DialogTitle>
+      <DialogContent sx={{ pb: 2 }}>
+        {/* Phone Search Bar */}
+        <PhoneBar>
+          <CountryWrap>
+            🇻🇳 {countryCode}
+          </CountryWrap>
+          <PhoneInput
+            placeholder={t("FRIEND.SEARCH_PLACEHOLDER")}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          />
+        </PhoneBar>
 
-            <PhoneInput
-              placeholder={t("COMMON.SEARCH_PLACEHOLDER")}
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-            />
-          </PhoneBar>
-
-          <Box sx={{ pt: 3 }}>
-            <SectionTitle>
-              {hasInput ? t("FRIEND.SEARCH_RESULTS") : t("FRIEND.RECENT_RESULTS")}
-            </SectionTitle>
-
-            {loading ? (
-              <Box sx={{ py: 3, display: "flex", justifyContent: "center" }}>
-                <CircularProgress size={22} />
-              </Box>
-            ) : error ? (
-              <Typography sx={{ fontSize: 14, color: "error.main" }}>
-                {error}
-              </Typography>
-            ) : displayUsers.length > 0 ? (
-              <List disablePadding>
-                {displayUsers.map((user) => {
-                  const relationStatus = getRelationStatus(user.id);
-                  const outgoingRequest = getOutgoingRequestByUserId(user.id);
-
-                  const isOutgoing = relationStatus === "outgoing";
-                  const isFriend = relationStatus === "friend";
-                  const isIncoming = relationStatus === "incoming";
-
-                  return (
-                    <UserRow key={user.id} disableGutters>
-                      <RowContent>
-                        <LeftUser>
-                          <Avatar src={user.avatarUrl ?? undefined}>
-                            {user.fullName?.charAt(0)?.toUpperCase()}
-                          </Avatar>
-
-                          <ListItemText
-                            primary={user.fullName}
-                            secondary={hasInput ? user.phone : t("FRIEND.FROM_RECENT")}
-                            slotProps={{
-                              primary: {
-                                fontSize: 16,
-                                fontWeight: 500,
-                                color: "#0F172A",
-                              },
-                              secondary: {
-                                fontSize: 13,
-                                color: "#64748B",
-                              },
-                            }}
-                          />
-                        </LeftUser>
-
-                        {isFriend ? null : isIncoming ? (
-                          <Button variant="text" disabled>
-                            {t("FRIEND.ALREADY_ACCEPTED")}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant={isOutgoing ? "text" : "outlined"}
-                            disabled={sendingRequest}
-                            onClick={() =>
-                              isOutgoing
-                                ? handleCancelRequest(user, outgoingRequest?.id)
-                                : handleAddFriend(user)
-                            }
-                          >
-                            {isOutgoing ? t("FRIEND.CANCEL_REQUEST") : t("FRIEND.ACCEPT")}
-                          </Button>
-                        )}
-                      </RowContent>
-                    </UserRow>
-                  );
-                })}
-              </List>
-            ) : showNotFound ? (
-              <Typography sx={{ fontSize: 14, color: "#64748B" }}>
-                {t("COMMON.SEARCH_ERROR")}
-              </Typography>
-            ) : null}
-
-            {!hasKeyword && suggestions.length > 0 && (
-              <SuggestText sx={{ mt: 2, cursor: "pointer", color: "#005AE0" }}>
-                Xem thêm
-              </SuggestText>
-            )}
+        {/* Search Results */}
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
           </Box>
-        </Box>
-      </AppModal>
-
-      <FriendRequestConfirmModal
-        open={openConfirmModal}
-        onClose={() => setOpenConfirmModal(false)}
-        user={selectedUser}
-        message={requestMessage}
-        onChangeMessage={setRequestMessage}
-        onChangeBlockDiary={setBlockDiary}
-        onConfirm={handleConfirmSendFriendRequest}
-        loading={sendingRequest}
-        onViewProfile={(user) => {
-          // TODO: Implement view profile
-        }}
-      />
-    </React.Fragment>
+        ) : results.length > 0 ? (
+          <Box sx={{ mt: 2 }}>
+            <SectionTitle>Kết quả tìm kiếm</SectionTitle>
+            {results.map((user) => (
+              <FriendCard key={user.id}>
+                <FriendCardContent>
+                  <LeftUser>
+                    <Avatar src={user.avatar} sx={{ width: 48, height: 48 }}>
+                      {user.name.charAt(0)}
+                    </Avatar>
+                    <Box>
+                      <Typography fontWeight={500} variant="body1">
+                        {user.name}
+                      </Typography>
+                      {user.phone && (
+                        <SuggestText>{user.phone}</SuggestText>
+                      )}
+                      {getStatusChip(user.friendshipStatus)}
+                    </Box>
+                  </LeftUser>
+                  {getActionButton(user)}
+                </FriendCardContent>
+              </FriendCard>
+            ))}
+          </Box>
+        ) : searchValue ? (
+          <Box display="flex" flexDirection="column" alignItems="center" p={3}>
+            <PersonAddIcon sx={{ fontSize: 48, color: "#94A3B8", mb: 2 }} />
+            <Typography color="textSecondary" align="center">
+              {t("FRIEND.NO_RESULTS")}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" align="center" mt={1}>
+              {t("FRIEND.TRY_DIFFERENT_INFO")}
+            </Typography>
+          </Box>
+        ) : (
+          <Box display="flex" flexDirection="column" alignItems="center" p={3}>
+            <SearchIcon sx={{ fontSize: 48, color: "#94A3B8", mb: 2 }} />
+            <Typography color="textSecondary" align="center">
+              {t("FRIEND.SEARCH_FRIENDS")}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" align="center" mt={1}>
+              {t("FRIEND.ENTER_PHONE_OR_NAME")}
+            </Typography>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <FooterButton onClick={onClose}>
+          {t("COMMON.CLOSE")}
+        </FooterButton>
+      </DialogActions>
+    </Dialog>
   );
-}
+};
+
+export default ModalAddFriend;

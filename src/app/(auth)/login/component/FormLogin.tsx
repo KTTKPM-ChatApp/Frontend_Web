@@ -5,23 +5,21 @@ import LoginPasswordTab, { LoginFormValues } from "./LogginPswTab";
 
 
 export interface FormLoginProps {
-    tab: string;
     formik: FormikLike<LoginFormValues>;
+
     loading?: boolean;
     errorMsg?: string | null;
     onGoRegister: () => void;
 }
 
 export default function FormLogin(props: FormLoginProps) {
-    const { formik, loading, errorMsg, onGoRegister, tab } = props;
+    const { formik, loading, errorMsg, onGoRegister } = props;
     return (
-        <>
-            <LoginPasswordTab
-                formik={formik}
-                loading={loading}
-                errorMsg={errorMsg}
-                onGoRegister={onGoRegister}
-            />
-        </>
+        <LoginPasswordTab
+            formik={formik}
+            loading={loading}
+            errorMsg={errorMsg}
+            onGoRegister={onGoRegister}
+        />
     );
 }

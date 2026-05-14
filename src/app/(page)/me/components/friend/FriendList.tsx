@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Avatar,
   Box,
   Button,
@@ -17,9 +15,6 @@ import {
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
-
-import { useFriendStore } from "@/src/common/store/useFriendStore";
-import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const Root = styled(Box)({
   height: "100%",
@@ -78,156 +73,94 @@ const EmptyWrap = styled(Box)({
   color: "#64748B",
 });
 
-function normalizeText(value?: string | null) {
-  return (value || "").trim().toLowerCase();
+interface Friend {
+  id: string;
+  name: string;
+  avatar?: string;
+  status?: string;
 }
 
-export default function FriendList() {
-  const t = useTrans();
-  const [keyword, setKeyword] = useState("");
-  const [actionKey, setActionKey] = useState<string | null>(null);
+interface FriendListProps {
+  friends?: Friend[];
+  loading?: boolean;
+  onSearch?: (value: string) => void;
+  onRemoveFriend?: (friendId: string) => void;
+}
 
-  const friends = useFriendStore((s) => s.friends);
-  const fetchFriends = useFriendStore((s) => s.fetchFriends);
-  const removeFriend = useFriendStore((s) => s.removeFriend);
-  const loadingFriends = useFriendStore((s) => s.loadingFriends);
-  const error = useFriendStore((s) => s.error);
-
-  useEffect(() => {
-    void fetchFriends();
-  }, [fetchFriends]);
-
-  const filteredFriends = useMemo(() => {
-    const q = normalizeText(keyword);
-
-    if (!q) return friends;
-
-    return friends.filter((item) => {
-      const fullName = normalizeText(item.fullName);
-      const phone = normalizeText(item.phone);
-      const bio = normalizeText(item.bio);
-      return fullName.includes(q) || phone.includes(q) || bio.includes(q);
-    });
-  }, [friends, keyword]);
-
-  const handleRemoveFriend = async (friendId: string) => {
-    try {
-      setActionKey(friendId);
-      await removeFriend(friendId);
-    } finally {
-      setActionKey(null);
-    }
-  };
-
+const FriendList: React.FC<FriendListProps> = ({
+  friends = [],
+  loading = false,
+  onSearch = () => {},
+  onRemoveFriend = () => {},
+}) => {
   return (
     <Root>
       <Header>
-        <HeaderTitle>{t("FRIEND.LIST_TITLE")}</HeaderTitle>
+        <HeaderTitle>Danh sách bạn bè</HeaderTitle>
       </Header>
 
       <Content>
-        <SectionTitle>{t("FRIEND.SECTION_TITLE").replace("{count}", String(friends.length))}</SectionTitle>
+        <SectionTitle>Bạn bè ({friends.length})</SectionTitle>
 
         <FilterWrap>
           <TextField
             fullWidth
             size="small"
             placeholder="Tìm bạn"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            value=""
+            onChange={(e) => onSearch(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#64748B" }} />
+                  <SearchIcon />
                 </InputAdornment>
               ),
             }}
           />
         </FilterWrap>
 
-        {error ? <Alert severity="error">{error}</Alert> : null}
-
-        {loadingFriends ? (
-          <EmptyWrap>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <CircularProgress size={22} />
-              <Typography>{t("FRIEND.LOADING")}</Typography>
-            </Stack>
-          </EmptyWrap>
-        ) : filteredFriends.length === 0 ? (
+        {loading ? (
+          <Box display="flex" justifyContent="center" py={4}>
+            <CircularProgress />
+          </Box>
+        ) : friends.length === 0 ? (
           <ListCard>
-            <EmptyWrap>
-              <Typography>{t("FRIEND.NO_FRIENDS")}</Typography>
-            </EmptyWrap>
+            <CardContent>
+              <EmptyWrap>
+                <Typography>Chưa có bạn bè nào</Typography>
+              </EmptyWrap>
+            </CardContent>
           </ListCard>
         ) : (
-          <ListCard>
-            {filteredFriends.map((friend, index) => {
-              const removing = actionKey === friend.id;
-
-              return (
-                <CardContent
-                  key={friend.id}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    borderBottom:
-                      index < filteredFriends.length - 1
-                        ? "1px solid #F1F5F9"
-                        : "none",
-                  }}
-                >
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Avatar
-                      src={friend.avatarUrl || undefined}
-                      alt={friend.fullName}
-                      sx={{ width: 48, height: 48 }}
-                    >
-                      {friend.fullName?.charAt(0)?.toUpperCase() || "U"}
-                    </Avatar>
-
-                    <Box>
-                      <Typography
-                        sx={{ fontSize: 16, fontWeight: 600, color: "#0F172A" }}
-                      >
-                        {friend.fullName || "Người dùng"}
-                      </Typography>
-
-                      <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.5 }}>
-                        {friend.phone || friend.bio || t("FRIEND.IN_SYSTEM")}
+          <Stack spacing={2}>
+            {friends.map((friend) => (
+              <ListCard key={friend.id}>
+                <CardContent>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar src={friend.avatar} />
+                    <Box flex={1}>
+                      <Typography fontWeight={600}>{friend.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {friend.status}
                       </Typography>
                     </Box>
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<PersonRemoveOutlinedIcon />}
+                      onClick={() => onRemoveFriend(friend.id)}
+                    >
+                      Xóa
+                    </Button>
                   </Stack>
-
-                  <Button
-                    sx={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#FFFFFF",
-                      backgroundColor: "#D50000",
-                      textTransform: "none",
-                      padding: "6px 16px",
-                    }}
-                    startIcon={
-                      removing ? (
-                        <CircularProgress  />
-                      ) : (
-                        <PersonRemoveOutlinedIcon />
-                      )
-                    }
-                    disabled={removing}
-                    onClick={() => handleRemoveFriend(friend.id)}
-                  >
-                    {t("FRIEND.REJECT")}
-                  </Button>
                 </CardContent>
-              );
-            })}
-          </ListCard>
+              </ListCard>
+            ))}
+          </Stack>
         )}
       </Content>
     </Root>
   );
-}
+};
+
+export default FriendList;

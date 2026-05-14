@@ -1,167 +1,258 @@
 "use client";
 
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-    Avatar,
-    Box,
-    Button,
-    Switch,
-    TextField,
-    Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Typography,
+  Avatar,
+  TextField,
+  Switch,
+  CircularProgress,
+  Stack,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import AppModal from "@/src/shared/component/AppModal";
-import { IUserSearchItem } from "@/src/common/interface/search-interface";
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import SendIcon from "@mui/icons-material/Send";
+import CloseIcon from "@mui/icons-material/Close";
+
+const Content = styled(Box)({
+  padding: "20px 0",
+});
+
+const UserInfo = styled(Stack)({
+  alignItems: "center",
+  gap: 16,
+  marginBottom: 24,
+});
+
+const UserName = styled(Typography)({
+  fontSize: 18,
+  fontWeight: 600,
+  color: "#0F172A",
+});
+
+const UserMessage = styled(Typography)({
+  fontSize: 14,
+  color: "#64748B",
+  textAlign: "center",
+  maxWidth: 300,
+});
+
+const Banner = styled(Box)(({ theme }) => ({
+  height: 180,
+  width: "100%",
+  background: "linear-gradient(135deg, #DCEBFF 0%, #F8E7D8 50%, #E8F1D4 100%)",
+  overflow: "hidden",
+  position: "relative",
+}));
+
+const UserInfoWrap = styled(Box)(({ theme }) => ({
+  position: "relative",
+  padding: "0 20px 20px",
+}));
+
+const AvatarWrap = styled(Box)(({ theme }) => ({
+  marginTop: -42,
+  display: "flex",
+  alignItems: "center",
+  gap: 16,
+}));
+
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  width: 84,
+  height: 84,
+  border: "4px solid #FFFFFF",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+}));
+
+const OnlineIndicator = styled(Box)(({ theme }) => ({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: "#10B981",
+  border: "2px solid #FFFFFF",
+  position: "absolute",
+  bottom: 0,
+  right: 0,
+}));
+
+const OfflineIndicator = styled(Box)(({ theme }) => ({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: "#94A3B8",
+  border: "2px solid #FFFFFF",
+  position: "absolute",
+  bottom: 0,
+  right: 0,
+}));
+
+interface User {
+  id: string;
+  name: string;
+  avatar?: string;
+  message?: string;
+  phone?: string;
+}
 
 interface FriendRequestConfirmModalProps {
-    open: boolean;
-    onClose: () => void;
-    user: IUserSearchItem | null;
-    message: string;
-    onChangeMessage: (value: string) => void;
-    // blockDiary: boolean;
-    onChangeBlockDiary: (checked: boolean) => void;
-    onConfirm: () => Promise<void> | void;
-    loading?: boolean;
-    onViewProfile?: (user: IUserSearchItem) => void;
+  open: boolean;
+  onClose: () => void;
+  user?: User | null;
+  onConfirm?: () => void;
+  onReject?: () => void;
+  loading?: boolean;
 }
 
-const Banner = styled(Box)({
-    height: 180,
-    width: "100%",
-    background:
-        "linear-gradient(135deg, #DCEBFF 0%, #F8E7D8 50%, #E8F1D4 100%)",
-    overflow: "hidden",
-});
+const FriendRequestConfirmModal: React.FC<FriendRequestConfirmModalProps> = ({
+  open,
+  onClose,
+  user,
+  onConfirm = () => {},
+  onReject = () => {},
+  loading = false,
+}) => {
+  const { t } = useTranslation();
+  const [message, setMessage] = useState("Xin chào, Kết bạn với mình nhé!");
+  const [blockDiary, setBlockDiary] = useState(false);
 
-const UserInfoWrap = styled(Box)({
-    position: "relative",
-    padding: "0 20px 20px",
-});
+  return (
+    <Box
+      sx={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: open ? "flex" : "none",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1400,
+      }}
+      onClick={onClose}
+    >
+      <Box
+        sx={{
+          backgroundColor: "#FFFFFF",
+          borderRadius: 16,
+          width: { xs: "90%", sm: 400 },
+          maxHeight: "80vh",
+          overflow: "hidden",
+          position: "relative",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <Box sx={{ p: 3, borderBottom: "1px solid #E5E7EB" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="h6" sx={{ fontSize: 18, fontWeight: 600, color: "#0F172A" }}>
+              {t("FRIEND.REQUEST_CONFIRM_TITLE")}
+            </Typography>
+            <IconButton onClick={onClose} sx={{ p: 1 }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </Box>
 
-const AvatarWrap = styled(Box)({
-    marginTop: -42,
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-});
+        {/* Banner */}
+        <Banner />
 
-const StyledAvatar = styled(Avatar)({
-    width: 84,
-    height: 84,
-    border: "4px solid #fff",
-});
-
-const NameWrap = styled(Box)({
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-});
-
-const MessageWrap = styled(Box)({
-    marginTop: 20,
-});
-
-const OptionWrap = styled(Box)({
-    marginTop: 20,
-    minHeight: 52,
-    borderRadius: 4,
-    background: "#F3F4F6",
-    padding: "0 16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-});
-
-const FooterButton = styled(Button)({
-    minWidth: 110,
-    textTransform: "none",
-    fontWeight: 600,
-    borderRadius: 4,
-});
-
-export default function FriendRequestConfirmModal({
-    open,
-    onClose,
-    user,
-    message,
-    onChangeMessage,
-    // blockDiary,
-    onChangeBlockDiary,
-    onConfirm,
-    loading = false,
-    onViewProfile,
-}: FriendRequestConfirmModalProps) {
-    const t = useTrans();
-    return (
-        <AppModal
-            open={open}
-            onClose={onClose}
-            title={t("PROFILE.TITLE")}
-            maxWidth="xs"
-            fullWidth
-            headerDivider
-            actions={
-                <>
-                    {/* <FooterButton
-                        variant="outlined"
-                        color="inherit"
-                        disabled={!user}
-                        onClick={() => user && onViewProfile?.(user)}
-                    >
-                        Thông tin
-                    </FooterButton> */}
-
-                    <FooterButton
-                        variant="contained"
-                        onClick={onConfirm}
-                        disabled={!user || loading}
-                    >
-                        {t("FRIEND.ACCEPT")}
-                    </FooterButton>
-                </>
-            }
-        >
-            <Box>
-                <Banner />
-
-                <UserInfoWrap>
-                    <AvatarWrap>
-                        <StyledAvatar src={user?.avatarUrl ?? undefined}>
-                            {user?.fullName?.charAt(0)?.toUpperCase()}
-                        </StyledAvatar>
-
-                        <NameWrap>
-                            <Typography sx={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>
-                                {user?.fullName || ""}
-                            </Typography>
-                            {/* <EditOutlinedIcon sx={{ fontSize: 18, color: "#475569" }} /> */}
-                        </NameWrap>
-                    </AvatarWrap>
-
-                    <MessageWrap>
-                        <TextField
-                            fullWidth
-                            multiline
-                            minRows={4}
-                            value={message}
-                            onChange={(e) => onChangeMessage(e.target.value.slice(0, 150))}
-                            helperText={`${message.length}/150 ${t("COMMON.CHARACTERS") || "characters"}`}
-                        />
-                    </MessageWrap>
-
-                    {/* <OptionWrap>
-                        <Typography sx={{ fontSize: 14, color: "#0F172A" }}>
-                            Chặn người này xem nhật ký của tôi
-                        </Typography>
-                        <Switch
-                            checked={blockDiary}
-                            onChange={(e) => onChangeBlockDiary(e.target.checked)}
-                        />
-                    </OptionWrap> */}
-                </UserInfoWrap>
+        {/* User Info */}
+        <UserInfoWrap>
+          <AvatarWrap>
+            <Box sx={{ position: "relative" }}>
+              <StyledAvatar
+                src={user?.avatar}
+                sx={{ width: 84, height: 84 }}
+              >
+                {user?.name?.charAt(0)}
+              </StyledAvatar>
+              <OnlineIndicator />
             </Box>
-        </AppModal>
-    );
-}
+            <Box>
+              <Typography variant="h6" sx={{ fontSize: 18, fontWeight: 600 }}>
+                {user?.name}
+              </Typography>
+              {user?.phone && (
+                <Typography variant="body2" sx={{ color: "#64748B" }}>
+                  {user.phone}
+                </Typography>
+              )}
+            </Box>
+          </AvatarWrap>
+
+          {/* User Message */}
+          {user?.message && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#F8FAFC", borderRadius: 8 }}>
+              <Typography variant="body2" sx={{ color: "#64748B", fontStyle: "italic" }}>
+                &quot;{user.message}&quot;
+              </Typography>
+            </Box>
+          )}
+
+          {/* Message Input */}
+          <Box sx={{ mt: 3 }}>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t("FRIEND.MESSAGE_PLACEHOLDER")}
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 12,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Privacy Options */}
+          <Box sx={{ mt: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              {t("FRIEND.ALLOW_DIARY")}
+            </Typography>
+            <Switch
+              checked={blockDiary}
+              onChange={(e) => setBlockDiary(e.target.checked)}
+              size="small"
+            />
+          </Box>
+
+          {/* Action Buttons */}
+          <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={onReject}
+              sx={{ flex: 1 }}
+              disabled={loading}
+              color="error"
+            >
+              {t("FRIEND.REJECT")}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={onConfirm}
+              sx={{ flex: 1 }}
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={16} /> : <SendIcon />}
+            >
+              {t("FRIEND.ACCEPT")}
+            </Button>
+          </Box>
+        </UserInfoWrap>
+      </Box>
+    </Box>
+  );
+};
+
+export default FriendRequestConfirmModal;

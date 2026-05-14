@@ -1,5 +1,4 @@
 "use client";
-
 import { styled } from "@mui/material/styles";
 import { Box, Button, Grid, Stack, Typography } from "@mui/material";
 import Image from "next/image";
@@ -7,7 +6,6 @@ import CloudDownloadRoundedIcon from "@mui/icons-material/CloudDownloadRounded";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
-import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const MainSiteTitle = styled(Typography)({
     fontWeight: 700,
@@ -65,12 +63,11 @@ const GridButton = styled(Box)({
 const MainSite = () => {
     const router = useRouter();
     const { authData } = useAuthStore();
-    const Trans = useTrans();
 
     const features = [
-        Trans("MAIN_SITE.FEATURE_1"),
-        Trans("MAIN_SITE.FEATURE_2"),
-        Trans("MAIN_SITE.FEATURE_3"),
+        "Gửi file, ảnh, video cực nhanh lên đến 1GB",
+        "Đồng bộ tin nhắn với điện thoại",
+        "Tối ưu cho chat nhóm và trao đổi công việc",
     ];
 
     const handleChangePage = (token?: string) => {
@@ -92,7 +89,7 @@ const MainSite = () => {
                     variant="h4"
                     sx={{ fontSize: { xs: 22, sm: 28, md: 34 } }}
                 >
-                    {Trans("MAIN_SITE.TITLE")}
+                    Tải Zalo PC cho máy tính
                 </MainSiteTitle>
 
                 <MainSiteTitle
@@ -102,7 +99,7 @@ const MainSite = () => {
                         color: "text.primary",
                     }}
                 >
-                    {Trans("MAIN_SITE.SUBTITLE")}
+                    Ứng dụng Zalo PC đã có mặt trên Windows, Mac OS, Web
                 </MainSiteTitle>
             </Stack>
 
@@ -117,7 +114,7 @@ const MainSite = () => {
                                 >
                                     <Image
                                         src="https://stc-zaloprofile.zdn.vn/pc/v1/images/ico_check.png"
-                                        alt={Trans("MAIN_SITE.FEATURE_ICON_ALT")}
+                                        alt="Feature"
                                         width={18}
                                         height={18}
                                     />
@@ -128,6 +125,7 @@ const MainSite = () => {
                             ))}
                         </Stack>
 
+                        {/* Buttons: mobile xếp dọc, sm trở lên nằm ngang */}
                         <GridButton
                             sx={{
                                 flexDirection: { xs: "column", sm: "row" },
@@ -137,20 +135,21 @@ const MainSite = () => {
                             }}
                         >
                             <PrimaryButton variant="contained" startIcon={<CloudDownloadRoundedIcon />}>
-                                {Trans("MAIN_SITE.DOWNLOAD_NOW")}
+                                Tải ngay
                             </PrimaryButton>
 
                             <OutlineButton
                                 variant="outlined"
                                 startIcon={<LanguageRoundedIcon />}
-                                onClick={() => handleChangePage(authData?.data?.tokens?.accessToken)}
+                                onClick={() => handleChangePage(authData?.data?.accessToken)}
                             >
-                                {Trans("MAIN_SITE.USE_WEB_VERSION")}
+                                Dùng bản web
                             </OutlineButton>
                         </GridButton>
                     </Stack>
                 </Grid>
 
+                {/* RIGHT */}
                 <Grid
                     size={{ xs: 12, md: 6 }}
                     sx={{
@@ -163,12 +162,12 @@ const MainSite = () => {
                             position: "relative",
                             width: { xs: "100%", sm: 520, md: 560 },
                             maxWidth: 560,
-                            aspectRatio: "5 / 3",
+                            aspectRatio: "5 / 3", // giữ tỉ lệ đẹp
                         }}
                     >
                         <Image
                             src="https://stc-zaloprofile.zdn.vn/pc/v1/images/img_pc.png"
-                            alt={Trans("MAIN_SITE.IMAGE_ALT")}
+                            alt="Zalo PC"
                             fill
                             sizes="(max-width: 600px) 100vw, (max-width: 900px) 520px, 560px"
                             style={{ objectFit: "contain" }}

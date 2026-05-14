@@ -3,13 +3,13 @@
 import { Button, Card, CardContent, CardMedia, Container, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 
+
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import Image from "next/image";
 import StatCard from "@/src/shared/component/StatCard";
 import IconAppCard, { BoxIcon } from "@/src/shared/component/IconAppCard";
 import { useRouter } from 'next/navigation';
-import { useTrans } from "@/src/common/utilities/hook/trans";
 
 export const ContentSection = styled(Stack)({
     alignItems: 'center',
@@ -84,6 +84,7 @@ const BoxMediaNoRadius = styled(BoxMedia)({
     borderRadius: "0px",
     minHeight: "auto",
 })
+
 export const CardMediaStyled = styled(CardMedia)({
     borderRadius: "8px",
 })
@@ -105,9 +106,8 @@ const RegisButton = styled(Button)(({ theme }) => ({
 
 const HomeTab = () => {
     const router = useRouter();
-    const t = useTrans();
-
     const handleClickChangePage = () => {
+        console.log("click mainsite");
         router.push('/mainsite');
     }
     return <Stack gap={7} data-testid="home-tab">
@@ -123,18 +123,18 @@ const HomeTab = () => {
                             wordBreak: "keep-all",
                         }}
                     >
-                        {t("LANDING.HEADER")}{" "}
-                        <span style={{ color: "#2563eb" }}>{t("LANDING.INTERNET")}</span>,<br />
-                        {t("LANDING.CHANGE")}{" "}
-                        <span style={{ color: "#14b8a6" }}>{t("LANDING.LIFE")}</span> {t("LANDING.VIETNAM")}
+                        Phát triển{" "}
+                        <span style={{ color: "#2563eb" }}>Internet</span>,<br />
+                        thay đổi{" "}
+                        <span style={{ color: "#14b8a6" }}>cuộc sống</span> người Việt Nam
                     </Typography>
 
                     <SubHeadingSection variant="h6">
-                        {t("LANDING.SUBTITLE")}
+                        Từ ứng dụng nhắn tin phổ biến nhất Việt Nam đến công nghệ AI tiên tiến, những sản phẩm của Zalo đang hỗ trợ cuộc sống hằng ngày của hàng chục triệu người.
                     </SubHeadingSection>
 
                 </Stack>
-                <RegisButton onClick={() => handleClickChangePage()}>{t("LANDING.CTA_BUTTON")}</RegisButton>
+                <RegisButton onClick={() => handleClickChangePage()}>Tham gia Zalo ngay</RegisButton>
 
             </Container>
             <StackVideo>
@@ -143,9 +143,9 @@ const HomeTab = () => {
         </ContentSection>
         <ContentSection data-testid="home-tab-effort-section" spacing={5}>
             <Box>
-                <HeadingSection variant="h4">{t("LANDING.EFFORTS_TITLE")}</HeadingSection>
+                <HeadingSection variant="h4">Nỗ lực và dấu ấn của Zalo</HeadingSection>
                 <SubHeadingSection variant="h6">
-                    {t("LANDING.EFFORTS_SUBTITLE")}
+                    Tìm hiểu cách Zalo xây dựng sản phẩm, phát triển công nghệ và đóng góp cho xã hội.
                 </SubHeadingSection>
             </Box>
             <Grid container spacing={4} sx={{ mt: 2, width: "100%" }}>
@@ -166,10 +166,10 @@ const HomeTab = () => {
                         <CardContentStyled >
                             <ImageTextSection>
                                 <ImageTitle variant="h5" gutterBottom>
-                                    {t("LANDING.PRODUCT_SERVICE")}
+                                    Sản phẩm và dịch vụ
                                 </ImageTitle>
                                 <ImageSubTitle variant="body1">
-                                    {t("LANDING.PRODUCT_SERVICE_DESC")}
+                                    Nhắn tin liên lạc, âm nhạc, tin tức, trợ lý AI - những sản phẩm của chúng tôi đã trở thành một phần không thể thiếu trong đời sống hàng ngày.
                                 </ImageSubTitle>
                             </ImageTextSection>
                         </CardContentStyled>
@@ -192,10 +192,10 @@ const HomeTab = () => {
                         <CardContent>
                             <ImageTextSection>
                                 <ImageTitle variant="h5" gutterBottom>
-                                    {t("LANDING.AI_TECH")}
+                                    AI và Công nghệ
                                 </ImageTitle>
                                 <ImageSubTitle variant="body1" >
-                                    {t("LANDING.AI_TECH_DESC")}
+                                    AI của chúng tôi có khả năng hiểu tốt ngôn ngữ,  nhu cầu bản địa; giúp tăng hiệu suất, và sự tiện lợi cho người dùng trên hệ sinh thái.
                                 </ImageSubTitle>
                             </ImageTextSection>
                         </CardContent>
@@ -219,10 +219,10 @@ const HomeTab = () => {
                         <CardContent>
                             <ImageTextSection>
                                 <ImageTitle variant="h5" gutterBottom>
-                                    {t("LANDING.IMPACT_RESPONSIBILITY")}
+                                    Ảnh hưởng và trách nhiệm
                                 </ImageTitle>
                                 <ImageSubTitle variant="body1" >
-                                    {t("LANDING.IMPACT_RESPONSIBILITY_DESC")}
+                                    Chúng tôi đầu tư vào chuyển đổi số, quyền riêng tư, AI và hơn thế nữa. Với Zalo, công nghệ để phụng sự con người phải được kiến tạo từ trách nhiệm.
                                 </ImageSubTitle>
                             </ImageTextSection>
                         </CardContent>
@@ -232,10 +232,10 @@ const HomeTab = () => {
         </ContentSection>
         <ContentTrustSection spacing={5} data-testid="home-tab-trust-section" >
             <Box pb={3}>
-                <HeadingSection variant="h4">{t("LANDING.TRUST_TITLE")}</HeadingSection>
+                <HeadingSection variant="h4">Từ thói quen đến niềm tin </HeadingSection>
                 <Container maxWidth="md" >
                     <SubHeadingSection variant="h6">
-                        {t("LANDING.TRUST_SUBTITLE")}
+                        Đó là cách hàng chục triệu người dùng tin cậy sử dụng thường xuyên các sản phẩm của Zalo để kết nối, giúp cuộc sống tiện lợi và cho nhiều mục đích khác.
                     </SubHeadingSection>
                 </Container>
 
@@ -257,10 +257,10 @@ const HomeTab = () => {
                     <Grid size={6}>
                         <StatCard
                             size={6}
-                            title={t("LANDING.ZALO")}
-                            subTitle={t("LANDING.ZALO_DESC")}
-                            leftHighlight={{ value: "2B+", label: t("LANDING.MESSAGES_PER_DAY") }}
-                            rightHighlight={{ value: "79M+", label: t("LANDING.USERS") }} />
+                            title="Zalo"
+                            subTitle="Ứng dụng liên lạc số 1 Việt Nam"
+                            leftHighlight={{ value: "2B+", label: "tin nhắn mỗi ngày" }}
+                            rightHighlight={{ value: "79M+", label: "người dùng" }} />
                     </Grid>
                 </Grid>
                 <Grid container sx={{ alignItems: "stretch" }}>
@@ -276,9 +276,9 @@ const HomeTab = () => {
 
                     <Grid size={3}>
                         <StatCard
-                            title={t("LANDING.KIKI")}
-                            subTitle={t("LANDING.KIKI_DESC")}
-                            leftHighlight={{ value: "1M+", label: t("LANDING.INSTALLED") }}
+                            title="Kiki Auto"
+                            subTitle="Trợ lý AI phổ biến nhất trên xe hơi"
+                            leftHighlight={{ value: "1M+", label: "đã cài đặt" }}
                         />
                     </Grid>
 
@@ -296,8 +296,8 @@ const HomeTab = () => {
                     <Grid size={3}>
                         <StatCard
 
-                            title={t("LANDING.ZALO_VIDEO")}
-                            leftHighlight={{ value: "40M+", label: t("LANDING.USERS") }}
+                            title="Zalo Video"
+                            leftHighlight={{ value: "40M+", label: "người dùng" }}
                         />
                     </Grid>
                 </Grid>
@@ -306,19 +306,19 @@ const HomeTab = () => {
         <ContentSection>
             <Stack width="100%" spacing={5} marginTop={4}>
                 <Grid container size={12} textAlign="left" spacing={5}>
-                    <Grid paddingRight={4} size={4}> <HeadingSection variant="h4">{t("LANDING.ECOSYSTEM_TITLE")}</HeadingSection></Grid>
+                    <Grid paddingRight={4} size={4}> <HeadingSection variant="h4">Khám phá hệ sinh thái kết nối, giải trí và tiện ích cho cuộc sống</HeadingSection></Grid>
                     <Grid size={4}>
 
                         <IconAppCard
                             path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-zalo.d8547d8a.png&w=640&q=75"
-                            title={t("LANDING.ZALO")}
-                            subTitle={t("LANDING.ZALO_DESC")} />
+                            title="Zalo"
+                            subTitle="Ứng dụng liên lạc số 1 Việt Nam" />
                     </Grid>
                     <Grid size={4}>
                         <IconAppCard
                             path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-zing-mp3.f64af3c6.png&w=640&q=75"
-                            title={t("LANDING.ZING_MP3")}
-                            subTitle={t("LANDING.ZING_MP3_DESC")} />
+                            title="Zing MP3"
+                            subTitle="Nền tảng âm nhạc trực truyến hàng đầu" />
                     </Grid>
 
                 </Grid>
@@ -326,18 +326,18 @@ const HomeTab = () => {
                     <Grid size={4}>
                         <IconAppCard
                             path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-bao-moi.a8318a04.png&w=640&q=75"
-                            title={t("LANDING.BAO_MOI")}
-                            subTitle={t("LANDING.BAO_MOI_DESC")} />
+                            title="Báo Mới"
+                            subTitle="Nền tảng tin tức dẫn đầu" />
                     </Grid><Grid size={4}>
                         <IconAppCard
                             path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-kiki.d528c587.png&w=640&q=75"
-                            title={t("LANDING.KIKI")}
-                            subTitle={t("LANDING.KIKI_DESC")} />
+                            title="Kiki Auto"
+                            subTitle="Trợ lý trên xe phổ biến nhất" />
                     </Grid><Grid size={4}>
                         <IconAppCard
                             path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-zalo-video.5d7c7b34.png&w=640&q=75"
-                            title={t("LANDING.ZALO_VIDEO")}
-                            subTitle={t("LANDING.ZALO_VIDEO_DESC")} />
+                            title="Zalo Video"
+                            subTitle="Top nền tảng video ngắn" />
                     </Grid>
 
                 </Grid>
@@ -345,8 +345,8 @@ const HomeTab = () => {
         </ContentSection>
         <ContentSection spacing={7}>
             <Container>
-                <HeadingSection variant="h4">{t("LANDING.UPDATES_TITLE")}</HeadingSection>
-                <SubHeadingSection variant="h6">{t("LANDING.UPDATES_SUBTITLE")}</SubHeadingSection>
+                <HeadingSection variant="h4">Những cập nhật nổi bật</HeadingSection>
+                <SubHeadingSection variant="h6">Từ nhu cầu bản địa đến làn sóng công nghệ toàn cầu, Zalo không ngừng nâng cấp để luôn hữu ích, tin cậy và duy trì vị thế dẫn đầu.</SubHeadingSection>
 
             </Container>
             <Grid width="100%" alignItems="stretch" container spacing={5} size={12} >
@@ -359,7 +359,7 @@ const HomeTab = () => {
                                 alt=""
                             />
                         </BoxMediaNoRadius>
-                        <HeadingSection textAlign="left" variant="h5" >{t("LANDING.ZALO_SOS")}</HeadingSection>
+                        <HeadingSection textAlign="left" variant="h5" >Bản đồ cứu hộ khẩn cấp trên Zalo SOS</HeadingSection>
                     </Stack>
 
                 </Grid>
@@ -381,7 +381,7 @@ const HomeTab = () => {
                             </BoxMediaNoRadius>
 
                             <HeadingSection textAlign="left" variant="h5">
-                                {t("LANDING.ZALO_LLM")}
+                                Zalo và hành trình làm chủ LLM tiếng Việt
                             </HeadingSection>
                         </Stack>
                     </Grid>
@@ -397,7 +397,7 @@ const HomeTab = () => {
                             </BoxMediaNoRadius>
 
                             <HeadingSection textAlign="left" variant="h5">
-                                {t("LANDING.ZALO_ASSISTANT")}
+                                Ứng dụng mới trên Zalo: Để mỗi công dân Việt đều có trợ lý ảo
                             </HeadingSection>
                         </Stack>
                     </Grid>

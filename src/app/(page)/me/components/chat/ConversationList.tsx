@@ -1,305 +1,277 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Badge, Box, CircularProgress, IconButton, Menu, MenuItem, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { openConversation } from "@/src/common/action/chat.action";
+import { Group, MoreVert, Person, PushPin, PushPinOutlined, VolumeOff, VolumeUp } from "@mui/icons-material";
+import { toast } from "react-toastify";
+
+import { openConversation, openMockConversation } from "@/src/common/action/chat.action";
+import { ConversationDto } from "@/src/common/interface/chat-interface";
+import { mockConversations } from "@/src/common/mockData/chat.mock.data";
+import { chatService } from "@/src/common/service/chat-service";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { useChatStore } from "@/src/common/store/useChatStore";
-import ConversationListItem from "./ConversationListItem";
+import AppAvatar from "@/src/shared/component/Avatar";
 
 const Root = styled(Box)({
   width: "100%",
   height: "100%",
-  overflow: "hidden",
-  display: "flex",
-  minHeight: 0,
-});
-
-const ListWrap = styled(Box)({
-  flex: 1,
-  minWidth: 0,
-  height: "100%",
   overflowY: "auto",
-  overflowX: "hidden",
   display: "flex",
   flexDirection: "column",
-  gap: 8,
-
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
 });
 
-const ScrollbarWrap = styled(Box)({
-  width: 8,
-  height: "100%",
-  flexShrink: 0,
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "stretch",
-});
-
-const ScrollbarTrack = styled(Box)({
-  width: 6,
-  height: "100%",
-  position: "relative",
-  background: "transparent",
-});
-
-const ScrollbarThumb = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "visible" && prop !== "dragging",
-})<{ visible?: boolean; dragging?: boolean }>(({ visible, dragging }) => ({
-  position: "absolute",
-  left: 0,
-  width: "100%",
-  borderRadius: 999,
-  background: "#C7CDD4",
-  opacity: visible || dragging ? 1 : 0,
-  transition: dragging ? "none" : "opacity 0.2s ease",
-  cursor: "pointer",
-}));
-
-const StateWrap = styled(Box)({
+const LoadingWrap = styled(Box)({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: 32,
-  gap: 12,
+  padding: 28,
+  gap: 10,
 });
 
-const StateText = styled(Typography)({
+const LoadingText = styled(Typography)({
   fontSize: 13,
   color: "#6B7280",
 });
 
-const MIN_THUMB_HEIGHT = 36;
+const Item = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "active",
+})<{ active?: boolean }>(({ active }) => ({
+  padding: "9px 12px",
+  cursor: "pointer",
+  borderRadius: 6,
+  marginRight: 8,
+  background: active ? "#EAF2FF" : "transparent",
+  "&:hover": {
+    background: active ? "#EAF2FF" : "#F3F4F6",
+  },
+}));
+
+const ItemRow = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+});
+
+const Content = styled(Box)({
+  flex: 1,
+  minWidth: 0,
+});
+
+const Row = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+});
+
+const Name = styled(Typography)({
+  fontSize: 14,
+  fontWeight: 600,
+  color: "#111827",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const LastMessage = styled(Typography)({
+  fontSize: 12,
+  color: "#6B7280",
+  marginTop: 3,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const Meta = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+});
+
+const RefreshLimit = { page: 1, limit: 20 };
 
 export default function ConversationList() {
-  const currentUserId = useAuthStore((s) => s.authData?.data?.user?.id);
-
+  const authData = useAuthStore((s) => s.authData);
   const activeConversationId = useChatStore((s) => s.activeConversationId);
   const listConversation = useChatStore((s) => s.listConversation);
+  const conversationLoading = useChatStore((s) => s.conversationLoading);
   const conversationFetched = useChatStore((s) => s.conversationFetched);
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
 
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const scrollHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const dragStateRef = useRef<{
-    startY: number;
-    startTop: number;
-  } | null>(null);
-
-  const [showScrollbar, setShowScrollbar] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const [thumbHeight, setThumbHeight] = useState(0);
-  const [thumbTop, setThumbTop] = useState(0);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchListConversation({ page: 1, limit: 10 });
+    fetchListConversation(RefreshLimit);
   }, [fetchListConversation]);
 
-  const handleOpenConversation = useCallback(
-    (conversationId: string) => {
-      if (conversationId === activeConversationId) return;
-      openConversation(conversationId);
-    },
-    [activeConversationId]
-  );
+  const usingApiData = listConversation.length > 0;
+  const displayConversations = useMemo<ConversationDto[]>(() => {
+    if (!conversationFetched) return [];
+    const conversations = usingApiData ? [...listConversation] : [...mockConversations];
+    return conversations.sort((a, b) => {
+      const aPinned = (a as any).isPinned || false;
+      const bPinned = (b as any).isPinned || false;
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }, [conversationFetched, usingApiData, listConversation]);
 
-  const showScrollbarTemporarily = useCallback(() => {
-    setShowScrollbar(true);
+  const closeMenu = () => {
+    setAnchorEl(null);
+    setSelectedConversation(null);
+  };
 
-    if (scrollHideTimeoutRef.current) {
-      clearTimeout(scrollHideTimeoutRef.current);
+  const refresh = () => fetchListConversation(RefreshLimit);
+
+  const handleToggleMute = async (conversationId: string, isMuted: boolean) => {
+    try {
+      await chatService.updateConversationSettings(conversationId, { isMuted: !isMuted });
+      toast.success(isMuted ? "Đã bật thông báo" : "Đã tắt thông báo");
+      await refresh();
+    } catch (error) {
+      toast.error("Không thể thay đổi cài đặt thông báo");
+    } finally {
+      closeMenu();
     }
+  };
 
-    scrollHideTimeoutRef.current = setTimeout(() => {
-      setShowScrollbar(false);
-    }, 800);
-  }, []);
-
-  const syncThumbFromScroll = useCallback(() => {
-    const listEl = listRef.current;
-    const trackEl = trackRef.current;
-    if (!listEl || !trackEl) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = listEl;
-    const trackHeight = trackEl.clientHeight;
-
-    if (scrollHeight <= clientHeight || trackHeight <= 0) {
-      setThumbHeight(0);
-      setThumbTop(0);
-      return;
-    }
-
-    const nextThumbHeight = Math.max(
-      (clientHeight / scrollHeight) * trackHeight,
-      MIN_THUMB_HEIGHT
-    );
-
-    const maxThumbTop = trackHeight - nextThumbHeight;
-    const maxScrollTop = scrollHeight - clientHeight;
-    const nextThumbTop =
-      maxScrollTop > 0 ? (scrollTop / maxScrollTop) * maxThumbTop : 0;
-
-    setThumbHeight(nextThumbHeight);
-    setThumbTop(nextThumbTop);
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    syncThumbFromScroll();
-    showScrollbarTemporarily();
-  }, [showScrollbarTemporarily, syncThumbFromScroll]);
-
-  useEffect(() => {
-    syncThumbFromScroll();
-  }, [listConversation, syncThumbFromScroll]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      syncThumbFromScroll();
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [syncThumbFromScroll]);
-
-  const handleThumbMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      dragStateRef.current = {
-        startY: event.clientY,
-        startTop: thumbTop,
-      };
-
-      setDragging(true);
-      setShowScrollbar(true);
-    },
-    [thumbTop]
-  );
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!dragStateRef.current) return;
-
-      const listEl = listRef.current;
-      const trackEl = trackRef.current;
-      if (!listEl || !trackEl) return;
-
-      const { startY, startTop } = dragStateRef.current;
-      const deltaY = event.clientY - startY;
-
-      const trackHeight = trackEl.clientHeight;
-      const maxThumbTop = trackHeight - thumbHeight;
-      const nextThumbTop = Math.min(
-        Math.max(startTop + deltaY, 0),
-        maxThumbTop
-      );
-
-      const maxScrollTop = listEl.scrollHeight - listEl.clientHeight;
-      const nextScrollTop =
-        maxThumbTop > 0 ? (nextThumbTop / maxThumbTop) * maxScrollTop : 0;
-
-      listEl.scrollTop = nextScrollTop;
-      setThumbTop(nextThumbTop);
-    };
-
-    const handleMouseUp = () => {
-      dragStateRef.current = null;
-      setDragging(false);
-      showScrollbarTemporarily();
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [thumbHeight, showScrollbarTemporarily]);
-
-  useEffect(() => {
-    return () => {
-      if (scrollHideTimeoutRef.current) {
-        clearTimeout(scrollHideTimeoutRef.current);
+  const handleTogglePin = async (conversationId: string, isPinned: boolean) => {
+    try {
+      if (isPinned) {
+        await chatService.unpinConversation(conversationId);
+        toast.success("Đã bỏ ghim cuộc trò chuyện");
+      } else {
+        await chatService.pinConversation(conversationId);
+        toast.success("Đã ghim cuộc trò chuyện");
       }
-    };
-  }, []);
+      await refresh();
+    } catch (error) {
+      toast.error("Không thể thay đổi cài đặt ghim");
+    } finally {
+      closeMenu();
+    }
+  };
 
-  const hasScrollableContent = useMemo(() => thumbHeight > 0, [thumbHeight]);
-
-  if (!conversationFetched) {
+  if (conversationLoading && !conversationFetched) {
     return (
       <Root>
-        <ListWrap ref={listRef} onScroll={handleScroll}>
-          <StateWrap>
-            <CircularProgress size={20} />
-            <StateText>Đang tải danh sách cuộc trò chuyện...</StateText>
-          </StateWrap>
-        </ListWrap>
-
-        <ScrollbarWrap>
-          <ScrollbarTrack ref={trackRef} />
-        </ScrollbarWrap>
-      </Root>
-    );
-  }
-
-  if (listConversation.length === 0) {
-    return (
-      <Root>
-        <ListWrap ref={listRef} onScroll={handleScroll}>
-          <StateWrap>
-            <StateText>Chưa có cuộc trò chuyện nào</StateText>
-          </StateWrap>
-        </ListWrap>
-
-        <ScrollbarWrap>
-          <ScrollbarTrack ref={trackRef} />
-        </ScrollbarWrap>
+        <LoadingWrap>
+          <CircularProgress size={20} />
+          <LoadingText>Đang tải danh sách cuộc trò chuyện...</LoadingText>
+        </LoadingWrap>
       </Root>
     );
   }
 
   return (
-    <Root>
-      <ListWrap ref={listRef} onScroll={handleScroll}>
-        {listConversation.map((item) => (
-          <ConversationListItem
-            key={item.id}
-            item={item}
-            active={activeConversationId === item.id}
-            currentUserId={currentUserId}
-            onOpen={handleOpenConversation}
-          />
-        ))}
-      </ListWrap>
-
-      <ScrollbarWrap>
-        <ScrollbarTrack ref={trackRef}>
-          {hasScrollableContent && (
-            <ScrollbarThumb
-              visible={showScrollbar}
-              dragging={dragging}
-              onMouseDown={handleThumbMouseDown}
-              sx={{
-                height: thumbHeight,
-                transform: `translateY(${thumbTop}px)`,
+    <>
+      <Root>
+        {displayConversations.map((item) => {
+          const isPinned = (item as any).isPinned || false;
+          const isMuted = (item as any).isMuted || false;
+          const isActive = activeConversationId === item.id;
+          return (
+            <Item
+              key={item.id}
+              active={isActive}
+              data-testid="conversation"
+              onClick={() => {
+                if (usingApiData) {
+                  openConversation(item.id);
+                } else {
+                  openMockConversation(item.id);
+                }
               }}
-            />
-          )}
-        </ScrollbarTrack>
-      </ScrollbarWrap>
-    </Root>
+            >
+              <ItemRow>
+                <AppAvatar src={item.avatarUrl ?? ""} name={item.name ?? null} size={44} />
+                <Content>
+                  <Row>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                      {isPinned && <PushPin sx={{ fontSize: 13, color: "#2563EB" }} />}
+                      <Name>{item.name || "Cuộc trò chuyện"}</Name>
+                    </Box>
+                    <Meta>
+                      {item.type === "group" ? <Group sx={{ fontSize: 12, color: "#64748B" }} /> : <Person sx={{ fontSize: 12, color: "#64748B" }} />}
+                      {isMuted && <VolumeOff sx={{ fontSize: 14, color: "#64748B" }} />}
+                      {!!item.unreadCount && (
+                        <Badge color="primary" badgeContent={item.unreadCount} />
+                      )}
+                      <IconButton
+                        size="small"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setAnchorEl(event.currentTarget);
+                          setSelectedConversation(item.id);
+                        }}
+                      >
+                        <MoreVert sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Meta>
+                  </Row>
+
+                  <LastMessage>
+                    {item?.lastMessage?.content
+                      ? `${item?.lastMessage?.senderId === authData?.data?.user?.id ? "Bạn: " : ""}${item.lastMessage.content}`
+                      : "Chưa có tin nhắn"}
+                  </LastMessage>
+                </Content>
+              </ItemRow>
+            </Item>
+          );
+        })}
+      </Root>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={closeMenu}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        {selectedConversation &&
+          (() => {
+            const conversation = displayConversations.find((item) => item.id === selectedConversation);
+            const isMuted = (conversation as any)?.isMuted || false;
+            const isPinned = (conversation as any)?.isPinned || false;
+            return (
+              <>
+                <MenuItem onClick={() => handleToggleMute(selectedConversation, isMuted)}>
+                  {isMuted ? (
+                    <>
+                      <VolumeUp sx={{ mr: 1.5, fontSize: 18 }} />
+                      Bật thông báo
+                    </>
+                  ) : (
+                    <>
+                      <VolumeOff sx={{ mr: 1.5, fontSize: 18 }} />
+                      Tắt thông báo
+                    </>
+                  )}
+                </MenuItem>
+                <MenuItem onClick={() => handleTogglePin(selectedConversation, isPinned)}>
+                  {isPinned ? (
+                    <>
+                      <PushPinOutlined sx={{ mr: 1.5, fontSize: 18 }} />
+                      Bỏ ghim
+                    </>
+                  ) : (
+                    <>
+                      <PushPin sx={{ mr: 1.5, fontSize: 18 }} />
+                      Ghim cuộc trò chuyện
+                    </>
+                  )}
+                </MenuItem>
+              </>
+            );
+          })()}
+      </Menu>
+    </>
   );
 }

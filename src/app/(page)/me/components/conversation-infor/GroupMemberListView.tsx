@@ -1,315 +1,186 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Box, Button, IconButton, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
-import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
-import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
-import AppAvatar from "@/src/shared/component/Avatar";
-import MenuPopover, { PopoverMenuItem } from "@/src/shared/component/MenuPopover";
-import { useChatStore } from "@/src/common/store/useChatStore";
-import { ConversationMemberDto } from "@/src/common/interface/chat-interface";
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import SearchIcon from "@mui/icons-material/Search";
+import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
-interface GroupMemberListViewProps {
-  onBack: () => void;
-  onOpenAddMember: () => void;
-  onRemoveMember: (member: ConversationMemberDto) => void;
-  onUpdateMemberRole: (
-    member: ConversationMemberDto,
-    role: "admin" | "member"
-  ) => void | Promise<void>;
-}
-
-const Wrap = styled(Box)({
-  background: "#fff",
-  minHeight: "100%",
-});
-const AddMemberButton = styled(Button)(({ theme }) => ({
-  backgroundColor: "#e5e7eb",
-  color: "#081b3a",
-  textTransform: "none",
-  fontWeight: 600,
-  width: "100%",
-  "&:hover": {
-    backgroundColor: "#c6cad2",
-  },
-}));
-const Header = styled(Box)({
-  height: 70,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  position: "sticky",
-  top: 0,
-  background: "#fff",
-  borderBottom: "1px solid #E5E7EB",
-  zIndex: 5,
-});
-
-const BackBtn = styled(IconButton)({
-  position: "absolute",
-  left: 8,
-});
-
-const Title = styled(Typography)({
-  fontSize: 18,
-  fontWeight: 700,
-  color: "#0F172A",
-});
-
-const AddBtnWrap = styled(Box)({
-  padding: 16,
-});
-
-const SectionTitle = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "0 16px 8px",
-});
-
-const MemberRow = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "10px 16px",
-});
-
-const MemberInfo = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-});
-
-const NameWrap = styled(Box)({
+const Root = styled(Box)({
+  height: "100%",
+  background: "#F3F5F7",
   display: "flex",
   flexDirection: "column",
 });
 
-const Name = styled(Typography)({
-  fontSize: 15,
-  fontWeight: 600,
+const Header = styled(Box)({
+  height: 76,
+  background: "#FFFFFF",
+  borderBottom: "1px solid #E5E7EB",
+  display: "flex",
+  alignItems: "center",
+  padding: "0 20px",
+});
+
+const HeaderTitle = styled(Typography)({
+  fontSize: 24,
+  fontWeight: 700,
   color: "#0F172A",
 });
 
-const Role = styled(Typography)({
-  fontSize: 13,
-  color: "#6B7280",
+const Content = styled(Box)({
+  flex: 1,
+  padding: 20,
+  overflowY: "auto",
 });
 
-const canRemoveMember = (
-  myRole?: "owner" | "admin" | "member",
-  memberRole?: "owner" | "admin" | "member",
-  isSelf?: boolean
-) => {
-  if (!myRole || !memberRole) return false;
-  if (isSelf) return false;
+const SearchContainer = styled(Box)({
+  marginBottom: 20,
+});
 
-  if (myRole === "owner") {
-    return memberRole === "admin" || memberRole === "member";
-  }
+const MemberCard = styled(Card)({
+  borderRadius: 12,
+  border: "1px solid #E5E7EB",
+  boxShadow: "none",
+  marginBottom: 12,
+});
 
-  if (myRole === "admin") {
-    return memberRole === "member";
-  }
+const MemberAvatar = styled(Avatar)({
+  width: 48,
+  height: 48,
+});
 
-  return false;
-};
+const AdminBadge = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  backgroundColor: "#FEF3C7",
+  color: "#D97706",
+  padding: "2px 8px",
+  borderRadius: 12,
+  fontSize: 12,
+  fontWeight: 600,
+});
 
-const canManageMember = (
-  myRole?: "owner" | "admin" | "member",
-  memberRole?: "owner" | "admin" | "member",
-  isSelf?: boolean
-) => {
-  if (!myRole || !memberRole) return false;
-  if (isSelf) return false;
+interface GroupMemberListViewProps {
+  members?: Array<{
+    id: string;
+    name: string;
+    avatar?: string;
+    isAdmin?: boolean;
+    phone?: string;
+  }>;
+  searchValue?: string;
+  onSearch?: (value: string) => void;
+  onRemoveMember?: (memberId: string) => void;
+  onAddMember?: () => void;
+}
 
-  if (myRole === "owner") {
-    return memberRole === "admin" || memberRole === "member";
-  }
-
-  if (myRole === "admin") {
-    return memberRole === "member";
-  }
-
-  return false;
-};
-
-const canUpdateMemberRole = (
-  myRole?: "owner" | "admin" | "member",
-  memberRole?: "owner" | "admin" | "member",
-  isSelf?: boolean
-) => {
-  if (!myRole || !memberRole) return false;
-  if (isSelf) return false;
-
-  // Only Owner can update member roles
-  if (myRole === "owner") {
-    return memberRole === "admin" || memberRole === "member";
-  }
-
-  return false;
-};
-
-export default function GroupMemberListView({
-  onBack,
-  onOpenAddMember,
-  onRemoveMember,
-  onUpdateMemberRole,
-}: GroupMemberListViewProps) {
-  const t = useTrans();
-  const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
-  const [selectedMember, setSelectedMember] = useState<ConversationMemberDto | null>(null);
-
-  const conversationId = useChatStore((s) => s.activeConversationId);
-  const currentUserId = useChatStore((s) => s.currentUserId);
-  const conversationDetail = useChatStore(
-    (s) => s.conversationDetailById[conversationId ?? ""] ?? null
+const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
+  members = [],
+  searchValue = "",
+  onSearch = () => {},
+  onRemoveMember = () => {},
+  onAddMember = () => {},
+}) => {
+  const filteredMembers = members.filter(member =>
+    member.name.toLowerCase().includes(searchValue.toLowerCase())
   );
-
-  const members = conversationDetail?.members ?? [];
-  const myRole = conversationDetail?.mySettings?.role ?? 'member';
-
-  const handleOpenMemberMenu = (
-    event: React.MouseEvent<HTMLElement>,
-    member: ConversationMemberDto
-  ) => {
-    setMenuAnchorEl(event.currentTarget);
-    setSelectedMember(member);
-  };
-
-  const handleCloseMemberMenu = () => {
-    setMenuAnchorEl(null);
-    setSelectedMember(null);
-  };
-
-  const handleUpdateMemberRole = async (
-    member: ConversationMemberDto,
-    role: "admin" | "member"
-  ) => {
-    await onUpdateMemberRole(member, role);
-
-    setSelectedMember((prev) =>
-      prev && prev.id === member.id ? { ...prev, role } : prev
-    );
-
-    handleCloseMemberMenu();
-  };
-
-  const memberMenuItems = useMemo<PopoverMenuItem[]>(() => {
-    if (!selectedMember || !currentUserId) return [];
-
-    const isSelf = selectedMember.userId === currentUserId;
-    const removable = canRemoveMember(myRole, selectedMember.role, isSelf);
-    const updatableRole = canUpdateMemberRole(myRole, selectedMember.role, isSelf);
-
-    const items: PopoverMenuItem[] = [];
-
-    if (updatableRole) {
-      if (selectedMember.role === "member") {
-        items.push({
-          key: "promote-admin",
-          label: t("CONVO.ADD_DEPUTY"),
-          onClick: () => void handleUpdateMemberRole(selectedMember, "admin"),
-        });
-      }
-
-      if (selectedMember.role === "admin") {
-        items.push({
-          key: "demote-member",
-          label: t("CONVO.REMOVE_DEPUTY"),
-          onClick: () => void handleUpdateMemberRole(selectedMember, "member"),
-        });
-      }
-    }
-
-    if (removable) {
-      items.push({
-        key: "remove-member",
-        label: t("CONVO.REMOVE_FROM_GROUP"),
-        danger: true,
-        dividerTop: items.length > 0,
-        onClick: () => onRemoveMember(selectedMember),
-      });
-    }
-
-    return items;
-  }, [selectedMember, currentUserId, myRole, onRemoveMember]);
 
   return (
-    <Wrap>
+    <Root>
       <Header>
-        <BackBtn onClick={onBack}>
-          <ArrowBackIosNewRoundedIcon fontSize="small" />
-        </BackBtn>
-        <Title>{t("CONVO.MEMBERS")}</Title>
+        <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+          <HeaderTitle>Thành viên nhóm ({members.length})</HeaderTitle>
+          <Button
+            variant="contained"
+            onClick={onAddMember}
+          >
+            Thêm thành viên
+          </Button>
+        </Box>
       </Header>
 
-      <AddBtnWrap>
-        <AddMemberButton
-          startIcon={<PersonAddAlt1OutlinedIcon />}
-          onClick={onOpenAddMember}
-        >
-          {t("CONVO.ADD_MEMBER")}
-        </AddMemberButton>
-      </AddBtnWrap>
+      <Content>
+        <SearchContainer>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Tìm kiếm thành viên"
+            value={searchValue}
+            onChange={(e) => onSearch(e.target.value)}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
+            }}
+          />
+        </SearchContainer>
 
-      <SectionTitle>
-        <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
-          {t("CONVO.MEMBER_LIST").replace("{count}", String(members.length))}
-        </Typography>
-        <IconButton size="small">
-          <MoreHorizRoundedIcon />
-        </IconButton>
-      </SectionTitle>
+        {filteredMembers.length === 0 ? (
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            height={200}
+            color="text.secondary"
+          >
+            <Typography>
+              {searchValue ? "Không tìm thấy thành viên nào" : "Chưa có thành viên nào"}
+            </Typography>
+          </Box>
+        ) : (
+          filteredMembers.map((member) => (
+            <MemberCard key={member.id}>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={3}>
+                  <MemberAvatar src={member.avatar}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </MemberAvatar>
+                  
+                  <Box flex={1}>
+                    <Box display="flex" alignItems="center" gap={2} mb={1}>
+                      <Typography variant="h6" fontWeight={600}>
+                        {member.name}
+                      </Typography>
+                      {member.isAdmin && (
+                        <AdminBadge>
+                          <AdminPanelSettingsIcon fontSize="small" />
+                          Quản trị viên
+                        </AdminBadge>
+                      )}
+                    </Box>
+                    {member.phone && (
+                      <Typography variant="body2" color="text.secondary">
+                        {member.phone}
+                      </Typography>
+                    )}
+                  </Box>
 
-      {members.map((member) => {
-        const avatarSrc = member.avatarUrl
-          ? `${(process.env.NEXT_PUBLIC_S3_BASE_URL || "")
-            .replace(/\/+$/, "")}/${member.avatarUrl.replace(/^\/+/, "")}`
-          : "";
-
-        const isSelf = member.userId === currentUserId;
-
-        return (
-          <MemberRow key={member.id}>
-            <MemberInfo>
-              <AppAvatar
-                size={40}
-                name={member.nickname || member.fullName || "U"}
-                src={avatarSrc}
-              />
-              <NameWrap>
-                <Name>{member.nickname || member.fullName}</Name>
-                {(member.role === "owner" || member.role === "admin") && (
-                  <Role>
-                    {member.role === "owner" ? t("CONVO.ROLE_OWNER") : t("CONVO.ROLE_ADMIN")}
-                  </Role>
-                )}
-              </NameWrap>
-            </MemberInfo>
-
-            {canManageMember(myRole, member.role, isSelf) && (
-              <IconButton
-                size="small"
-                onClick={(event) => handleOpenMemberMenu(event, member)}
-              >
-                <MoreHorizRoundedIcon fontSize="small" />
-              </IconButton>
-            )}
-          </MemberRow>
-        );
-      })}
-
-      <MenuPopover
-        anchorEl={menuAnchorEl}
-        open={Boolean(menuAnchorEl) && memberMenuItems.length > 0}
-        onClose={handleCloseMemberMenu}
-        items={memberMenuItems}
-        width={190}
-      />
-    </Wrap>
+                  {!member.isAdmin && (
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<PersonRemoveIcon />}
+                      onClick={() => onRemoveMember(member.id)}
+                    >
+                      Xóa
+                    </Button>
+                  )}
+                </Box>
+              </CardContent>
+            </MemberCard>
+          ))
+        )}
+      </Content>
+    </Root>
   );
-}
+};
+
+export default GroupMemberListView;

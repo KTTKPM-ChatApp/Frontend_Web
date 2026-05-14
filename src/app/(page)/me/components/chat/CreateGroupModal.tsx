@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -11,398 +12,300 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
+  Avatar,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  IconButton,
+  Chip,
+  Divider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
+import GroupIcon from "@mui/icons-material/Group";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
-import AppModal from "@/src/shared/component/AppModal";
-import AppAvatar, { buildS3Url } from "@/src/shared/component/Avatar";
-import { useFriendStore } from "@/src/common/store/useFriendStore";
-import { useChatStore } from "@/src/common/store/useChatStore";
-import { groupService } from "@/src/common/service/group-service";
-import { openConversation } from "@/src/common/action/chat.action";
-import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import { CheckedIcon, RemoveSelectedButton, StyledCheckbox, StyledCheckIcon, UncheckedIcon } from "../conversation-infor/AddMemberGroupDialog";
-import { useFormik } from "formik";
-import { createGroupValidationSchema, initialValues } from "./validation/validateCreateGroup";
-import { uploadMedia } from "@/src/common/service/media-service";
-import { useTrans } from "@/src/common/utilities/hook/trans";
+import PersonIcon from "@mui/icons-material/Person";
+import { toast } from "react-toastify";
+import { chatService } from "@/src/common/service/chat-service";
+import { useChatStore } from "@/src/common/store/useChatStore";
 
-interface CreateGroupModalProps {
-  open: boolean;
-  onClose: () => void;
-}
+// ==================== STYLED COMPONENTS ====================
 
-const SearchWrap = styled(Box)({
+const ModalContent = styled(Box)(({ theme }) => ({
+  padding: "20px",
+  minHeight: 400,
+}));
+
+const AvatarSection = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  marginBottom: 24,
+}));
+
+const GroupAvatar = styled(Avatar)(({ theme }) => ({
+  width: 80,
+  height: 80,
+  backgroundColor: "#0078FF",
+  marginBottom: 12,
+  cursor: "pointer",
+  "&:hover": {
+    backgroundColor: "#0056CC",
+  },
+}));
+
+const FormSection = styled(Box)(({ theme }) => ({
+  marginBottom: 24,
+}));
+
+const SearchSection = styled(Box)(({ theme }) => ({
+  marginBottom: 16,
+}));
+
+const SearchWrap = styled(Box)(({ theme }) => ({
   height: 40,
   display: "flex",
   alignItems: "center",
-  // background: "#F3F4F6",
+  backgroundColor: "#F8FAFC",
   borderRadius: 8,
-  padding: "0 10px",
-  marginBottom: 16,
-});
+  padding: "0 12px",
+  border: "1px solid #E5E7EB",
+}));
 
-const SearchInput = styled(InputBase)({
+const SearchInput = styled(InputBase)(({ theme }) => ({
   marginLeft: 8,
   flex: 1,
   fontSize: 14,
-});
+  "& input::placeholder": {
+    color: "#94A3B8",
+  },
+}));
 
-export const SelectedWrap = styled(Box)({
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 8,
+const MembersList = styled(Box)(({ theme }) => ({
+  maxHeight: 300,
+  overflowY: "auto",
+  border: "1px solid #E5E7EB",
+  borderRadius: 8,
+}));
+
+const MemberItem = styled(ListItemButton)(({ theme }) => ({
+  padding: "12px 16px",
+  borderBottom: "1px solid #F1F5F9",
+  "&:last-child": {
+    borderBottom: "none",
+  },
+}));
+
+const SelectedSection = styled(Box)(({ theme }) => ({
   marginBottom: 16,
-  minHeight: 24,
-});
+}));
 
-export const SelectedItem = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  background: "#EEF4FF",
-  borderRadius: 16,
-  padding: "4px 10px",
-});
-const GroupAvatarUpload = styled(Box)({
-  width: 48,
-  height: 48,
-  borderRadius: "50%",
-  border: "1px solid #D8D9DB",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  flexShrink: 0,
-  position: "relative",
-});
+const SelectedChip = styled(Chip)(({ theme }) => ({
+  margin: "4px",
+  backgroundColor: "#E0F2FE",
+  color: "#0369A1",
+  "& .MuiChip-deleteIcon": {
+    color: "#0369A1",
+  },
+}));
 
-export default function CreateGroupModal({ open, onClose }: CreateGroupModalProps) {
-  const t = useTrans();
-  const friends = useFriendStore((s) => s.friends);
-  const fetchFriends = useFriendStore((s) => s.fetchFriends);
-
-  const upsertConversationToTop = useChatStore((s) => s.upsertConversationToTop);
-  const setConversationDetail = useChatStore((s) => s.setConversationDetail);
-  const fetchConversationDetail = useChatStore((s) => s.fetchConversationDetail);
-
-  const [groupName, setGroupName] = useState("");
-  const [keyword, setKeyword] = useState("");
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [groupAvatarFile, setGroupAvatarFile] = useState<File | null>(null);
-  const [groupAvatarPreview, setGroupAvatarPreview] = useState("");
-  const formik = useFormik({
-    initialValues,
-    validationSchema: createGroupValidationSchema,
-    onSubmit: async (values) => {
-      if (selectedUserIds.length < 2) return;
-
-      try {
-        setSubmitting(true);
-
-        let avatarUrl: string | null = null;
-
-        if (groupAvatarFile) {
-          const uploadResult = await uploadMedia({
-            file: groupAvatarFile,
-          });
-
-          avatarUrl = uploadResult.key ?? null;
-        }
-
-        const res = await groupService.createGroupConversation(
-          values.groupName.trim(),
-          selectedUserIds,
-          avatarUrl
-        );
-
-        const newConversation = res?.payload?.data;
-        if (!newConversation) throw new Error(t("GROUP.CREATE_FAILED"));
-
-        upsertConversationToTop(newConversation);
-        setConversationDetail(newConversation.id, newConversation);
-
-        onClose();
-
-        await openConversation(newConversation.id);
-        await fetchConversationDetail(newConversation.id, true);
-      } catch (error: any) {
-        formik.setFieldError("groupName", error?.message || t("GROUP.CREATE_FAILED"));
-      } finally {
-        setSubmitting(false);
-      }
-    },
-  });
-  useEffect(() => {
-    if (!open) return;
-    void fetchFriends();
-  }, [open, fetchFriends]);
-
-  useEffect(() => {
-    if (!open) {
-      if (groupAvatarPreview) {
-        URL.revokeObjectURL(groupAvatarPreview);
-      }
-
-      formik.resetForm();
-      setKeyword("");
-      setSelectedUserIds([]);
-      setSubmitting(false);
-      setGroupAvatarFile(null);
-      setGroupAvatarPreview("");
-    }
-  }, [open]);
-
-  const filteredFriends = useMemo(() => {
-    const q = keyword.trim().toLowerCase();
-    if (!q) return friends;
-
-    return friends.filter((item) =>
-      (item.fullName || "").toLowerCase().includes(q)
-    );
-  }, [friends, keyword]);
-
-  const selectedFriends = useMemo(
-    () => friends.filter((item) => selectedUserIds.includes(item.id)),
-    [friends, selectedUserIds]
-  );
-
-  const toggleUser = (userId: string) => {
-    setSelectedUserIds((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
-  };
-  const handleChooseGroupAvatar = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleGroupAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      event.target.value = "";
-      return;
-    }
-
-    if (groupAvatarPreview) {
-      URL.revokeObjectURL(groupAvatarPreview);
-    }
-
-    setGroupAvatarFile(file);
-    setGroupAvatarPreview(URL.createObjectURL(file));
-
-    event.target.value = "";
-  };
-  const handleCreateGroup = async () => {
-    if (selectedUserIds.length < 2) {
-      alert(t("GROUP.ALERT_MIN_MEMBERS"));
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const res = await groupService.createGroupConversation(
-        groupName.trim() || "",
-        selectedUserIds
-      );
-
-      const newConversation = res?.payload?.data;
-      if (!newConversation) {
-        throw new Error(t("GROUP.CREATE_FAILED"));
-      }
-
-      upsertConversationToTop(newConversation);
-      setConversationDetail(newConversation.id, newConversation);
-
-      onClose();
-
-      await openConversation(newConversation.id);
-      await fetchConversationDetail(newConversation.id, true);
-    } catch (error: any) {
-      alert(error?.message || t("GROUP.CREATE_FAILED"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  console.log("selectedFriends:", selectedFriends);
-  return (
-    <AppModal
-      open={open}
-      onClose={onClose}
-      title={t("GROUP.CREATE_TITLE")}
-      maxWidth="xs"
-      fullWidth
-      headerDivider
-      actions={
-        <>
-          <Button onClick={onClose} disabled={submitting}>
-            {t("GROUP.CREATE_CANCEL")}
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => formik.handleSubmit()}
-            disabled={submitting || selectedUserIds.length < 2}
-          >
-            {submitting ? t("GROUP.CREATING") : t("GROUP.CREATE_SUBMIT")}
-          </Button>
-        </>
-      }
-    >
-      <SearchWrap
-        sx={{
-          mb: formik.touched.groupName && formik.errors.groupName ? 0.5 : 2,
-          gap: 1.5,
-          px: 0,
-          height: 48,
-        }}
-      >
-        <GroupAvatarUpload onClick={handleChooseGroupAvatar}>
-          {groupAvatarPreview ? (
-            <AppAvatar
-              size={48}
-              fontSize={18}
-              name={formik.values.groupName}
-              src={groupAvatarPreview}
-            />
-          ) : (
-            <CameraAltOutlinedIcon
-              sx={{
-                fontSize: 22,
-                color: "#6B7280",
-              }}
-            />
-          )}
-        </GroupAvatarUpload>
-
-        <InputBase
-          name="groupName"
-          placeholder={t("GROUP.NAME_PLACEHOLDER")}
-          value={formik.values.groupName}
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          sx={{
-            flex: 1,
-            fontSize: 13,
-            backgroundColor: "#fff",
-            borderBottom: "1px solid #D1D5DB",
-            "&:focus-within": {
-              borderBottom: "1px solid #2563EB",
-            },
-          }}
-        />
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={handleGroupAvatarChange}
-        />
-      </SearchWrap>
-
-      {formik.touched.groupName && formik.errors.groupName && (
-        <Typography sx={{ fontSize: 12, color: "#D93025", mb: 2 }}>
-          {formik.errors.groupName}
-        </Typography>
-      )}
-
-      <Typography sx={{ mb: 1, fontSize: 13, color: "#6B7280" }}>
-        {t("GROUP.SELECTED_MEMBERS").replace("{count}", String(selectedUserIds.length))}
-      </Typography>
-
-      <SelectedWrap>
-        {selectedFriends.map((item) => (
-          <SelectedItem key={item.id}>
-            <AppAvatar
-              size={24}
-              fontSize={12}
-              name={item.fullName || "U"}
-              src={buildS3Url(item.avatarUrl) || ""}
-            />
-
-            <Typography
-              sx={{
-                fontSize: 12,
-                maxWidth: 120,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {item.fullName || t("CHAT.USER")}
-            </Typography>
-
-            <RemoveSelectedButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleUser(item.id);
-              }}
-            >
-              <CloseIcon />
-            </RemoveSelectedButton>
-          </SelectedItem>
-        ))}
-      </SelectedWrap>
-
-      <SearchWrap sx={{border:"1px solid #E5E7EB",borderRadius: 8, ":focus-within":{borderColor: "#2563EB"}}}>
-        <SearchIcon sx={{ fontSize: 20, color: "#6B7280" }} />
-        <SearchInput
-          placeholder={t("GROUP.SEARCH_FRIENDS")}
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
-      </SearchWrap>
-
-      <List sx={{ maxHeight: 320, overflowY: "auto", pt: 0 }}>
-        {filteredFriends.map((item) => {
-          const checked = selectedUserIds.includes(item.id);
-
-          return (
-            <ListItemButton
-              key={item.id}
-              onClick={() => toggleUser(item.id)}
-              sx={{
-                display: "flex",
-                gap: "8px",
-                borderRadius: 1,
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: "28px" }}>
-                <StyledCheckbox
-                  edge="start"
-                  checked={checked}
-                  tabIndex={-1}
-                  icon={<UncheckedIcon />}
-                  checkedIcon={
-                    <CheckedIcon>
-                      <StyledCheckIcon />
-                    </CheckedIcon>
-                  }
-                />
-              </ListItemIcon>
-
-              <AppAvatar
-                size={36}
-                name={item.fullName || "U"}
-                src={buildS3Url(item.avatarUrl) || ""}
-                sx={{ mr: 1.5 }}
-              />
-
-              <ListItemText primary={item.fullName || t("CHAT.USER")} />
-            </ListItemButton>
-          );
-        })}
-      </List>
-    </AppModal>
-  );
+interface Friend {
+  id: string;
+  name: string;
+  avatar?: string;
+  phone?: string;
 }
+
+interface CreateGroupModalProps {
+  open: boolean;
+  onClose?: () => void;
+  onCreate?: (groupData: { name: string; description: string; members: string[] }) => void;
+}
+
+const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
+  open,
+  onClose = () => {},
+  onCreate = () => {},
+}) => {
+  const { t } = useTranslation();
+  const fetchListConversation = useChatStore((s) => s.fetchListConversation);
+  const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState("");
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [friends] = useState<Friend[]>([
+    { id: "1", name: "Nguyễn Văn A", avatar: "", phone: "0987654321" },
+    { id: "2", name: "Trần Thị B", avatar: "", phone: "0123456789" },
+    { id: "3", name: "Lê Văn C", avatar: "", phone: "0912345678" },
+    { id: "4", name: "Phạm Thị D", avatar: "", phone: "0987123456" },
+    { id: "5", name: "Hoàng Văn E", avatar: "", phone: "0123987654" },
+  ]);
+
+  const filteredFriends = friends.filter(friend =>
+    friend.name.toLowerCase().includes(searchValue.toLowerCase())
+  );
+
+  const handleToggleMember = (friendId: string) => {
+    setSelectedMembers(prev =>
+      prev.includes(friendId)
+        ? prev.filter(id => id !== friendId)
+        : [...prev, friendId]
+    );
+  };
+
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || selectedMembers.length === 0) return;
+
+    setCreating(true);
+    try {
+      await chatService.createGroupConversation({
+        name: groupName.trim(),
+        memberIds: selectedMembers,
+      });
+      onCreate({
+        name: groupName.trim(),
+        description: groupDescription.trim(),
+        members: selectedMembers,
+      });
+      await fetchListConversation({ page: 1, limit: 20 });
+      toast.success("Đã tạo nhóm trò chuyện");
+      setGroupName("");
+      setGroupDescription("");
+      setSelectedMembers([]);
+      setSearchValue("");
+      onClose();
+    } catch (error) {
+      toast.error("Không thể tạo nhóm trò chuyện");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleClose = () => {
+    setGroupName("");
+    setGroupDescription("");
+    setSelectedMembers([]);
+    setSearchValue("");
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{t("GROUP.CREATE_TITLE")}</DialogTitle>
+      <DialogContent>
+        <ModalContent>
+          {/* Avatar Section */}
+          <AvatarSection>
+            <GroupAvatar>
+              <GroupIcon sx={{ fontSize: 40, color: "#FFFFFF" }} />
+            </GroupAvatar>
+            <IconButton
+              size="small"
+              sx={{ position: "absolute", bottom: 8, right: "50%", transform: "translateX(60px)" }}
+            >
+              <CameraAltOutlinedIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </AvatarSection>
+
+          {/* Form Section */}
+          <FormSection>
+            <TextField
+              fullWidth
+              label={t("GROUP.NAME_PLACEHOLDER")}
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder={t("GROUP.NAME_PLACEHOLDER")}
+              variant="outlined"
+              sx={{ marginBottom: 2 }}
+            />
+            <TextField
+              fullWidth
+              label={t("GROUP.DESCRIPTION_PLACEHOLDER")}
+              value={groupDescription}
+              onChange={(e) => setGroupDescription(e.target.value)}
+              placeholder={t("GROUP.DESCRIPTION_PLACEHOLDER")}
+              variant="outlined"
+              multiline
+              rows={3}
+            />
+          </FormSection>
+
+          {/* Selected Members */}
+          {selectedMembers.length > 0 && (
+            <SelectedSection>
+              <Typography variant="subtitle2" sx={{ marginBottom: 1 }}>
+                {t("GROUP.SELECTED_MEMBERS", { count: selectedMembers.length })}
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {selectedMembers.map(memberId => {
+                  const friend = friends.find(f => f.id === memberId);
+                  return (
+                    <SelectedChip
+                      key={memberId}
+                      label={friend?.name || "Unknown"}
+                      onDelete={() => handleToggleMember(memberId)}
+                      size="small"
+                    />
+                  );
+                })}
+              </Box>
+            </SelectedSection>
+          )}
+
+          {/* Search Section */}
+          <SearchSection>
+            <SearchWrap>
+              <SearchIcon sx={{ color: "#94A3B8", fontSize: 20 }} />
+              <SearchInput
+                placeholder={t("GROUP.SEARCH_FRIENDS")}
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+              />
+            </SearchWrap>
+          </SearchSection>
+
+          {/* Members List */}
+          <MembersList>
+            {filteredFriends.map(friend => (
+              <MemberItem
+                key={friend.id}
+                onClick={() => handleToggleMember(friend.id)}
+                selected={selectedMembers.includes(friend.id)}
+              >
+                <ListItemIcon>
+                  <Avatar sx={{ width: 40, height: 40 }}>
+                    {friend.name.charAt(0)}
+                  </Avatar>
+                </ListItemIcon>
+                <ListItemText
+                  primary={friend.name}
+                  secondary={friend.phone}
+                />
+                <Checkbox
+                  checked={selectedMembers.includes(friend.id)}
+                  onChange={() => handleToggleMember(friend.id)}
+                />
+              </MemberItem>
+            ))}
+          </MembersList>
+        </ModalContent>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>{t("GROUP.CREATE_CANCEL")}</Button>
+        <Button
+          onClick={handleCreateGroup}
+          variant="contained"
+          disabled={!groupName.trim() || selectedMembers.length === 0 || creating}
+        >
+          {creating ? "Đang tạo..." : t("GROUP.CREATE_SUBMIT")} ({selectedMembers.length})
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default CreateGroupModal;

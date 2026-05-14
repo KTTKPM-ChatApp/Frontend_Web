@@ -1,11 +1,11 @@
 "use client";
 
+import dynamic from 'next/dynamic';
 import styled from "@emotion/styled";
 import {
     Box,
     Container,
     Grid,
-    IconButton,
     Link,
     Stack,
     Tab,
@@ -16,11 +16,11 @@ import React from "react";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
-import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import HomeTab from "./components/HomeTab";
 import ProductTab from "./components/ProductTab";
-import { useTrans } from "@/src/common/utilities/hook/trans";
 import { useTranslation } from "react-i18next";
+import GlobalLanguageIcon from "@/src/shared/component/GlobalLanguageIcon";
+import LanguageProvider from "@/src/common/context/LanguageContext";
 
 export const HeaderLandingStyled = styled(Box)({
     minHeight: "10vh",
@@ -88,16 +88,14 @@ const ContainerLink = styled(Container)({
     backgroundColor: "#F6F7F9",
 });
 
-const LandingPage = () => {
+const LandingPageContent = () => {
+    const { t } = useTranslation();
     const [tabs, setTabs] = React.useState("home");
-    const t = useTrans();
-    const { i18n } = useTranslation();
+    const [mounted, setMounted] = React.useState(false);
 
-    const handleLanguageToggle = () => {
-        const newLang = i18n.language === 'vi' ? 'en' : 'vi';
-        i18n.changeLanguage(newLang);
-        localStorage.setItem('language', newLang);
-    };
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleChangeTabs = (_event: React.SyntheticEvent, newTab: string) => {
         setTabs(newTab);
@@ -132,19 +130,17 @@ const LandingPage = () => {
                                 variant="scrollable"
                                 scrollButtons="auto"
                             >
-                                <Tab label={t("LANDING.TAB_HOME")} value="home" />
-                                <Tab label={t("LANDING.TAB_PRODUCTS")} value="products" />
-                                <Tab label={t("LANDING.TAB_AI")} value="ai" />
-                                <Tab label={t("LANDING.TAB_IMPACT")} value="impact" />
-                                <Tab label={t("LANDING.TAB_ABOUT")} value="about" />
+                                <Tab label={mounted ? t("LANDING.HOME") : "Home"} value="home" />
+                                <Tab label={mounted ? t("LANDING.PRODUCTS") : "Products"} value="products" />
+                                <Tab label={mounted ? t("LANDING.AI_TECH") : "AI Tech"} value="ai" />
+                                <Tab label={mounted ? t("LANDING.SOCIAL_IMPACT") : "Social Impact"} value="impact" />
+                                <Tab label={mounted ? t("LANDING.ABOUT_US") : "About Us"} value="about" />
                             </TabLandingStyled>
 
                         </Box>
 
                         <BoxIcon>
-                            <IconButton onClick={handleLanguageToggle}>
-                                <LanguageOutlinedIcon />
-                            </IconButton>
+                            <GlobalLanguageIcon />
                         </BoxIcon>
                     </HeaderLandingStyled>
 
@@ -179,21 +175,21 @@ const LandingPage = () => {
                                 height={50}
                             />
                             <Typography marginBottom="16px" variant="body1">
-                                {t("LANDING.FOOTER_ADDRESS")}
+                                {t("LANDING.ADDRESS")}
                             </Typography>
                         </StackAdress>
 
                         <Grid container spacing={3}>
                             <Grid size={4}>
                                 <Typography variant="h6" fontWeight={600} mb={2}>
-                                    {t("LANDING.FOOTER_SOLUTIONS")}
+                                    {t("LANDING.SOLUTIONS")}
                                 </Typography>
                                 <Stack spacing={2}>
                                     <LinkStyled href="#" variant="body1">
                                         {t("LANDING.ZALO_AI")}
                                     </LinkStyled>
                                     <LinkStyled href="#" variant="body1">
-                                        {t("LANDING.BUSINESS_SOLUTION")}
+                                        {t("LANDING.ENTERPRISE_SOLUTIONS")}
                                     </LinkStyled>
                                     <LinkStyled href="#" variant="body1">
                                         {t("LANDING.DIGITAL_TRANSFORMATION")}
@@ -206,7 +202,7 @@ const LandingPage = () => {
 
                             <Grid size={4}>
                                 <Typography variant="h6" fontWeight={600} mb={2}>
-                                    {t("LANDING.FOOTER_SUPPORT")}
+                                    {t("LANDING.SUPPORT_CONTACT")}
                                 </Typography>
                                 <Stack spacing={2}>
                                     <LinkStyled href="#" variant="body1">
@@ -229,16 +225,16 @@ const LandingPage = () => {
 
                             <Grid size={4}>
                                 <Typography variant="h6" fontWeight={600} mb={2}>
-                                    {t("LANDING.FOOTER_ZALO")}
+                                    {t("LANDING.ZALO")}
                                 </Typography>
 
                                 <Stack spacing={2}>
                                     <LinkStyled href="#" variant="body1">
-                                        {t("LANDING.RECRUITMENT")}
+                                        {t("LANDING.CAREERS")}
                                     </LinkStyled>
 
                                     <Typography variant="h6" fontWeight={600} mb={2} mt={1}>
-                                        {t("LANDING.FOOTER_DOWNLOAD")}
+                                        {t("LANDING.DOWNLOAD")}
                                     </Typography>
 
                                     <Stack spacing={2}>
@@ -256,6 +252,14 @@ const LandingPage = () => {
                 </ContainerLink>
             </Box>
         </Stack>
+    );
+};
+
+const LandingPage = () => {
+    return (
+        <LanguageProvider>
+            <LandingPageContent />
+        </LanguageProvider>
     );
 };
 

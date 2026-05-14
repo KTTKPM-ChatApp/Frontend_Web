@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { IEditProfileForm } from "../interface/user-interface";
 import { useAuthStore } from "./useAuthStore";
-import { fetchAuthData } from "../helpers/fetchDataHelpers";
 
 export interface UseUserStoreProps {
   openProfileModal: boolean;
@@ -19,7 +18,6 @@ export interface UseUserStoreProps {
   fillEditProfileFormFromAuth: () => void;
   resetEditProfileForm: () => void;
   resetUserStore: () => void;
-  refreshUserData: () => Promise<void>;
 }
 
 const initialEditProfileData: IEditProfileForm = {
@@ -55,7 +53,7 @@ export const useUserStore = create<UseUserStoreProps>()((set) => ({
 
     set({
       editProfileData: {
-        displayName: user?.displayName ?? "",
+        fullName: user?.fullName ?? "",
         bio: user?.bio ?? "",
         gender: user?.gender ?? "",
         dateOfBirth: user?.dateOfBirth ?? "",
@@ -76,7 +74,4 @@ export const useUserStore = create<UseUserStoreProps>()((set) => ({
       pendingOpenEditProfile: false,
       editProfileData: initialEditProfileData,
     }),
-  refreshUserData: async () => {
-    await fetchAuthData()
-  },
 }));

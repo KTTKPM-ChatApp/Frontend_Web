@@ -16,17 +16,19 @@ import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlin
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import BoxIcon from "@/src/shared/component/BoxIcon";
 import MenuPopover, { PopoverMenuItem } from "@/src/shared/component/MenuPopover";
 import { SidebarKey } from "@/src/app/constant";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { authService } from "@/src/common/service/auth-service";
 import { clearAuthStorage, redirectToLogin } from "@/src/common/utilities/utils";
-import { useTrans } from "@/src/common/utilities/hook/trans";
 import ProfileModals from "./ProfileModals";
-import ChangePasswordModal from "./ChangePswModal";
-import LanguageSwitcher from "@/src/shared/component/LanguageSwitcher";
+import LanguageSwitcher from "../../../../shared/component/LanguageSwitcher";
+import GlobalLanguageIcon from "@/src/shared/component/GlobalLanguageIcon";
+import LanguageProvider from "@/src/common/context/LanguageContext";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 
 const Sidebar = styled(Box)({
   minWidth: 56,
@@ -45,57 +47,53 @@ const AvatarStyled = styled(Avatar)({
 });
 
 interface AppSidebarProps {
-  selectedIcon: SidebarKey | string;
+  selectedIcon: SidebarKey;
   onSelect: (iconName: SidebarKey) => void;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
-  onOpenEditProfile?: () => void;
 }
 
-const AppSidebar = ({
+const AppSidebarContent: React.FC<AppSidebarProps> = ({
   selectedIcon,
   onSelect,
   onOpenProfile,
   onOpenSettings,
 }: AppSidebarProps) => {
+  const { t } = useTranslation();
   const resetAuth = useAuthStore((s) => s.resetAuth);
-  const t = useTrans();
 
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [activePopover, setActivePopover] = useState<"settings" | "avatar" | null>(null);
   const [openProfileModal, setOpenProfileModal] = useState(false);
   const [pendingOpenEdit, setPendingOpenEdit] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [openChangePasswordModal, setOpenChangePasswordModal] = useState(false);
   const [openLanguageModal, setOpenLanguageModal] = useState(false);
-
   const openMenuPopover = Boolean(menuAnchorEl) && Boolean(activePopover);
-
-  const handleOpenChangePasswordModal = () => {
-    closePopoverThen(() => {
-      setOpenChangePasswordModal(true);
+  
+  const closePopoverThen = useCallback((action?: () => void) => {
+    const el = document.activeElement as HTMLElement | null;
+    el?.blur();
+    setMenuAnchorEl(null);
+    setActivePopover(null);
+    requestAnimationFrame(() => {
+      action?.();
     });
-  };
-
-  const handleOpenLanguageModal = () => {
-    closePopoverThen(() => {
-      setOpenLanguageModal(true);
-    });
-  };
-
-  const handleMenuItemClick =
+  }, [setMenuAnchorEl, setActivePopover]);
+  
+  const handleMenuItemClick = useCallback(
     (action?: () => void) =>
       () => {
         closePopoverThen(action);
-      };
-
-  const handleOpenPopover =
+      },
+    [closePopoverThen]
+  );
+        
+  const handleOpenPopover = useCallback(
     (type: "settings" | "avatar") =>
       (event: React.MouseEvent<HTMLElement>) => {
         event.stopPropagation();
 
         const isSamePopoverOpen = activePopover === type && Boolean(menuAnchorEl);
-
         if (isSamePopoverOpen) {
           setMenuAnchorEl(null);
           setActivePopover(null);
@@ -104,34 +102,25 @@ const AppSidebar = ({
 
         setMenuAnchorEl(event.currentTarget);
         setActivePopover(type);
-      };
-
-  const closePopoverThen = (action?: () => void) => {
-    const el = document.activeElement as HTMLElement | null;
-    el?.blur();
-
+        if (type === "settings") {
+          onSelect("settings");
+        }
+      },
+    [activePopover, menuAnchorEl, setActivePopover, onSelect]
+  );
+      
+  const handleClosePopover = useCallback(() => {
     setMenuAnchorEl(null);
     setActivePopover(null);
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        action?.();
-      });
-    });
-  };
-
-  const handleClosePopover = () => {
-    setMenuAnchorEl(null);
-    setActivePopover(null);
-  };
-
-  const handleOpenProfileModal = () => {
+  }, [setMenuAnchorEl, setActivePopover]);
+    
+  const handleOpenProfileModal = useCallback(() => {
     closePopoverThen(() => {
       setOpenProfileModal(true);
     });
-  };
-
-  const handleLogout = async () => {
+  }, [closePopoverThen, setOpenProfileModal]);
+    
+  const handleLogout = useCallback(async () => {
     if (isLoggingOut) return;
 
     setIsLoggingOut(true);
@@ -146,8 +135,14 @@ const AppSidebar = ({
       resetAuth();
       redirectToLogin();
     }
-  };
-
+  }, [isLoggingOut, setIsLoggingOut, handleClosePopover, resetAuth]);
+    
+  const handleOpenLanguageModal = useCallback(() => {
+    closePopoverThen(() => {
+      setOpenLanguageModal(true);
+    });
+  }, [closePopoverThen, setOpenLanguageModal]);
+    
   const settingsItems = useMemo<PopoverMenuItem[]>(
     () => [
       {
@@ -159,12 +154,6 @@ const AppSidebar = ({
         key: "settings",
         label: t("COMMON.SETTINGS"),
         onClick: handleMenuItemClick(onOpenSettings),
-      },
-      {
-        key: "change_password",
-        label: t("COMMON.CHANGE_PASSWORD"),
-        dividerTop: true,
-        onClick: handleOpenChangePasswordModal,
       },
       {
         key: "language",
@@ -185,7 +174,7 @@ const AppSidebar = ({
         },
       },
     ],
-    [onOpenProfile, onOpenSettings, t]
+    [t, onOpenProfile, onOpenSettings, handleOpenLanguageModal, handleLogout, handleMenuItemClick]
   );
 
   const avatarItems = useMemo<PopoverMenuItem[]>(
@@ -211,11 +200,11 @@ const AppSidebar = ({
         },
       },
     ],
-    [onOpenProfile, t]
+    [onOpenProfile, t, handleOpenProfileModal, handleLogout, handleMenuItemClick]
   );
 
   const avatarUrl = useAuthStore((s) => s.authData?.data?.user?.avatarUrl);
-
+  const avatarSrc = avatarUrl ? resolveMediaUrl(avatarUrl) : "/avatar.jpg";
   const currentItems =
     activePopover === "avatar"
       ? avatarItems
@@ -224,91 +213,98 @@ const AppSidebar = ({
         : [];
 
   return (
-    <Grid data-testid="app-sidebar" sx={{ minWidth: 56, height: "100vh" }}>
-      <Sidebar>
-        <Box mt="32px">
-          <AvatarStyled
-            src={avatarUrl ?? ""}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenPopover("avatar")(e);
-            }}
+    <>
+      <Grid data-testid="app-sidebar" sx={{ minWidth: 56, height: "100vh" }}>
+        <Sidebar>
+          <Box mt="32px">
+            <AvatarStyled
+              src={avatarSrc || undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenPopover("avatar")(e);
+              }}
+            />
+          </Box>
+
+          <ProfileModals
+            openProfileModal={openProfileModal}
+            setOpenProfileModal={setOpenProfileModal}
+            pendingOpenEdit={pendingOpenEdit}
+            setPendingOpenEdit={setPendingOpenEdit}
           />
-        </Box>
 
-        <ProfileModals
-          openProfileModal={openProfileModal}
-          setOpenProfileModal={setOpenProfileModal}
-          pendingOpenEdit={pendingOpenEdit}
-          setPendingOpenEdit={setPendingOpenEdit}
-        />
+          <LanguageSwitcher
+            open={openLanguageModal}
+            onClose={() => setOpenLanguageModal(false)}
+          />
 
-        <ChangePasswordModal
-          open={openChangePasswordModal}
-          onClose={() => setOpenChangePasswordModal(false)}
-        />
+          <Stack justifyContent="space-between" height="100%">
+            <Stack mt={2} spacing={1.25} alignItems="center">
+              <BoxIcon
+                outlined={ChatOutlinedIcon}
+                filled={ChatIcon}
+                selected={selectedIcon === "chat"}
+                onClick={() => onSelect("chat")}
+              />
 
-        <LanguageSwitcher
-          open={openLanguageModal}
-          onClose={() => setOpenLanguageModal(false)}
-        />
+              <BoxIcon
+                outlined={ContactsOutlinedIcon}
+                filled={ContactsIcon}
+                selected={selectedIcon === "contact"}
+                onClick={() => onSelect("contact")}
+              />
+            </Stack>
 
-        <Stack justifyContent="space-between" height="100%">
-          <Stack mt={2} spacing={1.25} alignItems="center">
-            <BoxIcon
-              outlined={ChatOutlinedIcon}
-              filled={ChatIcon}
-              selected={selectedIcon === "chat"}
-              onClick={() => onSelect("chat")}
-            />
+            <Stack mb={2} spacing={1.25} alignItems="center">
+              <BoxIcon
+                outlined={CloudOutlinedIcon}
+                filled={CloudIcon}
+                selected={selectedIcon === "cloud"}
+                onClick={() => onSelect("cloud")}
+              />
 
-            <BoxIcon
-              outlined={ContactsOutlinedIcon}
-              filled={ContactsIcon}
-              selected={selectedIcon === "contact"}
-              onClick={() => onSelect("contact")}
-            />
+              <BoxIcon
+                outlined={FolderCopyOutlinedIcon}
+                filled={FolderCopyIcon}
+                selected={selectedIcon === "folder"}
+                onClick={() => onSelect("folder")}
+              />
+            </Stack>
+
+            <Stack mb={2} spacing={1.25} alignItems="center">
+              <BoxIcon
+                outlined={BusinessCenterOutlinedIcon}
+                filled={BusinessCenterIcon}
+                selected={selectedIcon === "business"}
+                onClick={() => onSelect("business")}
+              />
+
+              <BoxIcon
+                outlined={SettingsOutlinedIcon}
+                filled={SettingsIcon}
+                selected={selectedIcon === "settings" && activePopover === "settings"}
+                onClick={handleOpenPopover("settings")}
+              />
+            </Stack>
           </Stack>
-
-          <Stack mb={2} spacing={1.25} alignItems="center">
-            <BoxIcon
-              outlined={CloudOutlinedIcon}
-              filled={CloudIcon}
-              selected={selectedIcon === "cloud"}
-              onClick={() => onSelect("cloud")}
-            />
-
-            <BoxIcon
-              outlined={FolderCopyOutlinedIcon}
-              filled={FolderCopyIcon}
-              selected={selectedIcon === "folder"}
-              onClick={() => onSelect("folder")}
-            />
-
-            <BoxIcon
-              outlined={BusinessCenterOutlinedIcon}
-              filled={BusinessCenterIcon}
-              selected={selectedIcon === "business"}
-              onClick={() => onSelect("business")}
-            />
-
-            <BoxIcon
-              outlined={SettingsOutlinedIcon}
-              filled={SettingsIcon}
-              selected={activePopover === "settings"}
-              onClick={handleOpenPopover("settings")}
-            />
-          </Stack>
-        </Stack>
-      </Sidebar>
-
+        </Sidebar>
+      </Grid>
+      
       <MenuPopover
         anchorEl={menuAnchorEl}
         open={openMenuPopover}
         onClose={handleClosePopover}
         items={currentItems}
       />
-    </Grid>
+    </>
+  );
+};
+
+const AppSidebar: React.FC<AppSidebarProps> = (props) => {
+  return (
+    <LanguageProvider>
+      <AppSidebarContent {...props} />
+    </LanguageProvider>
   );
 };
 

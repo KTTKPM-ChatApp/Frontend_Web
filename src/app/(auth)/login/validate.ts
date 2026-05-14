@@ -9,8 +9,8 @@ export const validationSchemaLogin = (Trans: (key: string) => string) => {
     return yup.object({
         email: yup
             .string()
-            .required(Trans("LOGIN.EMAIL.REQUIRED"))
-            .email(Trans("VALIDATION.EMAIL_INVALID") || "Email không hợp lệ"),
+            .email(Trans("VALIDATION.EMAIL_INVALID") || "Email không hợp lệ")
+            .required(Trans("LOGIN.EMAIL.REQUIRED")),
         password: yup
             .string()
             .required(Trans("LOGIN.PASSWORD.REQUIRED")),

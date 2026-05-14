@@ -1,199 +1,152 @@
 "use client";
 
 import { useChatStore } from "@/src/common/store/useChatStore";
-import { usePresenceStore } from "@/src/common/store/usePresenceStore";
-import { Box, Typography, IconButton } from "@mui/material";
+import { Avatar, Box, IconButton, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import AppAvatar, { buildS3Url } from "@/src/shared/component/Avatar";
-import SearchIcon from "@mui/icons-material/Search";
 import PhoneIcon from "@mui/icons-material/Phone";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
-import { useTrans } from "@/src/common/utilities/hook/trans";
-import { startCall } from "@/src/common/service/call-service";
+import InfoIcon from "@mui/icons-material/Info";
+import SearchIcon from "@mui/icons-material/Search";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 interface ChatHeaderProps {
-  title?: string;
   socketConnected: boolean;
   error?: string | null;
   conversationId: string | null;
   onToggleSearch?: () => void;
+  onToggleInfo?: () => void;
 }
 
-const HeaderRoot = styled(Box)({
-  width: "100%",
+const ChatHeaderRoot = styled(Box)({
+  height: 68,
+  minHeight: 68,
   background: "#FFFFFF",
-  minHeight: 70,
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  padding: "0 16px",
   borderBottom: "1px solid #E5E7EB",
-});
-
-const HeaderTop = styled(Box)({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  width: "98%",
-  gap: 12,
-});
-
-const HeaderInfo = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  minWidth: 0,
+  padding: "0 14px",
+  zIndex: 10,
 });
 
 const HeaderLeft = styled(Box)({
   display: "flex",
-  flexDirection: "column",
-  gap: 4,
+  alignItems: "center",
+  gap: 12,
+  flex: 1,
   minWidth: 0,
 });
 
-const HeaderTitle = styled(Typography)({
-  fontSize: 18,
-  fontWeight: 600,
-  color: "#111827",
-  lineHeight: 1.2,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+const ConversationInfo = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  minWidth: 0,
+  flex: 1,
 });
 
-const HeaderSubtitle = styled(Typography)({
-  fontSize: 13,
+const ConversationTitle = styled(Typography)({
+  fontSize: 16,
+  fontWeight: 700,
+  color: "#111827",
+  lineHeight: 1.25,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const ConversationSubtitle = styled(Typography)({
+  fontSize: 12,
   color: "#6B7280",
   lineHeight: 1.2,
   display: "flex",
   alignItems: "center",
-});
+  gap: 6,
+}) as typeof Typography;
 
-const StatusDot = styled("span")<{ online?: boolean }>(({ online }) => ({
+const StatusDot = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "connected",
+})<{ connected?: boolean }>(({ connected }) => ({
   width: 8,
   height: 8,
   borderRadius: "50%",
-  background: online ? "#00C853" : "#D1D5DB",
-  display: "inline-block",
-  marginRight: 8,
-  boxShadow: online ? "0 0 0 2px rgba(0, 200, 83, 0.1)" : "none",
+  backgroundColor: connected ? "#22C55E" : "#9CA3AF",
+  flexShrink: 0,
 }));
+
+const HeaderActions = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+});
+
+const ActionButton = styled(IconButton)({
+  width: 36,
+  height: 36,
+  borderRadius: 8,
+  color: "#4B5563",
+  "&:hover": {
+    backgroundColor: "#F3F4F6",
+    color: "#111827",
+  },
+});
+
+const StyledAvatar = styled(Avatar)({
+  width: 40,
+  height: 40,
+  flexShrink: 0,
+  background: "#E0ECFF",
+  color: "#0A56CC",
+  fontWeight: 700,
+});
 
 export default function ChatHeader({
   socketConnected,
   conversationId,
   onToggleSearch,
+  onToggleInfo,
 }: ChatHeaderProps) {
-  const t = useTrans();
   const listConversation = useChatStore((s) => s.listConversation);
-  const conversationDetail = useChatStore(
-    (s) => s.conversationDetailById?.[conversationId || ""] ?? null
-  );
-  const currentUserId = useChatStore((s) => s.currentUserId);
-  const presenceMap = usePresenceStore((s) => s.presenceMap);
-
-  const currentConversation =
-    conversationDetail ?? listConversation.find((n) => n.id === conversationId);
-
-  const isGroup = currentConversation?.type === "group";
-  const members = currentConversation?.members ?? [];
-
-  const otherMember = !isGroup
-    ? members.find((m) => m.userId !== currentUserId)
-    : null;
-
-  const displayName = isGroup
-    ? currentConversation?.name ?? ""
-    : otherMember?.nickname || otherMember?.fullName || currentConversation?.name || "";
-
-  const otherUserId = !isGroup ? otherMember?.userId : null;
-  const otherUserPresence = otherUserId ? presenceMap[otherUserId] : null;
-
-  const getStatusText = () => {
-    if (isGroup) {
-      return t("CHAT.MEMBER_COUNT").replace("{count}", String(members.length));
-    }
-
-    if (!otherUserPresence) return "";
-
-    if (otherUserPresence.status === "online") return t("CHAT.STATUS_ONLINE");
-    if (!otherUserPresence.last_seen_at) return t("CHAT.STATUS_OFFLINE");
-
-    const now = Date.now();
-    const diff = now - otherUserPresence.last_seen_at;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return t("CHAT.STATUS_JUST_VIEWED");
-    if (minutes < 60) return t("CHAT.STATUS_MINUTES_AGO").replace("{count}", String(minutes));
-    if (hours < 24) return t("CHAT.STATUS_HOURS_AGO").replace("{count}", String(hours));
-    if (days < 7) return t("CHAT.STATUS_DAYS_AGO").replace("{count}", String(days));
-    return new Date(otherUserPresence.last_seen_at).toLocaleDateString("vi-VN");
-  };
-
-  const isOnline = !isGroup && otherUserPresence?.status === "online";
-
-  const handleStartAudioCall = () => {
-    if (!conversationId || !currentUserId) return;
-    
-    const participantIds = isGroup
-      ? members.filter((m) => m.userId !== currentUserId).map((m) => m.userId)
-      : otherUserId ? [otherUserId] : [];
-    
-    startCall(conversationId, isGroup ? "group" : "direct", "audio", participantIds);
-  };
-
-  const handleStartVideoCall = () => {
-    if (!conversationId || !currentUserId) return;
-    
-    const participantIds = isGroup
-      ? members.filter((m) => m.userId !== currentUserId).map((m) => m.userId)
-      : otherUserId ? [otherUserId] : [];
-    
-    startCall(conversationId, isGroup ? "group" : "direct", "video", participantIds);
-  };
+  const conversation = listConversation.find((item) => item.id === conversationId);
+  const memberText =
+    conversation?.type === "group"
+      ? `${conversation.memberCount ?? 0} thành viên`
+      : "Tin nhắn trực tiếp";
 
   return (
-    <HeaderRoot>
-      <HeaderTop>
-        <HeaderInfo>
-          <AppAvatar
-            src={buildS3Url(currentConversation?.avatarUrl)}
-            name={displayName}
-            size={40}
-            fontSize={16}
-          />
+    <ChatHeaderRoot>
+      <HeaderLeft>
+        <StyledAvatar src={conversation?.avatarUrl ?? undefined}>
+          {conversation?.name?.charAt(0)?.toUpperCase() || "C"}
+        </StyledAvatar>
 
-          <HeaderLeft>
-            <HeaderTitle>{displayName}</HeaderTitle>
-            <HeaderSubtitle>
-              {!isGroup && otherUserId ? (
-                <>
-                  <StatusDot online={isOnline} />
-                  {getStatusText()}
-                </>
-              ) : (
-                getStatusText()
-              )}
-            </HeaderSubtitle>
-          </HeaderLeft>
-        </HeaderInfo>
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          <IconButton onClick={handleStartAudioCall} sx={{ color: "#6B7280" }}>
-            <PhoneIcon />
-          </IconButton>
-          <IconButton onClick={handleStartVideoCall} sx={{ color: "#6B7280" }}>
-            <VideoCallIcon />
-          </IconButton>
-          {onToggleSearch && (
-            <IconButton onClick={onToggleSearch} sx={{ color: "#6B7280" }}>
-              <SearchIcon />
-            </IconButton>
-          )}
-        </Box>
-      </HeaderTop>
-    </HeaderRoot>
+        <ConversationInfo>
+          <ConversationTitle>{conversation?.name || "Cuộc trò chuyện"}</ConversationTitle>
+          <ConversationSubtitle component="span">
+            <StatusDot connected={socketConnected} />
+            <span>{socketConnected ? "Đã kết nối" : "Mất kết nối"}</span>
+            <span>•</span>
+            <span>{memberText}</span>
+          </ConversationSubtitle>
+        </ConversationInfo>
+      </HeaderLeft>
+
+      <HeaderActions>
+        <ActionButton aria-label="Gọi thoại">
+          <PhoneIcon fontSize="small" />
+        </ActionButton>
+        <ActionButton aria-label="Gọi video">
+          <VideoCallIcon fontSize="small" />
+        </ActionButton>
+        <ActionButton aria-label="Tìm trong hội thoại" onClick={onToggleSearch}>
+          <SearchIcon fontSize="small" />
+        </ActionButton>
+        <ActionButton aria-label="Thông tin hội thoại" onClick={onToggleInfo}>
+          <InfoIcon fontSize="small" />
+        </ActionButton>
+        <ActionButton aria-label="Tùy chọn hội thoại">
+          <MoreVertIcon fontSize="small" />
+        </ActionButton>
+      </HeaderActions>
+    </ChatHeaderRoot>
   );
 }
