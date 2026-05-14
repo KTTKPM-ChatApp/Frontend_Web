@@ -5,7 +5,7 @@ import type {
 
 const now = Date.now();
 
-export const mockConversations: ConversationDto[] = [
+export const mockConversations: any[] = [
   {
     id: "c1",
     name: "Nguyễn Văn A",

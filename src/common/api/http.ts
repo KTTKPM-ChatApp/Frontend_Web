@@ -3,11 +3,13 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export type CustomOptions = Omit<RequestInit, "method" | "body"> & {
   baseUrl?: string;
   body?: any;
+  skipAuth?: boolean;
 };
 
 export interface IHttpresponse<T = any> {
   statusCode: number;
   payload: T;
+  data?: T;
   ok: boolean;
 }
 
@@ -57,7 +59,7 @@ const buildBodyAndHeaders = (options?: CustomOptions) => {
     body instanceof FormData ? {} : { "Content-Type": "application/json" };
 
   // Add authentication token if available
-  if (typeof window !== "undefined") {
+  if (!options?.skipAuth && typeof window !== "undefined") {
     const token = localStorage.getItem("accessToken");
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;

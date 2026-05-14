@@ -2,9 +2,11 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { IApiResponse, IAuthResponse } from "../interface/auth-interface";
 
-interface UseAuthStoreProps {
+export interface UseAuthStoreProps {
   authData: IApiResponse<IAuthResponse> | null;
   setAuthData: (data: IApiResponse<IAuthResponse> | null) => void;
+  tokenData: IAuthResponse["tokens"] | null;
+  setTokenData: (data: IAuthResponse["tokens"] | null) => void;
 
   loadingAuth: boolean;
   setLoadingAuth: (loading: boolean) => void;
@@ -20,6 +22,8 @@ export const useAuthStore = create<UseAuthStoreProps>()(
     (set) => ({
       authData: null,
       setAuthData: (data: IApiResponse<IAuthResponse> | null) => set({ authData: data }),
+      tokenData: null,
+      setTokenData: (data) => set({ tokenData: data }),
 
       loadingAuth: false,
       setLoadingAuth: (loading: boolean) => set({ loadingAuth: loading }),
@@ -30,6 +34,7 @@ export const useAuthStore = create<UseAuthStoreProps>()(
       resetAuth: () =>
         set({
           authData: null,
+          tokenData: null,
           loadingAuth: false,
           errorAuth: null,
         }),
@@ -39,6 +44,7 @@ export const useAuthStore = create<UseAuthStoreProps>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state: UseAuthStoreProps) => ({
         authData: state.authData,
+        tokenData: state.tokenData,
         loadingAuth: state.loadingAuth,
         errorAuth: state.errorAuth,
       }),

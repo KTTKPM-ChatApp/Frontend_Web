@@ -200,9 +200,10 @@ const SearchBar = () => {
         const mappedUsers: SearchResult[] = userResults.map((user) => {
             const relationStatus = getRelationStatus(user.id);
             return {
-                kind: "user" as const,
-                id: user.id,
-                fullName: user.fullName ?? "",
+	                kind: "user" as const,
+	                id: user.id,
+	                displayName: user.fullName ?? user.displayName ?? "",
+	                fullName: user.fullName ?? user.displayName ?? "",
                 avatarUrl: user.avatarUrl ?? null,
                 phone: user.phone ?? "",
                 friendshipStatus: relationStatus,

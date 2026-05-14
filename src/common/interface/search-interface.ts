@@ -4,6 +4,8 @@ export interface IUserSearchItem {
   id: string;
   username: string;
   displayName: string;
+  fullName?: string;
+  name?: string;
   email: string;
   avatarUrl: string | null;
   bio: string | null;
@@ -39,6 +41,7 @@ export type SearchResult =
         kind: "user";
         id: string;
         displayName: string;
+        fullName?: string;
         avatarUrl?: string | null;
         phone: string | null;
         friendshipStatus: string;

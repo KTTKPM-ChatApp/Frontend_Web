@@ -96,10 +96,13 @@ const OfflineIndicator = styled(Box)(({ theme }) => ({
 
 interface User {
   id: string;
-  name: string;
+  name?: string;
+  displayName?: string;
+  fullName?: string;
   avatar?: string;
+  avatarUrl?: string | null;
   message?: string;
-  phone?: string;
+  phone?: string | null;
 }
 
 interface FriendRequestConfirmModalProps {
@@ -109,6 +112,10 @@ interface FriendRequestConfirmModalProps {
   onConfirm?: () => void;
   onReject?: () => void;
   loading?: boolean;
+  message?: string;
+  onChangeMessage?: (message: string) => void;
+  onChangeBlockDiary?: (value: boolean) => void;
+  onViewProfile?: (user: User) => void;
 }
 
 const FriendRequestConfirmModal: React.FC<FriendRequestConfirmModalProps> = ({
@@ -118,10 +125,16 @@ const FriendRequestConfirmModal: React.FC<FriendRequestConfirmModalProps> = ({
   onConfirm = () => {},
   onReject = () => {},
   loading = false,
+  message: controlledMessage,
+  onChangeMessage,
+  onChangeBlockDiary,
 }) => {
   const { t } = useTranslation();
   const [message, setMessage] = useState("Xin chào, Kết bạn với mình nhé!");
   const [blockDiary, setBlockDiary] = useState(false);
+  const displayName = user?.name ?? user?.fullName ?? user?.displayName ?? "";
+  const avatarSrc = user?.avatar ?? user?.avatarUrl ?? undefined;
+  const currentMessage = controlledMessage ?? message;
 
   return (
     <Box
@@ -170,16 +183,16 @@ const FriendRequestConfirmModal: React.FC<FriendRequestConfirmModalProps> = ({
           <AvatarWrap>
             <Box sx={{ position: "relative" }}>
               <StyledAvatar
-                src={user?.avatar}
+                src={avatarSrc}
                 sx={{ width: 84, height: 84 }}
               >
-                {user?.name?.charAt(0)}
+                {displayName.charAt(0)}
               </StyledAvatar>
               <OnlineIndicator />
             </Box>
             <Box>
               <Typography variant="h6" sx={{ fontSize: 18, fontWeight: 600 }}>
-                {user?.name}
+                {displayName}
               </Typography>
               {user?.phone && (
                 <Typography variant="body2" sx={{ color: "#64748B" }}>
@@ -204,8 +217,11 @@ const FriendRequestConfirmModal: React.FC<FriendRequestConfirmModalProps> = ({
               fullWidth
               multiline
               rows={3}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              value={currentMessage}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                onChangeMessage?.(e.target.value);
+              }}
               placeholder={t("FRIEND.MESSAGE_PLACEHOLDER")}
               variant="outlined"
               sx={{
@@ -223,7 +239,10 @@ const FriendRequestConfirmModal: React.FC<FriendRequestConfirmModalProps> = ({
             </Typography>
             <Switch
               checked={blockDiary}
-              onChange={(e) => setBlockDiary(e.target.checked)}
+              onChange={(e) => {
+                setBlockDiary(e.target.checked);
+                onChangeBlockDiary?.(e.target.checked);
+              }}
               size="small"
             />
           </Box>

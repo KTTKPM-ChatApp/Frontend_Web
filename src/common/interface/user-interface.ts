@@ -1,6 +1,7 @@
 import { Gender } from "./auth-interface";
 
 export interface IEditProfileForm {
+    fullName: string;
     displayName: string;
     bio: string;
     gender: Gender | string;
@@ -11,7 +12,9 @@ export interface IEditProfileForm {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
-}export interface IUpdateMyProfilePayload {
+}
+
+export interface IUpdateMyProfilePayload {
     displayName?: string;
     bio?: string | null;
     avatarUrl?: string | null;

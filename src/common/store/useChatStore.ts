@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   AttachmentDto,
   ConversationDto,
+  ConversationListMeta,
   UiMessage,
 } from "@/src/common/interface/chat-interface";
 // import { patchConversationLastMessage, updateConversationLastMessage } from "../helpers/chat.helpers";
@@ -31,9 +32,11 @@ export interface ChatState {
   paginationByConversation: PaginationMap;
 
   listConversation: ConversationDto[];
-  conversationMeta: any;
+  conversationMeta: ConversationListMeta | null;
+  conversationDetailById: Record<string, ConversationDto>;
   conversationLoading: boolean;
   conversationFetched: boolean;
+  pinnedMessagesByConversation: Record<string, UiMessage[]>;
 
   heartbeatId: ReturnType<typeof setInterval> | null;
   mediaByConversation: AttachmentMap;
@@ -49,7 +52,8 @@ export interface ChatSetters {
   setError: (value: string | null) => void;
 
   setListConversation: (items: ConversationDto[]) => void;
-  setConversationMeta: (meta: any) => void;
+  setConversationMeta: (meta: ConversationListMeta | null) => void;
+  setConversationDetail: (conversationId: string, detail: ConversationDto) => void;
   setConversationLoading: (value: boolean) => void;
   setConversationFetched: (value: boolean) => void;
   setHeartbeatId: (value: ReturnType<typeof setInterval> | null) => void;
@@ -62,6 +66,14 @@ export interface ChatSetters {
   ) => void;
   prependMessages: (conversationId: string, messages: UiMessage[]) => void;
   appendRealtimeMessage: (conversationId: string, message: UiMessage) => void;
+  updateMessage: (conversationId: string, messageId: string, updates: Partial<UiMessage>) => void;
+  upsertConversationToTop: (conversation: ConversationDto) => void;
+  removeConversationLocally: (conversationId: string) => void;
+  updateConversationPinStatus: (conversationId: string, isPinned: boolean, pinnedAt?: string | number | null) => void;
+  addPinnedMessage: (conversationId: string, message: UiMessage | string) => void;
+  removePinnedMessage: (conversationId: string, messageId: string) => void;
+  isMessagePinned: (conversationId: string, messageId: string) => boolean;
+  fetchConversationDetail: (conversationId: string, force?: boolean) => Promise<ConversationDto | null>;
 
   setPagination: (
     conversationId: string,
@@ -99,8 +111,10 @@ export const initialChatState: ChatState = {
 
   listConversation: [],
   conversationMeta: null,
+  conversationDetailById: {},
   conversationLoading: false,
   conversationFetched: false,
+  pinnedMessagesByConversation: {},
 
   heartbeatId: null,
   mediaByConversation: {},
@@ -124,6 +138,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }),
 
   setConversationMeta: (meta) => set({ conversationMeta: meta }),
+  setConversationDetail: (conversationId, detail) =>
+    set((state) => ({
+      conversationDetailById: {
+        ...state.conversationDetailById,
+        [conversationId]: detail,
+      },
+    })),
   setConversationLoading: (value) => set({ conversationLoading: value }),
   setConversationFetched: (value) => set({ conversationFetched: value }),
   setHeartbeatId: (value) => set({ heartbeatId: value }),
@@ -153,6 +174,91 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       };
     }),
 
+  updateMessage: (conversationId, messageId, updates) =>
+    set((state) => ({
+      messagesByConversation: {
+        ...state.messagesByConversation,
+        [conversationId]: (state.messagesByConversation[conversationId] || []).map((msg) =>
+          msg.messageId === messageId ? { ...msg, ...updates } : msg
+        ),
+      },
+    })),
+
+  upsertConversationToTop: (conversation) =>
+    set((state) => {
+      const withoutCurrent = state.listConversation.filter((item) => item.id !== conversation.id);
+      return { listConversation: [conversation, ...withoutCurrent] };
+    }),
+
+  removeConversationLocally: (conversationId) =>
+    set((state) => {
+      const { [conversationId]: _messages, ...messagesByConversation } = state.messagesByConversation;
+      const { [conversationId]: _pagination, ...paginationByConversation } = state.paginationByConversation;
+      const { [conversationId]: _detail, ...conversationDetailById } = state.conversationDetailById;
+      return {
+        listConversation: state.listConversation.filter((item) => item.id !== conversationId),
+        messagesByConversation,
+        paginationByConversation,
+        conversationDetailById,
+        activeConversationId:
+          state.activeConversationId === conversationId ? null : state.activeConversationId,
+      };
+    }),
+
+  updateConversationPinStatus: (conversationId, isPinned, pinnedAt = isPinned ? Date.now() : null) =>
+    set((state) => ({
+      listConversation: state.listConversation.map((item) =>
+        item.id === conversationId ? { ...item, isPinned, pinnedAt } : item
+      ),
+    })),
+
+  addPinnedMessage: (conversationId, message) =>
+    set((state) => {
+      const prev = state.pinnedMessagesByConversation[conversationId] || [];
+      const nextMessage =
+        typeof message === "string"
+          ? state.messagesByConversation[conversationId]?.find((item) => item.messageId === message)
+          : message;
+      if (!nextMessage || prev.some((item) => item.messageId === nextMessage.messageId)) return state;
+      return {
+        pinnedMessagesByConversation: {
+          ...state.pinnedMessagesByConversation,
+          [conversationId]: [{ ...nextMessage, isPinned: true, pinnedAt: nextMessage.pinnedAt ?? Date.now() }, ...prev],
+        },
+      };
+    }),
+
+  removePinnedMessage: (conversationId, messageId) =>
+    set((state) => ({
+      pinnedMessagesByConversation: {
+        ...state.pinnedMessagesByConversation,
+        [conversationId]: (state.pinnedMessagesByConversation[conversationId] || []).filter(
+          (item) => item.messageId !== messageId
+        ),
+      },
+    })),
+
+  isMessagePinned: (conversationId, messageId) => {
+    const state = get();
+    return Boolean(
+      state.pinnedMessagesByConversation[conversationId]?.some((item) => item.messageId === messageId) ||
+      state.messagesByConversation[conversationId]?.some((item) => item.messageId === messageId && item.isPinned)
+    );
+  },
+
+  fetchConversationDetail: async (conversationId, force = false) => {
+    const current = get().conversationDetailById[conversationId];
+    if (current && !force) return current;
+    const res = await chatService.fetchConversationById(conversationId);
+    const payload = res.payload as { data?: ConversationDto } | ConversationDto;
+    const detail = "data" in payload && payload.data ? payload.data : (payload as ConversationDto);
+    if (detail?.id) {
+      get().setConversationDetail(conversationId, detail);
+      return detail;
+    }
+    return null;
+  },
+
   prependMessages: (conversationId: string, messages: UiMessage[]) =>
     set((state) => {
       const prevMessages = state.messagesByConversation[conversationId] || [];
@@ -170,7 +276,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     messages: UiMessage[],
     moveToTop: boolean = false
   ) =>
-    set((state : any) => {
+    set((state) => {
       const prevMessages = state.messagesByConversation[conversationId] || [];
       const mergedMessages = [...prevMessages, ...messages];
       const latestMessage = mergedMessages[mergedMessages.length - 1];
@@ -182,16 +288,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         },
         listConversation: latestMessage
           ? moveToTop
-            // ? updateConversationLastMessage(
-            //     state.listConversation,
-            //     conversationId,
-            //     latestMessage
-            //   )
-            // : patchConversationLastMessage(
-            //     state.listConversation,
-            //     conversationId,
-            //     latestMessage
-            //   )
+            ? moveConversationToTopWithLastMessage(
+                state.listConversation,
+                conversationId,
+                latestMessage
+              )
+            : state.listConversation
           : state.listConversation,
       };
     }),

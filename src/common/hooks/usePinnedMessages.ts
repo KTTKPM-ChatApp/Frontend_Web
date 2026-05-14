@@ -21,15 +21,16 @@ export const usePinnedMessages = (conversationId: string) => {
 
     try {
       const res = await chatService.fetchPinnedMessages(conversationId);
-      const items = res?.payload?.data?.items || [];
+      const payload = res?.payload as { data?: { items?: unknown[] } } | undefined;
+      const items = payload?.data?.items || [];
       
       // Backend returns PinnedMessageDto[] with structure: { message, pinnedBy, pinnedAt }
       // Extract the message object from each item
-      const messageObjects = items.map((item: any) => {
-        return item.message;
+      const messageObjects = items.map((item) => {
+        return (item as { message?: unknown }).message;
       });
       
-      const normalized = messageObjects.map((msg: any) => {
+      const normalized = messageObjects.map((msg) => {
         return normalizeMessage(msg);
       });
       setPinnedMessages(normalized);
@@ -58,7 +59,7 @@ export const usePinnedMessages = (conversationId: string) => {
         return {
           pinnedMessagesByConversation: {
             ...state.pinnedMessagesByConversation,
-            [conversationId]: pinnedSet,
+            [conversationId]: normalized,
           },
           messagesByConversation: {
             ...state.messagesByConversation,

@@ -37,4 +37,13 @@ export const authService = {
   updateUserProfile(body: IUpdateUserPayload) {
     return http.put<IApiResponse<any>>(API.API_USERS_ME, body);
   },
+
+  authResetPassword(body: {
+    oldPassword?: string;
+    currentPassword?: string;
+    newPassword: string;
+    firebaseIdToken?: string;
+  }) {
+    return http.post<IApiResponse<{ message?: string }>>(API.API_AUTH_RESET_PASSWORD, body);
+  },
 };

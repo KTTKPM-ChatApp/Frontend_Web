@@ -20,9 +20,21 @@ export const initializeStores = async () => {
           refreshToken: tokenData.refreshToken,
         });
 
-        if (response.data?.data?.user) {
-          useAuthStore.getState().setAuthData(response.data);
-          useAuthStore.getState().setTokenData(response.data.data.tokens);
+        const refreshedTokens = response.payload?.data;
+        if (refreshedTokens) {
+          const currentAuth = useAuthStore.getState().authData;
+          useAuthStore.getState().setTokenData(refreshedTokens);
+          if (currentAuth?.data?.user) {
+            useAuthStore.getState().setAuthData({
+              ...currentAuth,
+              data: {
+                ...currentAuth.data,
+                accessToken: refreshedTokens.accessToken,
+                refreshToken: refreshedTokens.refreshToken,
+                tokens: refreshedTokens,
+              },
+            });
+          }
         }
       } catch (error) {
         console.warn("Failed to refresh auth data:", error);
