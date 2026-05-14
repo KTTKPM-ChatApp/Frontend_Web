@@ -51,29 +51,43 @@ export const normalizeMessage = (raw: any): UiMessage & {
 } => {
   const senderId =
     raw?.senderId ??
+    raw?.sender_id ??
     "";
 
   const messageId =
     raw?.messageId ??
+    raw?.message_id ??
+    raw?.id ??
     `msg-${Date.now()}-${Math.random()}`;
+
+  const conversationId =
+    raw?.conversationId ??
+    raw?.conversation_id ??
+    "";
+
+  const rawCreatedAt =
+    raw?.createdAt ??
+    raw?.created_at ??
+    raw?.sent_at ??
+    Date.now();
+
+  const createdAt =
+    typeof rawCreatedAt === "string"
+      ? new Date(rawCreatedAt).getTime()
+      : Number(rawCreatedAt);
 
   return {
     messageId: String(messageId),
-    clientMessageId: raw?.clientMessageId ?? null,
-    conversationId: String(
-      raw?.conversationId ??
-      ""
-    ),
+    clientMessageId: raw?.clientMessageId ?? raw?.client_message_id ?? null,
+    conversationId: String(conversationId),
     senderId: String(senderId),
     body: raw?.body ?? raw?.content ?? "",
-    createdAt: Number(
-      raw?.createdAt ??
-      Date.now()
-    ),
+    createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
     attachments: Array.isArray(raw?.attachments) ? raw.attachments : [],
     replyToMessageId:
       raw?.replyToMessageId ??
       raw?.reply_to_message_id ??
+      raw?.reply_to_id ??
       raw?.replyTo?.id ??
       null,
     editedAt: raw?.editedAt ?? raw?.edited_at ?? null,

@@ -884,8 +884,6 @@ const handleWindowIncomingMessage = (event: any) => {
   // Handle incoming message logic (copied from original handleIncomingMessage)
   if (!normalized.conversationId || !normalized.messageId) return;
 
-  let finalMessage = normalized;
-
   useChatStore.setState((state) => {
     const currentMessages =
       state.messagesByConversation[normalized.conversationId] || [];

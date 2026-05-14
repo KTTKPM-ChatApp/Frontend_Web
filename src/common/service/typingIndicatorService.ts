@@ -7,7 +7,7 @@ import {
 } from "../interface/typing-interface";
 
 type CreateTypingIndicatorServiceOptions = {
-  socket: Socket;
+  socket: unknown;
   throttleMs?: number;
 };
 

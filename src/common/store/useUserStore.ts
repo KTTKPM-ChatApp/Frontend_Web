@@ -22,10 +22,16 @@ export interface UseUserStoreProps {
 
 const initialEditProfileData: IEditProfileForm = {
   fullName: "",
+  displayName: "",
   bio: "",
   gender: "",
   dateOfBirth: "",
   phone: "",
+  username: "",
+  email: "",
+  isActive: false,
+  createdAt: "",
+  updatedAt: "",
 };
 
 export const useUserStore = create<UseUserStoreProps>()((set) => ({
@@ -53,11 +59,17 @@ export const useUserStore = create<UseUserStoreProps>()((set) => ({
 
     set({
       editProfileData: {
-        fullName: user?.fullName ?? "",
+        fullName: user?.fullName ?? user?.displayName ?? "",
+        displayName: user?.displayName ?? user?.fullName ?? "",
         bio: user?.bio ?? "",
         gender: user?.gender ?? "",
-        dateOfBirth: user?.dateOfBirth ?? "",
+        dateOfBirth: user?.dateOfBirth ? String(user.dateOfBirth) : "",
         phone: user?.phone ?? "",
+        username: user?.username ?? "",
+        email: user?.email ?? "",
+        isActive: user?.isActive ?? false,
+        createdAt: user?.createdAt ? String(user.createdAt) : "",
+        updatedAt: user?.updatedAt ? String(user.updatedAt) : "",
       },
     });
   },

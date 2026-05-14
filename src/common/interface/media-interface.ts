@@ -19,10 +19,12 @@ export interface IUploadedMedia {
 
 export interface ChatAttachmentPayload {
     key: string;
+    url?: string | null;
     type: "image" | "video" | "audio" | "document";
     name: string;
     size: number;
     content_type: string;
     thumbnail_key?: string;
+    thumbnailUrl?: string | null;
     visibility: "public" | "private";
 }

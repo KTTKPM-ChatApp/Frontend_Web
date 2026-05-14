@@ -4,7 +4,7 @@ import MuiAvatar, { AvatarProps } from "@mui/material/Avatar";
 import { getInitialsName } from "../../common/helpers/getInitName.helpers";
 
 interface AppAvatarProps extends Omit<AvatarProps, "src"> {
-  src: string | null;
+  src?: string | null;
   name: string | null;
   size?: number;
   fontSize?: number;
@@ -42,3 +42,5 @@ export default function AppAvatar({
     </MuiAvatar>
   );
 }
+
+export const buildS3Url = (src?: string | null) => src ?? null;

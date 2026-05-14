@@ -1,49 +1,44 @@
-// TODO: Replace with your new backend friend service
-// This service needs to be updated to match your new backend API structure
+import http from "../api/http";
+import { API } from "../api/path";
+import type {
+    IRespondFriendRequestPayload,
+    ISendFriendRequestPayload,
+} from "../interface/friend-interface";
 
 export const friendService = {
     getFriends() {
-        console.log('getFriends called - implement for new backend');
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.get<{ data?: unknown[] }>(API.API_FRIENDS_LIST);
     },
 
     getPendingRequests() {
-        console.log('getPendingRequests called - implement for new backend');
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.get<{ data?: unknown[] }>(API.API_FRIENDS_PENDING);
     },
 
     getSentRequests() {
-        console.log('getSentRequests called - implement for new backend');
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.get<{ data?: unknown[] }>(API.API_FRIENDS_SENT);
     },
 
-    sendRequest(body: any) {
-        console.log('sendRequest called with:', body);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+    sendRequest(body: ISendFriendRequestPayload) {
+        return http.post(API.API_FRIENDS_SEND_REQUEST, body);
     },
 
-    respondRequest(requestId: string, body: any) {
-        console.log('respondRequest called with:', { requestId, body });
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+    respondRequest(requestId: string, body: IRespondFriendRequestPayload) {
+        return http.post(API.API_FRIENDS_RESPOND_REQUEST(requestId), body);
     },
 
     cancelRequest(requestId: string) {
-        console.log('cancelRequest called with:', requestId);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.delete(API.API_FRIENDS_CANCEL_REQUEST(requestId));
     },
 
     removeFriend(friendId: string) {
-        console.log('removeFriend called with:', friendId);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.delete(API.API_FRIENDS_REMOVE(friendId));
     },
 
     blockUser(userId: string) {
-        console.log('blockUser called with:', userId);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.post(API.API_FRIENDS_BLOCK(userId));
     },
 
     unblockUser(userId: string) {
-        console.log('unblockUser called with:', userId);
-        return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented - update for new backend' } });
+        return http.delete(API.API_FRIENDS_UNBLOCK(userId));
     },
 };

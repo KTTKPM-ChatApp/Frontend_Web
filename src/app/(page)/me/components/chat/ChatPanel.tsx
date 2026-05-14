@@ -130,14 +130,6 @@ export default function ChatPanel({
     });
   };
 
-  const isNearBottom = () => {
-    const wrap = listRef.current;
-    if (!wrap) return false;
-
-    const threshold = 120;
-    return wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight <= threshold;
-  };
-
   const tryLoadMore = async () => {
     const wrap = listRef.current;
     if (!wrap || !conversationId || loading || loadingMore || !pagination?.hasMore) {
@@ -220,18 +212,13 @@ export default function ChatPanel({
         prevLastMessageId !== lastMessageId;
 
       if (isAppendedNewMessage && !loading && !loadingMore) {
-        const lastMessage = messages[messages.length - 1];
-        const isOwnMessage = lastMessage?.senderId === currentUserId;
-
-        if (isOwnMessage || isNearBottom()) {
-          requestAnimationFrame(() => scrollToBottomStable());
-        }
+        requestAnimationFrame(() => scrollToBottomStable());
       }
 
       prevFirstMessageIdRef.current = firstMessageId;
       prevLastMessageIdRef.current = lastMessageId;
     }
-  }, [conversationId, messages, firstMessageId, lastMessageId, loading, loadingMore, currentUserId]);
+  }, [conversationId, messages, firstMessageId, lastMessageId, loading, loadingMore]);
   useEffect(() => {
     return () => {
       if (scrollHideTimeoutRef.current) {
@@ -261,7 +248,9 @@ export default function ChatPanel({
           conversationId={conversationId}
           pagination={pagination}
           onLoadMore={loadMoreMessages}
-          onDeleteMessage={deleteMessage}
+          onDeleteMessage={(conversationId, messageId) =>
+            deleteMessage(conversationId, messageId, Date.now())
+          }
           onScroll={handleScroll}
           showScrollbar={showScrollbar}
         />

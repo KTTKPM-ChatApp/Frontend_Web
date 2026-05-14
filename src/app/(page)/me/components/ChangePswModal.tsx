@@ -97,7 +97,7 @@ export default function ChangePasswordModal({
               setSubmitError("");
               setSubmitSuccess("");
 
-              const user = auth.currentUser;
+              const user = auth?.currentUser;
 
               if (!user) {
                 setSubmitError(t("COMMON.USER_NOT_FOUND") + ".");
