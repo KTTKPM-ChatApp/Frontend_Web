@@ -450,5 +450,29 @@
 
   "// ============================== DANGER ==============================": "",
   "DANGER.REPORT": "Báo xấu",
-  "DANGER.DELETE_HISTORY": "Xoá lịch sử trò chuyện"
+  "DANGER.DELETE_HISTORY": "Xoá lịch sử trò chuyện",
+
+  "// ============================== LANDING ==============================": "",
+  "LANDING.HOME": "Trang chủ",
+  "LANDING.PRODUCTS": "Sản phẩm & Dịch vụ",
+  "LANDING.AI_TECH": "AI & Công nghệ",
+  "LANDING.SOCIAL_IMPACT": "Tác động xã hội & Trách nhiệm",
+  "LANDING.ABOUT_US": "Về chúng tôi",
+  "LANDING.ADDRESS": "VNG Campus, Phường Tân Thuận, TP.HCM",
+  "LANDING.SOLUTIONS": "Giải pháp",
+  "LANDING.ZALO_AI": "Zalo AI",
+  "LANDING.ENTERPRISE_SOLUTIONS": "Giải pháp doanh nghiệp",
+  "LANDING.DIGITAL_TRANSFORMATION": "Chuyển đổi số",
+  "LANDING.ADTIMA": "Adtima",
+  "LANDING.SUPPORT_CONTACT": "Hỗ trợ & liên hệ",
+  "LANDING.USER_SUPPORT": "Hỗ trợ người dùng",
+  "LANDING.DEVELOPER_SUPPORT": "Hỗ trợ nhà phát triển",
+  "LANDING.SECURITY": "Bảo mật",
+  "LANDING.REPORT_VIOLATION": "Báo cáo vi phạm",
+  "LANDING.CONTACT": "Liên hệ",
+  "LANDING.ZALO": "Zalo",
+  "LANDING.CAREERS": "Tuyển dụng",
+  "LANDING.DOWNLOAD": "Tải xuống",
+  "LANDING.ZALO_PC": "Zalo PC",
+  "LANDING.ZALO_WEB": "Zalo Web"
 }

@@ -25,6 +25,7 @@ import {
 } from "@/src/common/service/user-service";
 // import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { searchService } from "@/src/common/service/search-service";
+import { chatService } from "@/src/common/service/chat-service";
 import { IUserSearchItem, SearchResult } from "@/src/common/interface/search-interface";
 import { useDebounce } from "@/src/common/utilities/hook/debounce";
 
@@ -173,7 +174,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
         const userSearchResults = userResults.map((user) => ({
             kind: "user" as const,
             id: user.id,
-            fullName: user.fullName,
+            displayName: user.displayName,
             avatarUrl: user.avatarUrl,
             phone: user.phone,
             friendshipStatus: user.friendshipStatus,
@@ -195,8 +196,26 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
             onResultSelect?.(result);
             return;
         }
-        setSearchValue("");
-        setFocusOnSearch(false);
+
+        // Handle user click - create direct conversation
+        try {
+            const response = await chatService.createDirectConversation({
+                participantId: result.id
+            });
+            
+            if (response.ok && response.payload?.data) {
+                const newConversation = response.payload.data;
+                setActiveConversationId(newConversation.id);
+                setSearchValue("");
+                setFocusOnSearch(false);
+                onResultSelect?.(result);
+            }
+        } catch (error) {
+            console.error("Failed to create direct conversation:", error);
+            // Still close search even if conversation creation fails
+            setSearchValue("");
+            setFocusOnSearch(false);
+        }
     };
 
     return (
@@ -246,7 +265,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                                                 >
                                                     {(result.kind === "conversation"
                                                         ? result.name
-                                                        : result.fullName
+                                                        : result.displayName
                                                     )
                                                         ?.charAt(0)
                                                         ?.toUpperCase()}
@@ -256,7 +275,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                                                     primary={
                                                         result.kind === "conversation"
                                                             ? result.name
-                                                            : result.fullName
+                                                            : result.displayName
                                                     }
                                                     // secondary={
                                                     //     result.kind === "conversation"

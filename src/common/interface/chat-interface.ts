@@ -10,6 +10,13 @@ export interface ConversationLastMessageDto {
     senderId: string;
     senderName: string;
 }
+export interface ConversationMemberDto {
+  userId: string;
+  username?: string;
+  displayName?: string;
+  role: string;
+}
+
 export interface ConversationDto {
   id: string;
   name: string;
@@ -21,6 +28,7 @@ export interface ConversationDto {
   lastMessage?: ConversationLastMessageDto | null ;
   lastMessageAt?: string | number | null;
   createdAt?: string | null;
+  members?: ConversationMemberDto[];
 }
 export interface ConversationListMeta {
   total: number;

@@ -168,12 +168,11 @@ const GroupList: React.FC<GroupListProps> = ({
 
       <CreateGroupModal
         open={showCreateGroupModal}
-        groupName={groupName}
-        groupDescription={groupDescription}
         onClose={() => setShowCreateGroupModal(false)}
-        onNameChange={setGroupName}
-        onDescriptionChange={setGroupDescription}
-        onCreate={handleCreateGroup}
+        onCreate={(groupData) => {
+          console.log("Creating group:", groupData);
+          handleCreateGroup();
+        }}
       />
     </>
   );

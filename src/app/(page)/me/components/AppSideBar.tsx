@@ -26,6 +26,8 @@ import { authService } from "@/src/common/service/auth-service";
 import { clearAuthStorage, redirectToLogin } from "@/src/common/utilities/utils";
 import ProfileModals from "./ProfileModals";
 import LanguageSwitcher from "../../../../shared/component/LanguageSwitcher";
+import GlobalLanguageIcon from "@/src/shared/component/GlobalLanguageIcon";
+import LanguageProvider from "@/src/common/context/LanguageContext";
 import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 
 const Sidebar = styled(Box)({
@@ -51,7 +53,7 @@ interface AppSidebarProps {
   onOpenSettings?: () => void;
 }
 
-const AppSidebar: React.FC<AppSidebarProps> = ({
+const AppSidebarContent: React.FC<AppSidebarProps> = ({
   selectedIcon,
   onSelect,
   onOpenProfile,
@@ -225,8 +227,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           </Box>
 
           <ProfileModals
-            open={openProfileModal}
-            onClose={() => setOpenProfileModal(false)}
+            openProfileModal={openProfileModal}
+            setOpenProfileModal={setOpenProfileModal}
+            pendingOpenEdit={pendingOpenEdit}
             setPendingOpenEdit={setPendingOpenEdit}
           />
 
@@ -294,6 +297,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         items={currentItems}
       />
     </>
+  );
+};
+
+const AppSidebar: React.FC<AppSidebarProps> = (props) => {
+  return (
+    <LanguageProvider>
+      <AppSidebarContent {...props} />
+    </LanguageProvider>
   );
 };
 

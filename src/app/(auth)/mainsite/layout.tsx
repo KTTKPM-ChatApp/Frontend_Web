@@ -71,7 +71,7 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
     const mounted = useMounted();
     const Trans = useTrans();
 
-    const isLoggedIn = !!authData?.data?.tokens?.accessToken;
+    const isLoggedIn = !!authData?.data?.accessToken;
     const avatarUrl = authData?.data?.user?.avatarUrl || "https://i.pravatar.cc/40";
 
     return (

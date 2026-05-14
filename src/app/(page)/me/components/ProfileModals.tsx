@@ -247,7 +247,7 @@ const ProfileModals = ({
         bio: bio || null,
         gender,
         dateOfBirth,
-        avatarUrl: uploadedAvatarUrl ?? null,
+        avatarUrl: uploadedAvatarUrl || undefined,
       };
       console.log("update profile payload:", payload);
       const response = await userService.userUpdateProfile(payload);

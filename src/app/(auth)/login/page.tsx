@@ -20,12 +20,22 @@ import { useTrans } from "@/src/common/utilities/hook/trans";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { authService } from "@/src/common/service/auth-service";
 import { IAuthResponse } from "@/src/common/interface/auth-interface";
+import { IconButton } from "@mui/material";
+import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
     const Trans = useTrans();
+    const { i18n } = useTranslation();
     const router = useRouter();
 
     const [mounted, setMounted] = useState(false);
+
+    const handleLanguageToggle = () => {
+        const newLang = i18n.language === 'vi' ? 'en' : 'vi';
+        i18n.changeLanguage(newLang);
+        localStorage.setItem('language', newLang);
+    };
 
     const loadingAuth = useAuthStore((s) => s.loadingAuth);
     const setLoadingAuth = useAuthStore((s) => s.setLoadingAuth);
@@ -104,6 +114,9 @@ export default function LoginPage() {
                         height={40}
                         priority
                     />
+                    <IconButton onClick={handleLanguageToggle}>
+                        <LanguageOutlinedIcon />
+                    </IconButton>
                 </LogoWrap>
 
                 <Subtitle>

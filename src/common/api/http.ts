@@ -184,7 +184,7 @@ export const request = async <T = any>(
   url: string,
   options?: CustomOptions
 ): Promise<IHttpresponse<T>> => {
-  const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4321";
+  const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
   if (!baseUrl) {
     return {

@@ -41,7 +41,7 @@ export default function SecuritySection() {
     <SectionBlock title="Thiết lập bảo mật" defaultOpen>
       <SecurityRow>
         <SecurityLeft>
-          <TimerOutlinedIcon  />
+          <TimerOutlinedIcon />
           <Box>
             <SecurityTitle>Tin nhắn tự xoá</SecurityTitle>
             <SecuritySub>Không bao giờ</SecuritySub>
@@ -51,7 +51,7 @@ export default function SecuritySection() {
 
       <SecurityRow>
         <SecurityLeft>
-          <VisibilityOffOutlinedIcon  />
+          <VisibilityOffOutlinedIcon />
           <SecurityTitle>Ẩn trò chuyện</SecurityTitle>
         </SecurityLeft>
 

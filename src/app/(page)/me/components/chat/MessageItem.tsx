@@ -233,7 +233,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <MessageRow mine={isOwn}>
+    <MessageRow mine={isOwn} id={`message-${id}`}>
       {!isOwn && sender && (
         <Box sx={{ position: "relative" }}>
           <MessageAvatar src={sender.avatar}>

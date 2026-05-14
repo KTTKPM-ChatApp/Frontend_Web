@@ -2,9 +2,17 @@ import { ConversationDto } from "./chat-interface";
 
 export interface IUserSearchItem {
   id: string;
-  fullName: string;
+  username: string;
+  displayName: string;
+  email: string;
   avatarUrl: string | null;
-  phone: string;
+  bio: string | null;
+  gender: string | null;
+  dateOfBirth: string | null;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
   friendshipStatus: "none" | "pending" | "friend" | string;
 }
 
@@ -30,9 +38,9 @@ export type SearchResult =
     | {
         kind: "user";
         id: string;
-        fullName: string;
+        displayName: string;
         avatarUrl?: string | null;
-        phone: string;
+        phone: string | null;
         friendshipStatus: string;
         user: IUserSearchItem;
     };

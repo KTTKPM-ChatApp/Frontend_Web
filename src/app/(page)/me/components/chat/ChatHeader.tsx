@@ -1,13 +1,7 @@
 "use client";
 
 import { useChatStore } from "@/src/common/store/useChatStore";
-import {
-  Box,
-  Typography,
-  Avatar,
-  IconButton,
-  Badge,
-} from "@mui/material";
+import { Avatar, Box, IconButton, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
@@ -16,153 +10,141 @@ import SearchIcon from "@mui/icons-material/Search";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 interface ChatHeaderProps {
-  title?: string;
   socketConnected: boolean;
   error?: string | null;
-  conversationId: string | null
+  conversationId: string | null;
+  onToggleSearch?: () => void;
+  onToggleInfo?: () => void;
 }
 
-// ==================== STYLED COMPONENTS ====================
-
-const ChatHeaderRoot = styled(Box)(({ theme }) => ({
-  height: 70,
-  minHeight: 70,
-  background: "#fff",
+const ChatHeaderRoot = styled(Box)({
+  height: 68,
+  minHeight: 68,
+  background: "#FFFFFF",
   borderBottom: "1px solid #E5E7EB",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "0 16px",
+  padding: "0 14px",
   zIndex: 10,
-}));
+});
 
-const HeaderLeft = styled(Box)(({ theme }) => ({
+const HeaderLeft = styled(Box)({
   display: "flex",
   alignItems: "center",
   gap: 12,
   flex: 1,
   minWidth: 0,
-}));
+});
 
-const ConversationInfo = styled(Box)(({ theme }) => ({
+const ConversationInfo = styled(Box)({
   display: "flex",
   flexDirection: "column",
   minWidth: 0,
   flex: 1,
-}));
+});
 
-const ConversationTitle = styled(Typography)(({ theme }) => ({
-  fontSize: 18,
-  fontWeight: 600,
-  color: "#0F172A",
-  lineHeight: 1.2,
+const ConversationTitle = styled(Typography)({
+  fontSize: 16,
+  fontWeight: 700,
+  color: "#111827",
+  lineHeight: 1.25,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-}));
+});
 
-const ConversationSubtitle = styled(Typography)(({ theme }) => ({
-  fontSize: 13,
-  color: "#64748B",
+const ConversationSubtitle = styled(Typography)({
+  fontSize: 12,
+  color: "#6B7280",
   lineHeight: 1.2,
   display: "flex",
   alignItems: "center",
   gap: 6,
-}));
+}) as typeof Typography;
 
-const OnlineIndicator = styled(Box)(({ theme }) => ({
+const StatusDot = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "connected",
+})<{ connected?: boolean }>(({ connected }) => ({
   width: 8,
   height: 8,
   borderRadius: "50%",
-  backgroundColor: "#10B981",
-  border: "2px solid #FFFFFF",
-  position: "absolute",
-  bottom: 0,
-  right: 0,
-}));
-
-const OfflineIndicator = styled(Box)(({ theme }) => ({
-  width: 8,
-  height: 8,
-  borderRadius: "50%",
-  backgroundColor: "#94A3B8",
-  border: "2px solid #FFFFFF",
-  position: "absolute",
-  bottom: 0,
-  right: 0,
-}));
-
-const HeaderActions = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-}));
-
-const ActionButton = styled(IconButton)(({ theme }) => ({
-  width: 40,
-  height: 40,
-  borderRadius: 10,
-  color: "#64748B",
-  "&:hover": {
-    backgroundColor: "#F8FAFC",
-    color: "#0F172A",
-  },
-}));
-
-const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  width: 40,
-  height: 40,
+  backgroundColor: connected ? "#22C55E" : "#9CA3AF",
   flexShrink: 0,
 }));
 
+const HeaderActions = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+});
+
+const ActionButton = styled(IconButton)({
+  width: 36,
+  height: 36,
+  borderRadius: 8,
+  color: "#4B5563",
+  "&:hover": {
+    backgroundColor: "#F3F4F6",
+    color: "#111827",
+  },
+});
+
+const StyledAvatar = styled(Avatar)({
+  width: 40,
+  height: 40,
+  flexShrink: 0,
+  background: "#E0ECFF",
+  color: "#0A56CC",
+  fontWeight: 700,
+});
+
 export default function ChatHeader({
   socketConnected,
-  conversationId
+  conversationId,
+  onToggleSearch,
+  onToggleInfo,
 }: ChatHeaderProps) {
-  const listConversation = useChatStore((s) => s.listConversation)
-  const conversation = listConversation.find((n) => n.id === conversationId);
-  
+  const listConversation = useChatStore((s) => s.listConversation);
+  const conversation = listConversation.find((item) => item.id === conversationId);
+  const memberText =
+    conversation?.type === "group"
+      ? `${conversation.memberCount ?? 0} thành viên`
+      : "Tin nhắn trực tiếp";
+
   return (
     <ChatHeaderRoot>
       <HeaderLeft>
-        <Box sx={{ position: "relative" }}>
-          <StyledAvatar>
-            {conversation?.name?.charAt(0) || "C"}
-          </StyledAvatar>
-          <OnlineIndicator />
-        </Box>
-        
+        <StyledAvatar src={conversation?.avatarUrl ?? undefined}>
+          {conversation?.name?.charAt(0)?.toUpperCase() || "C"}
+        </StyledAvatar>
+
         <ConversationInfo>
-          <ConversationTitle>
-            {conversation?.name || "Cuộc trò chuyện"}
-          </ConversationTitle>
-          <ConversationSubtitle>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: socketConnected ? "#10B981" : "#94A3B8" }} />
-              {socketConnected ? "Đã kết nối" : "Mất kết nối"}
-              {conversation?.memberCount && (
-                <span>• {conversation.memberCount} thành viên</span>
-              )}
-            </Box>
+          <ConversationTitle>{conversation?.name || "Cuộc trò chuyện"}</ConversationTitle>
+          <ConversationSubtitle component="span">
+            <StatusDot connected={socketConnected} />
+            <span>{socketConnected ? "Đã kết nối" : "Mất kết nối"}</span>
+            <span>•</span>
+            <span>{memberText}</span>
           </ConversationSubtitle>
         </ConversationInfo>
       </HeaderLeft>
 
       <HeaderActions>
-        <ActionButton>
-          <PhoneIcon />
+        <ActionButton aria-label="Gọi thoại">
+          <PhoneIcon fontSize="small" />
         </ActionButton>
-        <ActionButton>
-          <VideoCallIcon />
+        <ActionButton aria-label="Gọi video">
+          <VideoCallIcon fontSize="small" />
         </ActionButton>
-        <ActionButton>
-          <SearchIcon />
+        <ActionButton aria-label="Tìm trong hội thoại" onClick={onToggleSearch}>
+          <SearchIcon fontSize="small" />
         </ActionButton>
-        <ActionButton>
-          <InfoIcon />
+        <ActionButton aria-label="Thông tin hội thoại" onClick={onToggleInfo}>
+          <InfoIcon fontSize="small" />
         </ActionButton>
-        <ActionButton>
-          <MoreVertIcon />
+        <ActionButton aria-label="Tùy chọn hội thoại">
+          <MoreVertIcon fontSize="small" />
         </ActionButton>
       </HeaderActions>
     </ChatHeaderRoot>
