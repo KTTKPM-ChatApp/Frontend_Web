@@ -19,21 +19,14 @@ import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
 import { useState, useMemo, useEffect } from "react";
 import { useChatStore } from "@/src/common/store/useChatStore";
-import { ConversationDto } from "@/src/common/interface/chat-interface";
-import {
-    userService,
-} from "@/src/common/service/user-service";
-// import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
+
 import { searchService } from "@/src/common/service/search-service";
-import { chatService } from "@/src/common/service/chat-service";
 import { IUserSearchItem, SearchResult } from "@/src/common/interface/search-interface";
 import { useDebounce } from "@/src/common/utilities/hook/debounce";
-
-interface SearchBarProps {
-    onResultSelect?: (result: SearchResult) => void;
-    onAddFriend?: () => void;
-    onCreateGroup?: () => void;
-}
+import AddFriendDialog from "./friend/ModalAddFriend";
+import { friendService } from "@/src/common/service/friend-service";
+import { useFriendStore } from "@/src/common/store/useFriendStore";
+import CreateGroupModal from "./chat/CreateGroupModal";
 
 const BoxSearchBar = styled(Box)({
     height: 32,
@@ -103,57 +96,91 @@ const SearchResultItem = styled(ListItem)({
         backgroundColor: "#f0f0f0",
     },
 });
-const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProps) => {
+const SearchBar = () => {
     const [focusOnSearch, setFocusOnSearch] = useState(false);
     const [searchValue, setSearchValue] = useState("");
     const [userResults, setUserResults] = useState<IUserSearchItem[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [openAddFriendDialog, setOpenAddFriendDialog] = useState(false);
     const debounceSearch = useDebounce(searchValue, 300);
     const { listConversation } = useChatStore();
     const setActiveConversationId = useChatStore((s) => s.setActiveConversationId);
+    const friends = useFriendStore((s) => s.friends);
+    const pendingRequests = useFriendStore((s) => s.pendingRequests);
+    const sentRequests = useFriendStore((s) => s.sentRequests);
 
+    const fetchFriends = useFriendStore((s) => s.fetchFriends);
+    const fetchPendingRequests = useFriendStore((s) => s.fetchPendingRequests);
+    const fetchSentRequests = useFriendStore((s) => s.fetchSentRequests);
+    const getRelationStatus = useFriendStore((s) => s.getRelationStatus);
+    const [openCreateGroupModal, setOpenCreateGroupModal] = useState(false);
     const handleFocusSearchBar = () => {
         setFocusOnSearch(true);
     };
 
-    
+    const isPhoneNumber = (input: string): boolean => {
+        const phoneRegex = /^[\d\s\-()+]*$/;
+        const digitsOnly = input.replace(/\D/g, "");
+        return phoneRegex.test(input) && digitsOnly.length >= 3;
+    };
+
+    const normalizePhoneQuery = (input: string) => {
+        return input.trim();
+    };
+    const isPhoneSearch = useMemo(() => {
+        return isPhoneNumber(debounceSearch.trim());
+    }, [debounceSearch]);
+
     const friendConversationResults = useMemo<SearchResult[]>(() => {
         const keyword = debounceSearch.trim().toLowerCase();
-        if (!keyword) return [];
+        if (!keyword || isPhoneSearch) return [];
 
         return listConversation
-            .filter((conv) => conv.name?.toLowerCase().includes(keyword))
+            .filter((conv) => conv.title?.toLowerCase().includes(keyword))
             .map((conv) => ({
                 kind: "conversation" as const,
                 id: conv.id,
-                name: conv.name,
-                avatarUrl: (conv as any).avatarUrl ?? null,
+                name: conv.title ?? "",
+                avatarUrl: conv.avatarUrl ?? null,
                 memberCount: conv.memberCount,
                 conversation: conv,
             }));
-    }, [debounceSearch, listConversation]);
-
+    }, [debounceSearch, isPhoneSearch, listConversation]);
     useEffect(() => {
+        if (!focusOnSearch) return;
+
+        void Promise.all([
+            fetchFriends(),
+            fetchPendingRequests(),
+            fetchSentRequests(),
+        ]);
+    }, [focusOnSearch, fetchFriends, fetchPendingRequests, fetchSentRequests]);
+    useEffect(() => {
+        if (!focusOnSearch) return;
+
         const keyword = debounceSearch.trim();
+
         if (!keyword) {
             setUserResults([]);
             setSearchError(null);
+            setLoadingSearch(false);
             return;
         }
 
-        const timer = setTimeout(async () => {
+        const fetchUsers = async () => {
             try {
                 setLoadingSearch(true);
                 setSearchError(null);
 
+                const q = normalizePhoneQuery(keyword);
                 const response = await searchService.searchUsers({
-                    q: keyword,
+                    q,
                     page: 1,
-                    limit: 20,
+                    limit: 30,
                 });
 
-                const users = response?.payload?.data || [];
+                const users = response?.payload?.users || [];
                 setUserResults(Array.isArray(users) ? users : []);
             } catch (error: any) {
                 console.error("search user error:", error);
@@ -162,27 +189,38 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
             } finally {
                 setLoadingSearch(false);
             }
-        }, 300);
+        };
 
-        return () => clearTimeout(timer);
-    }, [searchValue]);
+        fetchUsers();
+    }, [debounceSearch, focusOnSearch, isPhoneSearch]);
 
     const searchResults = useMemo<SearchResult[]>(() => {
-        if (!searchValue.trim()) return [];
+        if (!debounceSearch.trim()) return [];
 
-        // Hiển thị cả user search và conversation search
-        const userSearchResults = userResults.map((user) => ({
-            kind: "user" as const,
-            id: user.id,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-            phone: user.phone,
-            friendshipStatus: user.friendshipStatus,
-            user,
-        }));
+        const mappedUsers: SearchResult[] = userResults.map((user) => {
+            const relationStatus = getRelationStatus(user.id);
+            return {
+                kind: "user" as const,
+                id: user.id,
+                fullName: user.fullName ?? "",
+                avatarUrl: user.avatarUrl ?? null,
+                phone: user.phone ?? "",
+                friendshipStatus: relationStatus,
+                user,
+            };
+        });
 
-        return [...userSearchResults, ...friendConversationResults];
-    }, [searchValue, userResults, friendConversationResults]);
+        return [...mappedUsers, ...friendConversationResults];
+    }, [
+        debounceSearch,
+        isPhoneSearch,
+        userResults,
+        friendConversationResults,
+        getRelationStatus,
+        friends,
+        pendingRequests,
+        sentRequests,
+    ]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchValue(e.target.value);
@@ -193,29 +231,27 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
             setActiveConversationId(result.conversation.id);
             setSearchValue("");
             setFocusOnSearch(false);
-            onResultSelect?.(result);
             return;
         }
-
-        // Handle user click - create direct conversation
-        try {
-            const response = await chatService.createDirectConversation({
-                participantId: result.id
-            });
-            
-            if (response.ok && response.payload?.data) {
-                const newConversation = response.payload.data;
-                setActiveConversationId(newConversation.id);
-                setSearchValue("");
-                setFocusOnSearch(false);
-                onResultSelect?.(result);
+        
+        if (result.kind === "user") {
+            try {
+                const { chatService } = await import('@/src/common/service/chat-service');
+                const res = await chatService.createConversation('DIRECT', [result.user.id]);
+                const newConversation = res?.payload as any;
+                if (newConversation && newConversation.id) {
+                    const store = useChatStore.getState();
+                    store.upsertConversationToTop(newConversation);
+                    store.setConversationDetail(newConversation.id, newConversation);
+                    store.setActiveConversationId(newConversation.id);
+                }
+            } catch (error) {
+                console.error("Failed to create direct conversation", error);
             }
-        } catch (error) {
-            console.error("Failed to create direct conversation:", error);
-            // Still close search even if conversation creation fails
-            setSearchValue("");
-            setFocusOnSearch(false);
         }
+
+        setSearchValue("");
+        setFocusOnSearch(false);
     };
 
     return (
@@ -265,7 +301,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                                                 >
                                                     {(result.kind === "conversation"
                                                         ? result.name
-                                                        : result.displayName
+                                                        : result.fullName
                                                     )
                                                         ?.charAt(0)
                                                         ?.toUpperCase()}
@@ -275,13 +311,8 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                                                     primary={
                                                         result.kind === "conversation"
                                                             ? result.name
-                                                            : result.displayName
+                                                            : result.fullName
                                                     }
-                                                    // secondary={
-                                                    //     result.kind === "conversation"
-                                                    //         ? `${result.memberCount || 1} thành viên`
-                                                    //         : `${result.phone} • ${result.friendshipStatus}`
-                                                    // }
                                                 />
                                             </Box>
                                         </SearchResultItem>
@@ -311,16 +342,39 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                     </ActionBtn>
                 ) : (
                     <>
-                        <ActionBtn onClick={onAddFriend}>
-                            <PersonAddAltOutlinedIcon sx={{ fontSize: 22, color: "#353535" }} />
+                        <ActionBtn onClick={() => setOpenAddFriendDialog(true)}>
+                            <PersonAddAltOutlinedIcon
+
+                                sx={{ fontSize: 22, color: "#353535" }} />
                         </ActionBtn>
-                        <ActionBtn onClick={onCreateGroup}>
+                        <ActionBtn onClick={() => setOpenCreateGroupModal(true)}>
                             <GroupAddOutlinedIcon sx={{ fontSize: 22, color: "#353535" }} />
                         </ActionBtn>
                     </>
                 )}
             </GridSearch>
+            <AddFriendDialog
+                open={openAddFriendDialog}
+                onClose={() => setOpenAddFriendDialog(false)}
+                onSendFriendRequest={async ({ user, message }) => {
+                    await friendService.sendRequest({
+                        message,
+                        userId: user.id,
+                    });
+
+                    await fetchSentRequests();
+                }}
+                onCancelFriendRequest={async ({ user, requestId }) => {
+                    await friendService.cancelRequest(requestId);
+                    await fetchSentRequests();
+                }}
+            />
+            <CreateGroupModal
+                open={openCreateGroupModal}
+                onClose={() => setOpenCreateGroupModal(false)}
+            />
         </Box>
+
     );
 };
 
