@@ -17,11 +17,21 @@ import { authService } from "@/src/common/service/auth-service";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 import FormRegis from "./component/FormRegis";
 import { IRegisterResponse } from "@/src/common/interface/auth-interface";
+import { IconButton } from "@mui/material";
+import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
+import { useTranslation } from "react-i18next";
 
 export default function RegisterPage() {
     const router = useRouter();
     const Trans = useTrans();
+    const { i18n } = useTranslation();
     const [confirmPsw, setConfirmPsw] = useState("");
+
+    const handleLanguageToggle = () => {
+        const newLang = i18n.language === 'vi' ? 'en' : 'vi';
+        i18n.changeLanguage(newLang);
+        localStorage.setItem('language', newLang);
+    };
 
     const {
         setLoadingAuth,
@@ -37,7 +47,10 @@ export default function RegisterPage() {
             setLoadingAuth(true);
             try {
                 console.log("Calling authService.authRegister...");
-                const result = await authService.authRegister(values);
+                const result = await authService.authRegister({
+                    ...values,
+                    dateOfBirth: values.dateOfBirth ? new Date(values.dateOfBirth) : undefined
+                });
                 console.log("API call result:", result);
                 const payload = result?.payload;
                 console.log("Parsed payload:", payload);
@@ -83,6 +96,9 @@ export default function RegisterPage() {
                         height={35}
                         priority
                     />
+                    <IconButton onClick={handleLanguageToggle}>
+                        <LanguageOutlinedIcon />
+                    </IconButton>
                 </LogoWrap>
 
                 <Subtitle>

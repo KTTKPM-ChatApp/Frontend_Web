@@ -141,7 +141,7 @@ const MainSite = () => {
                             <OutlineButton
                                 variant="outlined"
                                 startIcon={<LanguageRoundedIcon />}
-                                onClick={() => handleChangePage(authData?.data?.tokens?.accessToken)}
+                                onClick={() => handleChangePage(authData?.data?.accessToken)}
                             >
                                 Dùng bản web
                             </OutlineButton>

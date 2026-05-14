@@ -28,6 +28,9 @@ import GroupIcon from "@mui/icons-material/Group";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
+import { toast } from "react-toastify";
+import { chatService } from "@/src/common/service/chat-service";
+import { useChatStore } from "@/src/common/store/useChatStore";
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -128,10 +131,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   onCreate = () => {},
 }) => {
   const { t } = useTranslation();
+  const fetchListConversation = useChatStore((s) => s.fetchListConversation);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
   const [friends] = useState<Friend[]>([
     { id: "1", name: "Nguyễn Văn A", avatar: "", phone: "0987654321" },
     { id: "2", name: "Trần Thị B", avatar: "", phone: "0123456789" },
@@ -152,19 +157,31 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     );
   };
 
-  const handleCreateGroup = () => {
-    if (groupName.trim() && onCreate) {
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || selectedMembers.length === 0) return;
+
+    setCreating(true);
+    try {
+      await chatService.createGroupConversation({
+        name: groupName.trim(),
+        memberIds: selectedMembers,
+      });
       onCreate({
         name: groupName.trim(),
         description: groupDescription.trim(),
         members: selectedMembers,
       });
-      // Reset form
+      await fetchListConversation({ page: 1, limit: 20 });
+      toast.success("Đã tạo nhóm trò chuyện");
       setGroupName("");
       setGroupDescription("");
       setSelectedMembers([]);
       setSearchValue("");
       onClose();
+    } catch (error) {
+      toast.error("Không thể tạo nhóm trò chuyện");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -282,9 +299,9 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         <Button
           onClick={handleCreateGroup}
           variant="contained"
-          disabled={!groupName.trim() || selectedMembers.length === 0}
+          disabled={!groupName.trim() || selectedMembers.length === 0 || creating}
         >
-          {t("GROUP.CREATE_SUBMIT")} ({selectedMembers.length})
+          {creating ? "Đang tạo..." : t("GROUP.CREATE_SUBMIT")} ({selectedMembers.length})
         </Button>
       </DialogActions>
     </Dialog>

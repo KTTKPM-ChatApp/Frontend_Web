@@ -1,57 +1,53 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  Box,
-  Typography,
-  TextField,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
-  Chip,
-} from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { Box, Typography, TextField, IconButton, Chip } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-const SearchContainer = styled(Box)(({ theme }) => ({
-  width: 300,
+import { useChatStore } from "@/src/common/store/useChatStore";
+import { chatService } from "@/src/common/service/chat-service";
+
+const SearchContainer = styled(Box)({
+  width: 320,
   height: "100%",
   borderLeft: "1px solid #E5E7EB",
   backgroundColor: "#FFFFFF",
   display: "flex",
   flexDirection: "column",
-}));
+});
 
-const SearchHeader = styled(Box)(({ theme }) => ({
-  padding: "16px",
+const SearchHeader = styled(Box)({
+  padding: "14px 12px",
   borderBottom: "1px solid #E5E7EB",
-}));
+});
 
-const SearchContent = styled(Box)(({ theme }) => ({
+const SearchContent = styled(Box)({
   flex: 1,
   overflowY: "auto",
-  padding: "16px",
-}));
+  padding: "10px",
+});
 
-const ResultItem = styled(ListItem)(({ theme }) => ({
+const ResultItem = styled(Box)({
   borderRadius: 8,
   marginBottom: 8,
+  padding: "10px",
   border: "1px solid #F1F5F9",
+  cursor: "pointer",
   "&:hover": {
     backgroundColor: "#F8FAFC",
   },
-}));
+});
 
-const MessagePreview = styled(Typography)(({ theme }) => ({
-  fontSize: 12,
-  color: "#64748B",
+const MessagePreview = styled(Typography)({
+  fontSize: 13,
+  color: "#334155",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-}));
+  marginBottom: 4,
+});
 
 interface Message {
   messageId: string;
@@ -67,51 +63,75 @@ interface SearchSidebarProps {
   onMessageClick: (message: Message) => void;
 }
 
-const SearchSidebar: React.FC<SearchSidebarProps> = ({ onClose }) => {
-  const { t } = useTranslation();
+const normalize = (value: string) => value.toLowerCase().trim();
+
+const SearchSidebar: React.FC<SearchSidebarProps> = ({ conversationId, onClose, onMessageClick }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Message[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [apiResults, setApiResults] = useState<Message[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const messagesByConversation = useChatStore((s) => s.messagesByConversation);
 
-  // Mock search results
+  const allMessages = conversationId ? messagesByConversation[conversationId] || [] : [];
+  const searchResults = useMemo(() => {
+    const keyword = normalize(searchQuery);
+    if (!keyword) return [];
+
+    return [...allMessages]
+      .reverse()
+      .filter((msg) => normalize(msg.body || "").includes(keyword))
+      .slice(0, 50)
+      .map((msg) => ({
+        messageId: msg.messageId,
+        body: msg.body,
+        createdAt: new Date(msg.createdAt).toISOString(),
+        senderId: msg.senderId,
+        isDeleted: msg.isDeleted,
+      }));
+  }, [allMessages, searchQuery]);
+
+  const finalResults = apiResults ?? searchResults;
+
   useEffect(() => {
-    if (searchQuery.trim()) {
-      setIsSearching(true);
-      // Simulate search delay
-      const timer = setTimeout(() => {
-        setSearchResults([
-          {
-            messageId: "1",
-            body: `Tin nhắn chứa "${searchQuery}" - đây là kết quả tìm kiếm`,
-            createdAt: "2024-01-01T10:00:00Z",
-            senderId: "user1",
-          },
-          {
-            messageId: "2",
-            body: `Một tin nhắn khác với từ khóa "${searchQuery}"`,
-            createdAt: "2024-01-01T11:00:00Z",
-            senderId: "user2",
-          },
-        ]);
-        setIsSearching(false);
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery]);
-
-  const handleClear = () => {
-    setSearchQuery("");
-    setSearchResults([]);
-  };
+    let mounted = true;
+    const run = async () => {
+      if (!conversationId || !searchQuery.trim()) {
+        if (mounted) setApiResults(null);
+        return;
+      }
+      try {
+        setSearching(true);
+        const res = await chatService.searchMessages(conversationId, { q: searchQuery.trim() });
+        const rows = (res?.payload as any)?.data;
+        if (!Array.isArray(rows)) {
+          if (mounted) setApiResults(null);
+          return;
+        }
+        const normalized = rows.map((item: any) => ({
+          messageId: item.messageId || item.id,
+          body: item.body || item.content || "",
+          createdAt: new Date(item.createdAt || item.created_at || Date.now()).toISOString(),
+          senderId: item.senderId || item.sender_id || "",
+          isDeleted: Boolean(item.isDeleted),
+        }));
+        if (mounted) setApiResults(normalized);
+      } catch {
+        if (mounted) setApiResults(null);
+      } finally {
+        if (mounted) setSearching(false);
+      }
+    };
+    void run();
+    return () => {
+      mounted = false;
+    };
+  }, [conversationId, searchQuery]);
 
   return (
     <SearchContainer>
       <SearchHeader>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <Typography variant="h6" sx={{ flex: 1 }}>
-            {t("SEARCH.TITLE")}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+          <Typography variant="subtitle1" sx={{ flex: 1, fontWeight: 700 }}>
+            Tìm trong hội thoại
           </Typography>
           <IconButton size="small" onClick={onClose}>
             <ClearIcon />
@@ -120,66 +140,49 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({ onClose }) => {
         <TextField
           fullWidth
           size="small"
-          placeholder={t("SEARCH.PLACEHOLDER")}
+          placeholder="Nhập từ khóa..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: <SearchIcon sx={{ color: "#94A3B8", mr: 1 }} />,
-            endAdornment: searchQuery && (
-              <IconButton size="small" onClick={handleClear}>
+            endAdornment: searchQuery ? (
+              <IconButton size="small" onClick={() => setSearchQuery("")}>
                 <ClearIcon fontSize="small" />
               </IconButton>
-            ),
+            ) : null,
           }}
         />
       </SearchHeader>
 
       <SearchContent>
         {searchQuery && (
-          <Box sx={{ mb: 2 }}>
-            <Chip
-              label={t("SEARCH.RESULTS_COUNT", { count: searchResults.length })}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
+          <Box sx={{ mb: 1.5 }}>
+            <Chip label={`${finalResults.length} kết quả`} size="small" color="primary" variant="outlined" />
           </Box>
         )}
 
-        {isSearching ? (
+        {searching ? (
           <Typography variant="body2" sx={{ textAlign: "center", py: 4 }}>
-            {t("SEARCH.SEARCHING")}
+            Đang tìm kiếm...
           </Typography>
-        ) : searchResults.length > 0 ? (
-          <List>
-            {searchResults.map((message) => (
-              <ResultItem
-                key={message.messageId}
-                onClick={() => onMessageClick(message)}
-                button
-              >
-                <ListItemText
-                  primary={
-                    <MessagePreview>
-                      {message.body}
-                    </MessagePreview>
-                  }
-                  secondary={
-                    <Typography variant="caption" color="#94A3B8">
-                      {new Date(message.createdAt).toLocaleString("vi-VN")}
-                    </Typography>
-                  }
-                />
-              </ResultItem>
-            ))}
-          </List>
+        ) : finalResults.length > 0 ? (
+          finalResults.map((message) => (
+            <ResultItem key={message.messageId} onClick={() => onMessageClick(message)}>
+              <MessagePreview>
+                {message.isDeleted ? "Tin nhắn đã thu hồi" : message.body || "(Không có nội dung)"}
+              </MessagePreview>
+              <Typography variant="caption" color="#94A3B8">
+                {new Date(message.createdAt).toLocaleString("vi-VN")}
+              </Typography>
+            </ResultItem>
+          ))
         ) : searchQuery ? (
-          <Typography variant="body2" sx={{ textAlign: "center", py: 4, color: "#64748B" }}>
-            {t("SEARCH.NO_RESULTS")}
+          <Typography variant="body2" sx={{ textAlign: "center", py: 4 }}>
+            Không tìm thấy kết quả.
           </Typography>
         ) : (
           <Typography variant="body2" sx={{ textAlign: "center", py: 4, color: "#94A3B8" }}>
-            {t("SEARCH.ENTER_KEYWORD")}
+            Nhập từ khóa để tìm tin nhắn trong hội thoại hiện tại.
           </Typography>
         )}
       </SearchContent>

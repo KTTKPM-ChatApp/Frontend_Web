@@ -22,6 +22,8 @@ interface ChatPanelProps {
   currentUserId: string;
   conversationId: string;
   title?: string;
+  onToggleSearch?: () => void;
+  onToggleInfo?: () => void;
 }
 
 const Root = styled(Box)({
@@ -60,6 +62,8 @@ export default function ChatPanel({
   currentUserId,
   conversationId,
   title,
+  onToggleSearch,
+  onToggleInfo,
 }: ChatPanelProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -241,9 +245,10 @@ export default function ChatPanel({
       <HeaderWrap>
         <ChatHeader
           conversationId={conversationId}
-          title={title}
           socketConnected={socketConnected}
           error={error}
+          onToggleSearch={onToggleSearch}
+          onToggleInfo={onToggleInfo}
         />
       </HeaderWrap>
 

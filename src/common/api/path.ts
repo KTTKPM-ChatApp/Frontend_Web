@@ -40,6 +40,8 @@ export const API = {
         `/api/conversations/${conversationId}`,
     API_CONVERSATIONS_CREATE_GROUP: "/api/conversations/group",
     API_CONVERSATIONS_DIRECT: "/api/conversations/direct",
+    
+    // Member Management
     API_CONVERSATIONS_ADD_MEMBER: (conversationId: string) =>
         `/api/conversations/${conversationId}/members`,
     API_CONVERSATIONS_REMOVE_MEMBER: (conversationId: string, memberId: string) =>
@@ -52,12 +54,64 @@ export const API = {
         `/api/conversations/${conversationId}/settings`,
     API_CONVERSATIONS_READ: (conversationId: string) =>
         `/api/conversations/${conversationId}/read`,
+    
+    // Pin Management
+    API_CONVERSATIONS_PIN: (conversationId: string) =>
+        `/api/conversations/${conversationId}/pin`,
+    API_CONVERSATIONS_UNPIN: (conversationId: string) =>
+        `/api/conversations/${conversationId}/pin`,
+    
+    // Group Settings
+    API_CONVERSATIONS_GROUP_SETTINGS: (conversationId: string) =>
+        `/api/conversations/${conversationId}/group-settings`,
+    API_CONVERSATIONS_DISBAND: (conversationId: string) =>
+        `/api/conversations/${conversationId}/disband`,
+    
+    // Invitation Management
+    API_CONVERSATIONS_INVITES_SEND: (conversationId: string) =>
+        `/api/conversations/${conversationId}/invites`,
+    API_CONVERSATIONS_INVITES_PENDING: "/api/conversations/invites/pending",
+    API_CONVERSATIONS_INVITES_ACCEPT: (conversationId: string, inviteId: string) =>
+        `/api/conversations/${conversationId}/invites/${inviteId}/accept`,
+    API_CONVERSATIONS_INVITES_REJECT: (conversationId: string, inviteId: string) =>
+        `/api/conversations/${conversationId}/invites/${inviteId}/reject`,
+    API_CONVERSATIONS_INVITES_CANCEL: (conversationId: string, inviteId: string) =>
+        `/api/conversations/${conversationId}/invites/${inviteId}/cancel`,
+    
+    // Poll Management
+    API_CONVERSATIONS_POLLS_LIST: (conversationId: string) =>
+        `/api/conversations/${conversationId}/polls`,
+    API_CONVERSATIONS_POLLS_CREATE: (conversationId: string) =>
+        `/api/conversations/${conversationId}/polls`,
+    API_CONVERSATIONS_POLLS_DETAIL: (conversationId: string, pollId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}`,
+    API_CONVERSATIONS_POLLS_UPDATE: (conversationId: string, pollId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}`,
+    API_CONVERSATIONS_POLLS_VOTE: (conversationId: string, pollId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}/vote`,
+    API_CONVERSATIONS_POLLS_WITHDRAW: (conversationId: string, pollId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}/vote`,
+    API_CONVERSATIONS_POLLS_CLOSE: (conversationId: string, pollId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}/close`,
+    API_CONVERSATIONS_POLLS_ADD_OPTION: (conversationId: string, pollId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}/options`,
+    API_CONVERSATIONS_POLLS_REMOVE_OPTION: (conversationId: string, pollId: string, optionId: string) =>
+        `/api/conversations/${conversationId}/polls/${pollId}/options/${optionId}`,
+    
+    // Call Management
+    API_CONVERSATIONS_ICE_SERVERS: "/api/conversations/ice-servers",
+    API_CONVERSATIONS_CALLS_HISTORY: (conversationId: string) =>
+        `/api/conversations/${conversationId}/calls`,
+    API_CONVERSATIONS_CALLS_STATE: (conversationId: string) =>
+        `/api/conversations/${conversationId}/call-state`,
+    API_CONVERSATIONS_CALLS_END: (conversationId: string, callId: string) =>
+        `/api/conversations/${conversationId}/calls/${callId}/end`,
 
     /* ================= MESSAGES ================= */
 
 
     API_MESSAGES: (conversationId: string) =>
-      `/api/messages/${conversationId}`,
+      `/api/conversations/${conversationId}/messages`,
 
     API_MESSAGE_DETAIL: (
       conversationId: string,
@@ -67,4 +121,16 @@ export const API = {
 
     API_MESSAGE_REACTIONS: (messageId: string) =>
       `/api/messages/${messageId}/reactions`,
+
+    API_MESSAGES_LIST: (conversationId: string) =>
+      `/api/messages/${conversationId}`,
+    API_MESSAGES_SEARCH: (conversationId: string) =>
+      `/api/messages/${conversationId}/search`,
+    API_MESSAGES_FORWARD: "/api/messages/forward",
+    API_MESSAGE_PIN: (conversationId: string, createdAt: number | string, messageId: string) =>
+      `/api/messages/${conversationId}/${createdAt}/${messageId}/pin`,
+    API_MESSAGE_PINS: (conversationId: string) =>
+      `/api/messages/${conversationId}/pins`,
+    API_MESSAGE_LOOKUP: (messageId: string) =>
+      `/api/v1/messages/lookup/${messageId}`,
 } as const;

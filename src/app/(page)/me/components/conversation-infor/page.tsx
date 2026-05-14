@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 import { useChatStore } from "@/src/common/store/useChatStore";
-
-import {
-  AttachmentDto,
-  ConversationDto,
-} from "@/src/common/interface/chat-interface";
+import { AttachmentDto } from "@/src/common/interface/chat-interface";
 import DangerZone from "./DangerZone";
 import FileSection from "./FileSection";
 import LinkSection from "./LinkSection";
@@ -17,16 +13,18 @@ import MediaSection from "./MediaSection";
 import OverviewCard from "./OverviewCard";
 import ProfileCard from "./ProfileCard";
 import SecuritySection from "./SecuritySection";
+import ConversationActionsPanel from "./ConversationActionsPanel";
 
 interface InfConvColumnProps {
   conversationId: string;
 }
+
 const EMPTY_ATTACHMENTS: AttachmentDto[] = [];
 const EMPTY_LINKS: string[] = [];
 
 const Root = styled(Box)({
-  width: 360,
-  minWidth: 360,
+  width: 380,
+  minWidth: 380,
   height: "100%",
   background: "#F3F5F7",
   borderLeft: "1px solid #E5E7EB",
@@ -51,9 +49,7 @@ const HeaderTitle = styled(Typography)({
   color: "#0F172A",
 });
 
-export default function InfConvColumn({
-  conversationId,
-}: InfConvColumnProps) {
+export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -90,9 +86,9 @@ export default function InfConvColumn({
         <HeaderTitle>Thông tin hội thoại</HeaderTitle>
       </Header>
 
-      <ProfileCard
-      />
+      <ProfileCard />
       <OverviewCard />
+      <ConversationActionsPanel conversationId={conversationId} />
       <MediaSection items={mediaItems} />
       <FileSection items={fileItems} />
       <LinkSection items={links} />

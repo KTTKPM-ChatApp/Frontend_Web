@@ -112,5 +112,29 @@
 
   "// ============================== DANGER ==============================": "",
   "DANGER.REPORT": "Report",
-  "DANGER.DELETE_HISTORY": "Delete chat history"
+  "DANGER.DELETE_HISTORY": "Delete chat history",
+
+  "// ============================== LANDING ==============================": "",
+  "LANDING.HOME": "Home",
+  "LANDING.PRODUCTS": "Products & Services",
+  "LANDING.AI_TECH": "AI & Technology",
+  "LANDING.SOCIAL_IMPACT": "Social Impact & Responsibility",
+  "LANDING.ABOUT_US": "About Us",
+  "LANDING.ADDRESS": "VNG Campus, Tan Thuan Ward, Ho Chi Minh City",
+  "LANDING.SOLUTIONS": "Solutions",
+  "LANDING.ZALO_AI": "Zalo AI",
+  "LANDING.ENTERPRISE_SOLUTIONS": "Enterprise Solutions",
+  "LANDING.DIGITAL_TRANSFORMATION": "Digital Transformation",
+  "LANDING.ADTIMA": "Adtima",
+  "LANDING.SUPPORT_CONTACT": "Support & Contact",
+  "LANDING.USER_SUPPORT": "User Support",
+  "LANDING.DEVELOPER_SUPPORT": "Developer Support",
+  "LANDING.SECURITY": "Security",
+  "LANDING.REPORT_VIOLATION": "Report Violation",
+  "LANDING.CONTACT": "Contact",
+  "LANDING.ZALO": "Zalo",
+  "LANDING.CAREERS": "Careers",
+  "LANDING.DOWNLOAD": "Download",
+  "LANDING.ZALO_PC": "Zalo PC",
+  "LANDING.ZALO_WEB": "Zalo Web"
 }

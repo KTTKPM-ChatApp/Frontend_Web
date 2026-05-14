@@ -7,40 +7,47 @@ import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import { useChatStore } from "@/src/common/store/useChatStore";
 
 const Card = styled(Box)({
-    background: "#fff",
-    marginBottom: 8,
+  background: "#fff",
+  marginBottom: 8,
 });
 
 const SimpleRow = styled(Box)({
-    minHeight: 62,
-    padding: "0 20px",
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
+  minHeight: 62,
+  padding: "0 20px",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
 });
 
 const SimpleText = styled(Typography)({
-    fontSize: 15,
-    color: "#0F172A",
+  fontSize: 15,
+  color: "#0F172A",
 });
 
 export default function OverviewCard() {
-    const listConversation = useChatStore((s) => s.listConversation)
-    const activeConversationId = useChatStore((s) => s.activeConversationId)
-    const currentConversation = listConversation.find((cvs) => cvs.id === activeConversationId)
-    return (
-        <Card>
-            <SimpleRow>
-                <AccessTimeRoundedIcon  />
-                <SimpleText>Danh sách nhắc hẹn</SimpleText>
-            </SimpleRow>
+  const listConversation = useChatStore((s) => s.listConversation);
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
+  const currentConversation = listConversation.find(
+    (item) => item.id === activeConversationId
+  );
 
-            <Divider />
+  return (
+    <Card>
+      <SimpleRow>
+        <AccessTimeRoundedIcon />
+        <SimpleText>Danh sách nhắc hẹn</SimpleText>
+      </SimpleRow>
 
-            <SimpleRow>
-                <Groups2OutlinedIcon/>
-                <SimpleText>{currentConversation?.memberCount} nhóm chung</SimpleText>
-            </SimpleRow>
-        </Card>
-    );
+      <Divider />
+
+      <SimpleRow>
+        <Groups2OutlinedIcon />
+        <SimpleText>
+          {currentConversation?.type === "group"
+            ? `${currentConversation?.memberCount ?? 0} thành viên`
+            : "Hội thoại cá nhân"}
+        </SimpleText>
+      </SimpleRow>
+    </Card>
+  );
 }
