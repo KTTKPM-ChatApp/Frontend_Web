@@ -1,18 +1,200 @@
 import http from "../api/http";
 import { API } from "../api/path";
 import type {
-  AddMembersRequest,
-  CreatePollRequest,
-  SendInviteRequest,
-  UpdateConversationRequest,
-  UpdateGroupSettingsRequest,
-  UpdateSettingsRequest,
-  VotePollRequest,
-} from "../interface/conversation-interface";
-import type { AttachmentDto, ConversationListResponse } from "../interface/chat-interface";
+  ConversationListResponse,
+  MessagePageDto,
+  UiMessage,
+  ConversationDto,
+  ConversationMemberDto,
+} from "../interface/chat-interface";
 
-type SearchMessagesParams = { q?: string; query?: string; limit?: number; before?: string };
-type ForwardMessagePayload = { messageId: string; conversationIds?: string[]; targetConversationIds?: string[] };
+type RawConversationMember = {
+  userId: string;
+  username?: string;
+  displayName?: string;
+  role: string;
+}
+
+type RawConversation = {
+  id: string;
+  title?: string;
+  name?: string;
+  avatarUrl?: string | null;
+  type?: string;
+  memberCount?: number;
+  memberIds?: string[];
+  members?: RawConversationMember[];
+  unreadCount?: number;
+  isMuted?: boolean;
+  lastMessage?: any;
+  lastMessageAt?: string | number | null;
+  createdAt?: string | null;
+};
+
+type RawMessage = {
+  id?: string;
+  messageId?: string;
+  conversationId?: string;
+  conversation_id?: string;
+  senderId?: string;
+  sender_id?: string;
+  content?: string;
+  body?: string;
+  createdAt?: string | number | Date;
+  created_at?: string | number | Date;
+  attachments?: any[];
+  replyToId?: string | null;
+  reply_to_id?: string | null;
+  editedAt?: string | number | Date;
+  deletedAt?: string | number | Date;
+  isDeleted?: boolean;
+};
+
+const toMillis = (value: any) => {
+  if (!value) return Date.now();
+  if (typeof value === "number") return value;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? Date.now() : t;
+};
+
+const normalizeConversation = (item: RawConversation): ConversationDto => {
+  const memberCount = item.memberCount ?? item.memberIds?.length ?? 0;
+  const members = item.members?.map((m: RawConversationMember) => ({
+    userId: m.userId,
+    displayName: m.displayName,
+    role: m.role
+  })) || (item.memberIds?.map((id: string) => ({
+    userId: id,
+    role: "",
+  } as ConversationMemberDto)) || []);
+
+  let conversationName = item.name || item.title || "Cuộc trò chuyện";
+  if (item.type === 'DIRECT' && members.length > 0) {
+    const otherMember = members.find((m: any) => m.displayName);
+    if (otherMember?.displayName) {
+      conversationName = otherMember.displayName;
+    }
+  }
+
+  return {
+    id: item.id,
+    name: conversationName,
+    avatarUrl: item.avatarUrl ?? null,
+    type: (item.type || "DIRECT").toLowerCase(),
+    memberCount,
+    unreadCount: item.unreadCount ?? 0,
+    isMuted: Boolean(item.isMuted),
+    lastMessage: item.lastMessage
+      ? {
+          id: item.lastMessage.id ?? "",
+          content: item.lastMessage.content ?? "",
+          createdAt: item.lastMessage.createdAt ?? null,
+          senderId: item.lastMessage.senderId ?? "",
+          senderName: item.lastMessage.senderName ?? "",
+        }
+      : null,
+    lastMessageAt: item.lastMessageAt ?? item.lastMessage?.createdAt ?? null,
+    createdAt: item.createdAt ?? null,
+    members
+  };
+};
+
+const normalizeMessage = (item: RawMessage, conversationId: string): UiMessage => ({
+  messageId: item.messageId || item.id || crypto.randomUUID(),
+  conversationId: item.conversationId || item.conversation_id || conversationId,
+  senderId: item.senderId || item.sender_id || "",
+  body: item.body || item.content || "",
+  createdAt: toMillis(item.createdAt ?? item.created_at),
+  attachments: Array.isArray(item.attachments) ? item.attachments : [],
+  replyToMessageId: item.replyToId || item.reply_to_id || null,
+  editedAt: item.editedAt ? toMillis(item.editedAt) : undefined,
+  deletedAt: item.deletedAt ? toMillis(item.deletedAt) : undefined,
+  isDeleted: Boolean(item.isDeleted),
+});
+
+// Types for new conversation features
+export interface CreateGroupRequest {
+  name: string;
+  memberIds: string[];
+  avatarUrl?: string;
+}
+
+export interface CreateDirectRequest {
+  participantId: string;
+}
+
+export interface UpdateConversationRequest {
+  name?: string;
+  avatarUrl?: string;
+}
+
+export interface AddMembersRequest {
+  memberIds: string[];
+}
+
+export interface UpdateRoleRequest {
+  role: 'ADMIN' | 'MEMBER';
+}
+
+export interface UpdateSettingsRequest {
+  nickname?: string;
+  isMuted?: boolean;
+}
+
+export interface SendInviteRequest {
+  userIds: string[];
+  message?: string;
+  expiresInHours?: number;
+}
+
+export interface CreatePollRequest {
+  question: string;
+  options: string[];
+  allow_multiple?: boolean;
+  allow_add_option?: boolean;
+  is_anonymous?: boolean;
+  expires_in_hours?: number;
+}
+
+export interface VotePollRequest {
+  option_ids: string[];
+}
+
+export interface AddPollOptionRequest {
+  label: string;
+}
+
+export interface EndCallRequest {
+  reason?: string;
+}
+export interface MessageSearchParams {
+  q?: string;
+  senderId?: string;
+  from?: number;
+  to?: number;
+  fileType?: "images" | "video" | "files";
+}
+
+export interface UpdateGroupSettingsRequest {
+  permissions?: {
+    canAddMembers: boolean;
+    canRemoveMembers: boolean;
+    canCreatePolls: boolean;
+    canStartCall: boolean;
+    canSendMessage: boolean;
+  };
+  policies?: {
+    maxMembers: number;
+    inviteApproval: boolean;
+    messageRetention: number;
+  };
+  features?: {
+    polls: boolean;
+    calls: boolean;
+    fileSharing: boolean;
+    reactions: boolean;
+  };
+}
 
 export const chatService = {
   fetchListConversations(params: { limit?: number; offset?: number }) {
@@ -29,13 +211,127 @@ export const chatService = {
     });
   },
 
-  fetchMessages(conversationId: string, params: { limit?: number; before?: string }) {
-    const queryParams = new URLSearchParams();
-    if (params.limit) queryParams.append('limit', params.limit.toString());
-    if (params.before) queryParams.append('before', params.before);
-    
-    const url = `${API.API_CONVERSATIONS_MESSAGES(conversationId)}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return http.get(url);
+  fetchMessageDetail(
+    conversationId: string,
+    createdAt: number,
+    messageId: string
+  ) {
+    return http.get<IApiResponse<UiMessage>>(
+      API.API_MESSAGE_DETAIL(conversationId, createdAt, messageId)
+    );
+  },
+
+  fetchMessageReactions(messageId: string) {
+    return http.get<IApiResponse<any[]>>(
+      API.API_MESSAGE_REACTIONS(messageId)
+    );
+  },
+
+  searchMessages(conversationId: string, params: MessageSearchParams) {
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.set("q", params.q);
+    if (params.senderId) searchParams.set("senderId", params.senderId);
+    if (params.from) searchParams.set("from", String(params.from));
+    if (params.to) searchParams.set("to", String(params.to));
+    if (params.fileType) searchParams.set("fileType", params.fileType);
+    return http.get<IApiResponse<UiMessage[]>>(
+      `${API.API_MESSAGES_SEARCH(conversationId)}?${searchParams.toString()}`
+    );
+  },
+
+  forwardMessage(data: {
+    forward_id: string;
+    source_message_id: string;
+    targets: Array<{ message_id: string; conversation_id: string }>;
+  }) {
+    return http.post<IApiResponse<any>>(API.API_MESSAGES_FORWARD, data);
+  },
+
+  pinMessage(conversationId: string, createdAt: number, messageId: string) {
+    return http.post<IApiResponse<any>>(
+      API.API_MESSAGE_PIN(conversationId, createdAt, messageId)
+    );
+  },
+
+  unpinMessage(conversationId: string, createdAt: number, messageId: string) {
+    return http.delete<IApiResponse<any>>(
+      API.API_MESSAGE_PIN(conversationId, createdAt, messageId)
+    );
+  },
+
+  editMessageContent(conversationId: string, createdAt: number, messageId: string, content: string) {
+    return http.patch<IApiResponse<any>>(
+      API.API_MESSAGE_DETAIL(conversationId, createdAt, messageId),
+      { content }
+    );
+  },
+
+  getPinnedMessages(conversationId: string, limit: number = 20) {
+    return http.get<IApiResponse<any[]>>(
+      `${API.API_MESSAGE_PINS(conversationId)}?limit=${limit}`
+    );
+  },
+
+  // New conversation management functions
+  getConversationById(conversationId: string) {
+    return http.get<IApiResponse<ConversationDto>>(
+      API.API_CONVERSATIONS_DETAIL(conversationId)
+    );
+  },
+
+  createGroupConversation(data: CreateGroupRequest) {
+    return http
+      .post<any>(API.API_CONVERSATIONS_LIST, {
+        type: "GROUP",
+        title: data.name,
+        participantIds: data.memberIds,
+      })
+      .then((res) => {
+        const raw = res?.payload || {};
+        const normalized = normalizeConversation(raw);
+        return {
+          ...res,
+          payload: {
+            success: true,
+            data: normalized,
+          },
+        };
+      });
+  },
+
+  createDirectConversation(data: CreateDirectRequest) {
+    return http
+      .post<any>(API.API_CONVERSATIONS_DIRECT, {
+        participantId: data.participantId,
+      })
+      .then((res) => {
+        // Backend trả về JSON trực tiếp, không có wrapper { success, data }
+        // Nên payload chính là conversation object
+        const raw = res?.payload || {};
+        const normalized = normalizeConversation(raw);
+        return {
+          ...res,
+          payload: {
+            success: true,
+            data: normalized,
+          },
+        };
+      });
+  },
+
+  updateConversation(conversationId: string, data: UpdateConversationRequest) {
+    return http.patch<IApiResponse<ConversationDto>>(
+      API.API_CONVERSATIONS_UPDATE(conversationId),
+      data
+    );
+  },
+
+  // Member management
+  addMembers(conversationId: string, data: AddMembersRequest) {
+    return http.post<IApiResponse<any>>(
+      API.API_CONVERSATIONS_ADD_MEMBER(conversationId),
+      data
+    );
   },
 
   sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: AttachmentDto[] = []) {

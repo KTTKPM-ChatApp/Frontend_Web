@@ -6,9 +6,8 @@ import { styled } from "@mui/material/styles";
 import { Group, MoreVert, Person, PushPin, PushPinOutlined, VolumeOff, VolumeUp } from "@mui/icons-material";
 import { toast } from "react-toastify";
 
-import { openConversation, openMockConversation } from "@/src/common/action/chat.action";
+import { openConversation } from "@/src/common/action/chat.action";
 import { ConversationDto } from "@/src/common/interface/chat-interface";
-import { mockConversations } from "@/src/common/mockData/chat.mock.data";
 import { chatService } from "@/src/common/service/chat-service";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { useChatStore } from "@/src/common/store/useChatStore";
@@ -107,11 +106,9 @@ export default function ConversationList() {
     fetchListConversation(RefreshLimit);
   }, [fetchListConversation]);
 
-  const usingApiData = listConversation.length > 0;
   const displayConversations = useMemo<ConversationDto[]>(() => {
     if (!conversationFetched) return [];
-    const conversations = usingApiData ? [...listConversation] : [...mockConversations];
-    return conversations.sort((a, b) => {
+    return [...listConversation].sort((a, b) => {
       const aPinned = (a as any).isPinned || false;
       const bPinned = (b as any).isPinned || false;
       if (aPinned && !bPinned) return -1;
@@ -120,7 +117,7 @@ export default function ConversationList() {
       const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
       return bTime - aTime;
     });
-  }, [conversationFetched, usingApiData, listConversation]);
+  }, [conversationFetched, listConversation]);
 
   const closeMenu = () => {
     setAnchorEl(null);
@@ -181,13 +178,7 @@ export default function ConversationList() {
               key={item.id}
               active={isActive}
               data-testid="conversation"
-              onClick={() => {
-                if (usingApiData) {
-                  openConversation(item.id);
-                } else {
-                  openMockConversation(item.id);
-                }
-              }}
+              onClick={() => openConversation(item.id)}
             >
               <ItemRow>
                 <AppAvatar src={item.avatarUrl ?? ""} name={item.name ?? null} size={44} />

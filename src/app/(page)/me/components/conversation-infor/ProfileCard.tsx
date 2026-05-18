@@ -89,7 +89,11 @@ const ActionText = styled(Typography)({
   lineHeight: 1.35,
 });
 
-export default function ProfileCard() {
+interface ProfileCardProps {
+  onAddMember?: () => void;
+}
+
+export default function ProfileCard({ onAddMember }: ProfileCardProps) {
   const listConversation = useChatStore((s) => s.listConversation);
   const activeConversationId = useChatStore((s) => s.activeConversationId);
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
@@ -173,7 +177,11 @@ export default function ProfileCard() {
           </ActionItem>
 
           <ActionItem>
-            <ActionIcon aria-label="Thêm thành viên">
+            <ActionIcon
+              aria-label="Thêm thành viên"
+              onClick={onAddMember}
+              sx={onAddMember ? {} : { opacity: 0.4, cursor: "not-allowed" }}
+            >
               <GroupAddOutlinedIcon sx={{ fontSize: 20 }} />
             </ActionIcon>
             <ActionText>Thêm thành viên</ActionText>

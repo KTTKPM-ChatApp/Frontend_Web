@@ -1,73 +1,168 @@
 "use client";
 
+import { useState } from "react";
 import {
   Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
-  TextField,
+  Collapse,
+  IconButton,
+  InputBase,
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 
 const Root = styled(Box)({
-  height: "100%",
-  background: "#F3F5F7",
-  display: "flex",
-  flexDirection: "column",
+  background: "#fff",
+  marginBottom: 8,
 });
 
 const Header = styled(Box)({
-  height: 76,
-  background: "#FFFFFF",
-  borderBottom: "1px solid #E5E7EB",
+  minHeight: 56,
+  padding: "0 20px",
   display: "flex",
   alignItems: "center",
-  padding: "0 20px",
+  justifyContent: "space-between",
+  cursor: "pointer",
 });
 
-const HeaderTitle = styled(Typography)({
-  fontSize: 24,
+const HeaderLeft = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+});
+
+const Title = styled(Typography)({
+  fontSize: 16,
   fontWeight: 700,
   color: "#0F172A",
 });
 
-const Content = styled(Box)({
-  flex: 1,
-  padding: 20,
-  overflowY: "auto",
+const Count = styled(Typography)({
+  fontSize: 14,
+  fontWeight: 400,
+  color: "#64748B",
 });
 
-const SearchContainer = styled(Box)({
-  marginBottom: 20,
+const ArrowButton = styled(IconButton, {
+  shouldForwardProp: (prop) => prop !== "open",
+})<{ open?: boolean }>(({ open }) => ({
+  width: 28,
+  height: 28,
+  color: "#64748B",
+  transform: open ? "rotate(180deg)" : "rotate(0deg)",
+  transition: "transform 0.2s ease",
+}));
+
+const SearchWrap = styled(Box)({
+  padding: "0 16px 12px",
 });
 
-const MemberCard = styled(Card)({
-  borderRadius: 12,
-  border: "1px solid #E5E7EB",
-  boxShadow: "none",
-  marginBottom: 12,
+const StyledSearch = styled(InputBase)({
+  width: "100%",
+  height: 36,
+  padding: "0 12px",
+  borderRadius: 8,
+  background: "#F3F5F7",
+  fontSize: 14,
+  "& input::placeholder": {
+    color: "#94A3B8",
+  },
+});
+
+const MemberList = styled(Box)({
+  padding: "0 16px 16px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+});
+
+const MemberRow = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "8px 10px",
+  borderRadius: 8,
+  "&:hover": {
+    background: "#F8FAFC",
+  },
 });
 
 const MemberAvatar = styled(Avatar)({
-  width: 48,
-  height: 48,
+  width: 36,
+  height: 36,
+  fontSize: 14,
+});
+
+const MemberInfo = styled(Box)({
+  flex: 1,
+  minWidth: 0,
+});
+
+const MemberName = styled(Typography)({
+  fontSize: 14,
+  fontWeight: 500,
+  color: "#0F172A",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const AdminBadge = styled(Box)({
-  display: "flex",
+  display: "inline-flex",
   alignItems: "center",
-  gap: 4,
+  gap: 3,
   backgroundColor: "#FEF3C7",
   color: "#D97706",
-  padding: "2px 8px",
-  borderRadius: 12,
-  fontSize: 12,
+  padding: "1px 7px",
+  borderRadius: 10,
+  fontSize: 11,
   fontWeight: 600,
+  marginTop: 2,
+});
+
+const RemoveBtn = styled(IconButton)({
+  width: 28,
+  height: 28,
+  color: "#94A3B8",
+  "&:hover": {
+    color: "#DC2626",
+    background: "#FEE2E2",
+  },
+});
+
+const ViewAllBtn = styled(Button)({
+  height: 40,
+  borderRadius: 8,
+  background: "#F3F5F7",
+  color: "#0F172A",
+  fontSize: 14,
+  fontWeight: 600,
+  textTransform: "none",
+  boxShadow: "none",
+  margin: "0 16px 16px",
+  "&:hover": {
+    background: "#E5E7EB",
+    boxShadow: "none",
+  },
+});
+
+const AddMemberLine = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "8px 10px",
+  borderRadius: 8,
+  cursor: "pointer",
+  color: "#005AE0",
+  "&:hover": {
+    background: "#EFF6FF",
+  },
 });
 
 interface GroupMemberListViewProps {
@@ -78,6 +173,7 @@ interface GroupMemberListViewProps {
     isAdmin?: boolean;
     phone?: string;
   }>;
+  totalCount?: number;
   searchValue?: string;
   onSearch?: (value: string) => void;
   onRemoveMember?: (memberId: string) => void;
@@ -86,99 +182,93 @@ interface GroupMemberListViewProps {
 
 const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
   members = [],
+  totalCount = 0,
   searchValue = "",
   onSearch = () => {},
   onRemoveMember = () => {},
   onAddMember = () => {},
 }) => {
-  const filteredMembers = members.filter(member =>
+  const [open, setOpen] = useState(true);
+
+  const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchValue.toLowerCase())
   );
 
+  const showAll = searchValue || filteredMembers.length <= 5;
+  const displayedMembers = showAll ? filteredMembers : filteredMembers.slice(0, 5);
+
   return (
     <Root>
-      <Header>
-        <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
-          <HeaderTitle>Thành viên nhóm ({members.length})</HeaderTitle>
-          <Button
-            variant="contained"
-            onClick={onAddMember}
-          >
-            Thêm thành viên
-          </Button>
-        </Box>
+      <Header onClick={() => setOpen((prev) => !prev)}>
+        <HeaderLeft>
+          <Title>Thành viên nhóm</Title>
+          <Count>({totalCount})</Count>
+        </HeaderLeft>
+        <ArrowButton open={open}>
+          <KeyboardArrowDownRoundedIcon />
+        </ArrowButton>
       </Header>
 
-      <Content>
-        <SearchContainer>
-          <TextField
-            fullWidth
-            size="small"
+      <Collapse in={open}>
+        <SearchWrap>
+          <StyledSearch
             placeholder="Tìm kiếm thành viên"
             value={searchValue}
             onChange={(e) => onSearch(e.target.value)}
-            InputProps={{
-              startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
-            }}
+            startAdornment={
+              <SearchIcon sx={{ fontSize: 18, color: "#94A3B8", mr: 1 }} />
+            }
           />
-        </SearchContainer>
+        </SearchWrap>
 
         {filteredMembers.length === 0 ? (
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            height={200}
-            color="text.secondary"
-          >
-            <Typography>
-              {searchValue ? "Không tìm thấy thành viên nào" : "Chưa có thành viên nào"}
-            </Typography>
+          <Box p="0 16px 16px" textAlign="center" color="#94A3B8" fontSize={14}>
+            {searchValue ? "Không tìm thấy" : "Chưa có thành viên"}
           </Box>
         ) : (
-          filteredMembers.map((member) => (
-            <MemberCard key={member.id}>
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={3}>
+          <>
+            <MemberList>
+              {displayedMembers.map((member) => (
+                <MemberRow key={member.id}>
                   <MemberAvatar src={member.avatar}>
                     {member.name.charAt(0).toUpperCase()}
                   </MemberAvatar>
-                  
-                  <Box flex={1}>
-                    <Box display="flex" alignItems="center" gap={2} mb={1}>
-                      <Typography variant="h6" fontWeight={600}>
-                        {member.name}
-                      </Typography>
-                      {member.isAdmin && (
-                        <AdminBadge>
-                          <AdminPanelSettingsIcon fontSize="small" />
-                          Quản trị viên
-                        </AdminBadge>
-                      )}
-                    </Box>
-                    {member.phone && (
-                      <Typography variant="body2" color="text.secondary">
-                        {member.phone}
-                      </Typography>
+                  <MemberInfo>
+                    <MemberName>{member.name}</MemberName>
+                    {member.isAdmin && (
+                      <AdminBadge>
+                        <AdminPanelSettingsIcon sx={{ fontSize: 13 }} />
+                        Quản trị viên
+                      </AdminBadge>
                     )}
-                  </Box>
-
+                  </MemberInfo>
                   {!member.isAdmin && (
-                    <Button
+                    <RemoveBtn
                       size="small"
-                      color="error"
-                      startIcon={<PersonRemoveIcon />}
                       onClick={() => onRemoveMember(member.id)}
                     >
-                      Xóa
-                    </Button>
+                      <PersonRemoveIcon sx={{ fontSize: 18 }} />
+                    </RemoveBtn>
                   )}
-                </Box>
-              </CardContent>
-            </MemberCard>
-          ))
+                </MemberRow>
+              ))}
+            </MemberList>
+
+            {!showAll && (
+              <ViewAllBtn fullWidth>
+                Xem tất cả ({filteredMembers.length})
+              </ViewAllBtn>
+            )}
+          </>
         )}
-      </Content>
+
+        <AddMemberLine onClick={onAddMember} sx={{ mx: 2, mb: 2 }}>
+          <PersonAddAlt1RoundedIcon sx={{ fontSize: 20 }} />
+          <Typography fontSize={14} fontWeight={500}>
+            Thêm thành viên
+          </Typography>
+        </AddMemberLine>
+      </Collapse>
     </Root>
   );
 };

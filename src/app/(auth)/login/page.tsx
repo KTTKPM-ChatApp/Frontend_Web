@@ -52,20 +52,16 @@ export default function LoginPage() {
         validationSchema: validationSchemaLogin(Trans),
         enableReinitialize: false,
         onSubmit: async (values) => {
-            console.log("Form submitting with values:", JSON.stringify(values));
             setErrorAuth(null);
             setLoadingAuth(true);
 
             try {
-                console.log("Calling authService.authLogin...");
                 const result = await authService.authLogin({
                     email: values.email.trim(),
                     password: values.password,
                 });
-                console.log("API call result:", result);
 
                 const authData = result?.payload as IAuthResponse;
-                console.log("Parsed authData:", authData);
 
                 if (result?.ok && authData?.accessToken) {
                     if (typeof window !== "undefined") {
@@ -74,7 +70,6 @@ export default function LoginPage() {
                         localStorage.setItem("currentUserId", authData.user.id);
                     }
 
-                    // Format response để match với store expectation
                     const formattedResponse = {
                         success: true,
                         data: authData
@@ -86,7 +81,6 @@ export default function LoginPage() {
 
                 setErrorAuth(result?.payload?.message ?? "Đăng nhập thất bại");
             } catch (error: any) {
-                console.error("Login error:", error);
                 setErrorAuth(
                     error?.message ||
                     error?.payload?.message ||

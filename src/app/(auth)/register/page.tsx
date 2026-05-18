@@ -42,25 +42,20 @@ export default function RegisterPage() {
         initialValues,
         validationSchema: validationSchemaRegisForm(Trans),
         onSubmit: async (values) => {
-            console.log("Register form submitting with values:", JSON.stringify(values));
             setErrorAuth(null);
             setLoadingAuth(true);
             try {
-                console.log("Calling authService.authRegister...");
                 const result = await authService.authRegister({
                     ...values,
                     dateOfBirth: values.dateOfBirth ? new Date(values.dateOfBirth) : undefined
                 });
-                console.log("API call result:", result);
                 const payload = result?.payload;
-                console.log("Parsed payload:", payload);
 
                 if (result?.ok && payload?.user) {
-                    // Backend trả về user object trực tiếp, không có success field
                     setAuthData({
                         success: true,
                         data: {
-                            accessToken: "", // Sẽ được set sau khi login
+                            accessToken: "",
                             refreshToken: "",
                             user: payload.user
                         },
@@ -71,7 +66,6 @@ export default function RegisterPage() {
                     setErrorAuth(payload?.message || Trans("COMMON.ERROR") || "lỗi API");
                 }
             } catch (error) {
-                console.log("Register error: ", error);
                 setErrorAuth(Trans("COMMON.ERROR"));
             } finally {
                 setLoadingAuth(false);

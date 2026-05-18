@@ -38,12 +38,7 @@ export const authService = {
     return http.put<IApiResponse<any>>(API.API_USERS_ME, body);
   },
 
-  authResetPassword(body: {
-    oldPassword?: string;
-    currentPassword?: string;
-    newPassword: string;
-    firebaseIdToken?: string;
-  }) {
-    return http.post<IApiResponse<{ message?: string }>>(API.API_AUTH_RESET_PASSWORD, body);
+  changePassword(oldPassword: string, newPassword: string) {
+    return http.post<IApiResponse<any>>(API.API_AUTH_CHANGE_PASSWORD, { oldPassword, newPassword });
   },
 };

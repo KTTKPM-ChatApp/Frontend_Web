@@ -269,13 +269,13 @@ const ProfileModals = ({
         message: authData?.message,
         timestamp: authData?.timestamp,
         meta: authData?.meta,
-	        data: {
-	          user: mergedUser,
-	          accessToken: authData?.data?.accessToken ?? "",
-	          refreshToken: authData?.data?.refreshToken ?? "",
-	          tokens: authData?.data?.tokens ?? {
-	            accessToken: "",
-	            refreshToken: "",
+        data: {
+          accessToken: authData?.data?.accessToken ?? "",
+          refreshToken: authData?.data?.refreshToken ?? "",
+          user: mergedUser,
+          tokens: authData?.data?.tokens ?? {
+            accessToken: "",
+            refreshToken: "",
             expiresIn: 0,
           },
         },

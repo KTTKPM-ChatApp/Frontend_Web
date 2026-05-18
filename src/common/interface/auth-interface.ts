@@ -36,6 +36,11 @@ export interface IAuthResponse {
     refreshToken: string;
     tokens?: IRefreshResponse;
     user: IUser;
+    tokens?: {
+        accessToken: string;
+        refreshToken: string;
+        expiresIn: number;
+    };
 }
 
 export interface IRefreshPayload {

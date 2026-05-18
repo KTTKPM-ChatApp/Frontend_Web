@@ -1,50 +1,47 @@
 "use client";
 
 import React from "react";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-} from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import CloseIcon from "@mui/icons-material/Close";
 
-// ==================== STYLED COMPONENTS ====================
-
-const PinnedMessageBar = styled(Box)(({ theme }) => ({
-  background: "#FEF3C7",
-  border: "1px solid #F59E0B",
-  borderRadius: 8,
-  padding: "12px 16px",
-  margin: "8px 16px",
+const PinnedBar = styled(Box)({
   display: "flex",
   alignItems: "center",
-  gap: 12,
-}));
+  gap: 10,
+  padding: "8px 16px",
+  background: "#FFF8E7",
+  borderBottom: "1px solid #FDE68A",
+  minHeight: 40,
+  flexShrink: 0,
+});
 
-const PinnedMessageContent = styled(Box)(({ theme }) => ({
+const PinIcon = styled(PushPinIcon)({
+  fontSize: 16,
+  color: "#F59E0B",
+  transform: "rotate(45deg)",
+});
+
+const PinnedContent = styled(Box)({
   flex: 1,
   minWidth: 0,
-}));
+});
 
-const PinnedMessageText = styled(Typography)(({ theme }) => ({
-  fontSize: 14,
+const PinnedText = styled(Typography)({
+  fontSize: 13,
   fontWeight: 500,
   color: "#92400E",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-}));
+});
 
-const PinnedMessageMeta = styled(Typography)(({ theme }) => ({
-  fontSize: 12,
+const PinnedMeta = styled(Typography)({
+  fontSize: 11,
   color: "#B45309",
-  marginTop: 2,
-}));
-
-// ==================== TYPES ====================
+  marginTop: 1,
+});
 
 interface PinnedMessage {
   messageId: string;
@@ -59,8 +56,6 @@ interface PinnedMessageBarProps {
   onMessageClick?: (messageId: string) => void;
 }
 
-// ==================== COMPONENT ====================
-
 const PinnedMessageBarComponent: React.FC<PinnedMessageBarProps> = ({
   messages,
   onUnpin,
@@ -69,54 +64,27 @@ const PinnedMessageBarComponent: React.FC<PinnedMessageBarProps> = ({
   if (messages.length === 0) return null;
 
   return (
-    <PinnedMessageBar>
-      <PushPinIcon sx={{ fontSize: 20, color: "#F59E0B" }} />
-      
-      <PinnedMessageContent>
+    <PinnedBar>
+      <PinIcon />
+      <PinnedContent>
         {messages.length === 1 ? (
           <>
-            <PinnedMessageText>
-              {messages[0].content}
-            </PinnedMessageText>
-            <PinnedMessageMeta>
-              {messages[0].senderName} • {messages[0].timestamp}
-            </PinnedMessageMeta>
+            <PinnedText>{messages[0].content}</PinnedText>
+            <PinnedMeta>{messages[0].senderName} • {messages[0].timestamp}</PinnedMeta>
           </>
         ) : (
           <>
-            <PinnedMessageText>
-              {messages.length} tin nhắn đã ghim
-            </PinnedMessageText>
-            <PinnedMessageMeta>
-              Nhấn để xem tất cả
-            </PinnedMessageMeta>
+            <PinnedText>{messages.length} tin nhắn đã ghim</PinnedText>
+            <PinnedMeta>Nhấn để xem tất cả</PinnedMeta>
           </>
         )}
-      </PinnedMessageContent>
-
+      </PinnedContent>
       {messages.length === 1 && onUnpin && (
-        <IconButton
-          size="small"
-          onClick={() => onUnpin(messages[0].messageId)}
-          sx={{ color: "#F59E0B" }}
-        >
+        <IconButton size="small" onClick={() => onUnpin(messages[0].messageId)} sx={{ color: "#F59E0B" }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       )}
-
-      {messages.length > 1 && (
-        <Chip
-          label={messages.length}
-          size="small"
-          sx={{
-            backgroundColor: "#F59E0B",
-            color: "#FFFFFF",
-            fontWeight: 600,
-            fontSize: 12,
-          }}
-        />
-      )}
-    </PinnedMessageBar>
+    </PinnedBar>
   );
 };
 

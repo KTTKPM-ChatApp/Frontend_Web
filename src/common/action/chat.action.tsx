@@ -7,6 +7,7 @@ import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interf
 import { chatService } from "../service/chat-service";
 import { connectSocket, getSocket, sendSocketMessage } from "../socket/socket";
 import { useChatStore } from "../store/useChatStore";
+import http from "../api/http";
 
 export const rebuildConversationDerivedData = (conversationId: string) => {
   const state = useChatStore.getState();
@@ -123,13 +124,7 @@ export const clearConversationDerivedData = (conversationId: string) => {
   state.setLinksByConversation(conversationId, []);
 };
 
-export const openMockConversation = (conversationId: string) => {
-  useChatStore.getState().setActiveConversationId(conversationId);
-};
-
-export const fetchListConversation = async (
-  params: { page?: number; limit?: number } = {}
-) => {
+export const fetchListConversation = async (params: { page?: number; limit?: number } = {}) => {
   const state = useChatStore.getState();
 
   state.setConversationLoading(true);
@@ -261,60 +256,11 @@ export const initChat = (accessToken: string, currentUserId: string) => {
       state.removePinnedMessage(conversationId, messageId);
     }
 
-    useChatStore.setState((state) => ({
-      messagesByConversation: {
-        ...state.messagesByConversation,
-        [conversationId]: applyDeletedMessage(
-          state.messagesByConversation[conversationId] || [],
-          messageId,
-          deletedAt
-        ),
-      },
-      listConversation: patchConversationPreviewWhenDeleted(
-        state.listConversation,
-        conversationId,
-        messageId
-      ),
-    }));
-  };
+    appendMessageDerivedData(msg);
 
-  const handleUpdatedMessage = (raw: any) => {
-    const messageId = raw?.message_id ?? raw?.messageId;
-    const conversationId = raw?.conversation_id ?? raw?.conversationId;
-    const body = cleanMessageBody(raw?.body ?? "");
-    const editedAt = raw?.edited_at ?? raw?.editedAt ?? Date.now();
-
-    if (!messageId || !conversationId) return;
-
-    useChatStore.setState((state) => ({
-      messagesByConversation: {
-        ...state.messagesByConversation,
-        [conversationId]: (state.messagesByConversation[conversationId] || []).map((msg) =>
-          msg.messageId === messageId
-            ? {
-              ...msg,
-              body,
-              editedAt,
-            }
-            : msg
-        ),
-      },
-      listConversation: state.listConversation.map((cvs) => {
-        if (cvs.id !== conversationId) return cvs;
-
-        const lastMessage = cvs.lastMessage;
-        if (!lastMessage || lastMessage.id !== messageId) return cvs;
-
-        return {
-          ...cvs,
-          lastMessage: {
-            ...lastMessage,
-            content: body,
-          },
-          lastMessageAt: editedAt,
-        };
-      }),
-    }));
+    if (msg.senderId && msg.senderId !== currentUserId && document.hidden) {
+      import("../utilities/sound").then(({ playNotificationSound }) => playNotificationSound());
+    }
   };
 
   const handleSystemMessage = (raw: any) => {
@@ -421,9 +367,40 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     });
   };
 
-  // Socket.IO event handlers disabled for STOMP compatibility
-  // Events will be handled through STOMP subscriptions in socket.ts
-  console.log('Socket initialized for user:', currentUserId);
+  socket.on("chat:new", handleIncomingMessage);
+
+  socket.on("chat:typing", (data: { userId: string; conversationId: string }) => {
+    const current = useChatStore.getState();
+    if (!data.conversationId || data.userId === currentUserId) return;
+    const prev = current.typingUsersByConversation[data.conversationId] || [];
+    if (prev.some((u) => u.userId === data.userId)) return;
+    current.setTypingUsers(data.conversationId, [
+      ...prev,
+      { userId: data.userId },
+    ]);
+  });
+
+  socket.on("chat:stop_typing", (data: { userId: string; conversationId: string }) => {
+    const current = useChatStore.getState();
+    if (!data.conversationId) return;
+    const prev = current.typingUsersByConversation[data.conversationId] || [];
+    current.setTypingUsers(
+      data.conversationId,
+      prev.filter((u) => u.userId !== data.userId)
+    );
+  });
+
+  socket.on("presence:online", (data: { userId: string }) => {
+    const current = useChatStore.getState();
+    if (!current.onlineUserIds.includes(data.userId)) {
+      current.setOnlineUserIds([...current.onlineUserIds, data.userId]);
+    }
+  });
+
+  socket.on("presence:offline", (data: { userId: string }) => {
+    const current = useChatStore.getState();
+    current.setOnlineUserIds(current.onlineUserIds.filter((id) => id !== data.userId));
+  });
 
   // Remove existing listeners to prevent duplicates
   window.removeEventListener('chat:new', handleWindowIncomingMessage);
@@ -444,6 +421,13 @@ export const initChat = (accessToken: string, currentUserId: string) => {
       ts: Date.now(),
     });
   }, 30000);
+
+  // Load initial online users
+  http.get<{ success: boolean; data: string[] }>("/api/presence/online").then((res) => {
+    if (res?.ok && Array.isArray(res.payload?.data)) {
+      state.setOnlineUserIds(res.payload.data);
+    }
+  }).catch(() => {});
 
   state.setInitialized(true);
   state.setCurrentUserId(currentUserId);
@@ -490,6 +474,7 @@ export const openConversation = async (conversationId: string) => {
     });
 
     rebuildConversationDerivedData(conversationId);
+    fetchPinnedMessages(conversationId);
   } catch (err: any) {
     state.setError(err?.message || "Không lấy được tin nhắn");
     state.setMessages(conversationId, []);
@@ -743,67 +728,69 @@ export const editMessage = async (
   });
 };
 
-export const deleteMessage = (
-  conversationId: string,
-  messageId: string,
-  createdAt: number
-) => {
-  const state = useChatStore.getState();
-  const socket = getSocket();
-
-  if (!socket?.connected) {
-    state.setError("Socket chưa kết nối");
-    return;
+export const pinMessage = async (conversationId: string, messageId: string, createdAt: number) => {
+  try {
+    const res = await chatService.pinMessage(conversationId, createdAt, messageId);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const pinned = state.pinnedMessagesByConversation[conversationId] || [];
+      state.setPinnedMessages(conversationId, [...pinned, res.payload as any]);
+    }
+    return res;
+  } catch (error: any) {
+    console.error("[pinMessage] error:", error);
+    return null;
   }
-
-  useChatStore.setState((prev) => ({
-    messagesByConversation: {
-      ...prev.messagesByConversation,
-      [conversationId]: applyDeletedMessage(
-        prev.messagesByConversation[conversationId] || [],
-        messageId,
-        Date.now()
-      ),
-    },
-    listConversation: patchConversationPreviewWhenDeleted(
-      prev.listConversation,
-      conversationId,
-      messageId
-    ),
-  }));
-
-  sendSocketMessage("/app/chat/delete", {
-    message_id: messageId,
-    conversation_id: conversationId,
-    created_at: Number(createdAt),
-  });
 };
-function handleConversationDisbanded(payload: any) {
-  console.log("[conversation:disbanded]", payload);
 
-  const conversationId =
-    payload?.conversation_id ?? payload?.conversationId;
-
-  if (!conversationId) return;
-
-  const current = useChatStore.getState();
-  current.removeConversationLocally(conversationId);
+export const unpinMessage = async (conversationId: string, messageId: string, createdAt: number) => {
+  try {
+    const res = await chatService.unpinMessage(conversationId, createdAt, messageId);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const pinned = state.pinnedMessagesByConversation[conversationId] || [];
+      state.setPinnedMessages(conversationId, pinned.filter((m: any) => m.messageId !== messageId));
+    }
+    return res;
+  } catch (error: any) {
+    console.error("[unpinMessage] error:", error);
+    return null;
+  }
 };
-async function handleConversationCreated(payload: any) {
-  console.log("[conversation:created]", payload);
 
-  const conversationId =
-    payload?.conversation_id ?? payload?.conversationId;
+export const fetchPinnedMessages = async (conversationId: string) => {
+  try {
+    const res = await chatService.getPinnedMessages(conversationId);
+    if (res?.ok) {
+      const data = (res?.payload as any)?.data ?? res?.payload ?? [];
+      const items = Array.isArray(data) ? data : [];
+      useChatStore.getState().setPinnedMessages(conversationId, items);
+    }
+  } catch (error: any) {
+    console.error("[fetchPinnedMessages] error:", error);
+  }
+};
 
-  const type = payload?.type;
-  const current = useChatStore.getState();
-  const currentUserId = current.currentUserId;
-
-  if (!conversationId || !currentUserId) return;
-
-  await fetchListConversation({ page: 1, limit: 10 });
-
-  await current.fetchConversationDetail(conversationId, true);
+export const editMessage = async (conversationId: string, messageId: string, newBody: string, createdAt: number) => {
+  const trimmed = newBody.trim();
+  if (!trimmed) return;
+  try {
+    const res = await chatService.editMessageContent(conversationId, createdAt, messageId, trimmed);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const messages = state.messagesByConversation[conversationId] || [];
+      state.setMessages(
+        conversationId,
+        messages.map((msg: UiMessage) =>
+          msg.messageId === messageId
+            ? { ...msg, body: trimmed, editedAt: Date.now() }
+            : msg
+        )
+      );
+    }
+  } catch (error: any) {
+    console.error("[editMessage] error:", error);
+  }
 };
 
 async function handleConversationMemberAdded(payload: any) {
@@ -858,6 +845,28 @@ function handleConversationMemberRemoved(payload: any) {
   current.removeConversationLocally(conversationId);
 };
 
+let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+
+export const sendTyping = (conversationId: string) => {
+  const socket = getSocket();
+  if (!socket?.connected) return;
+  socket.emit("chat:typing", { conversation_id: conversationId });
+  if (typingTimeout) clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    socket.emit("chat:stop_typing", { conversation_id: conversationId });
+  }, 3000);
+};
+
+export const sendStopTyping = (conversationId: string) => {
+  const socket = getSocket();
+  if (!socket?.connected) return;
+  socket.emit("chat:stop_typing", { conversation_id: conversationId });
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+    typingTimeout = null;
+  }
+};
+
 export const cleanupChat = () => {
   const state = useChatStore.getState();
   const socket = getSocket();
@@ -865,11 +874,16 @@ export const cleanupChat = () => {
 
   if (heartbeatId) clearInterval(heartbeatId);
 
-  // Remove window event listeners
-  window.removeEventListener('chat:new', handleWindowIncomingMessage);
-  window.removeEventListener('presence:update', handlePresenceUpdate);
-  window.removeEventListener('socket:error', handleSocketError);
-  window.removeEventListener('socket:disconnect', handleSocketDisconnect);
+  socket?.off("connect");
+  socket?.off("disconnect");
+  socket?.off("connect_error");
+  socket?.off("chat:new");
+  socket?.off("chat:message");
+  socket?.off("chat:typing");
+  socket?.off("chat:stop_typing");
+  socket?.off("presence:online");
+  socket?.off("presence:offline");
+  socket?.offAny();
 
   if (socket?.connected) socket.deactivate();
 

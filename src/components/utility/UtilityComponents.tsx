@@ -3,7 +3,6 @@
 
 // LANGUAGE SWITCHER COMPONENT
 // ===========================
-import { useState } from "react";
 import { Box, Button, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
 import LanguageIcon from "@mui/icons-material/Language";
 import CloseIcon from "@mui/icons-material/Close";
@@ -131,7 +130,7 @@ export const TypingIndicatorUI = {
         background: "linear-gradient(to bottom right, rgb(239 246 255), rgb(224 231 255))",
         padding: "10px 16px",
         borderRadius: "16px",
-        borderRadiusBottomLeft: "8px",
+        borderBottomLeftRadius: "8px",
         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
         border: "1px solid rgb(219 234 254)",
       }}>
@@ -215,7 +214,7 @@ export const TypingIndicatorUI = {
         background: "linear-gradient(to bottom right, rgb(31 41 55), rgb(55 65 81))",
         padding: "10px 16px",
         borderRadius: "16px",
-        borderRadiusBottomLeft: "8px",
+        borderBottomLeftRadius: "8px",
         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.3)",
         border: "1px solid rgb(75 85 99)",
       }}>
@@ -263,7 +262,7 @@ export const TypingIndicatorUI = {
         background: "linear-gradient(to bottom right, rgb(239 246 255), rgb(224 231 255))",
         padding: "10px 16px",
         borderRadius: "16px",
-        borderRadiusBottomLeft: "8px",
+        borderBottomLeftRadius: "8px",
         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
         border: "1px solid rgb(219 234 254)",
       }}>
