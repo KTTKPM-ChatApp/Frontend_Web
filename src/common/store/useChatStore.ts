@@ -20,6 +20,11 @@ type PaginationMap = Record<string, PaginationState>;
 type AttachmentMap = Record<string, AttachmentDto[]>;
 type LinkMap = Record<string, string[]>;
 
+export interface TypingUser {
+  userId: string;
+  displayName?: string;
+}
+
 export interface ChatState {
   initialized: boolean;
   socketConnected: boolean;
@@ -34,6 +39,11 @@ export interface ChatState {
   conversationMeta: any;
   conversationLoading: boolean;
   conversationFetched: boolean;
+
+  pinnedMessagesByConversation: Record<string, any[]>;
+
+  typingUsersByConversation: Record<string, TypingUser[]>;
+  onlineUserIds: string[];
 
   heartbeatId: ReturnType<typeof setInterval> | null;
   mediaByConversation: AttachmentMap;
@@ -54,6 +64,7 @@ export interface ChatSetters {
   setConversationFetched: (value: boolean) => void;
   setHeartbeatId: (value: ReturnType<typeof setInterval> | null) => void;
 
+  setPinnedMessages: (conversationId: string, messages: any[]) => void;
   setMessages: (conversationId: string, messages: UiMessage[]) => void;
   appendMessages: (
     conversationId: string,
@@ -81,6 +92,9 @@ export interface ChatSetters {
     items: string[]
   ) => void;
 
+  setTypingUsers: (conversationId: string, users: TypingUser[]) => void;
+  setOnlineUserIds: (ids: string[]) => void;
+
   fetchListConversation: (params?: { page?: number; limit?: number }) => Promise<void>;
   resetChatState: () => void;
 }
@@ -102,6 +116,11 @@ export const initialChatState: ChatState = {
   conversationLoading: false,
   conversationFetched: false,
 
+  pinnedMessagesByConversation: {},
+
+  typingUsersByConversation: {},
+  onlineUserIds: [],
+
   heartbeatId: null,
   mediaByConversation: {},
   filesByConversation: {},
@@ -116,6 +135,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   setActiveConversationId: (value) => set({ activeConversationId: value }),
   setCurrentUserId: (value) => set({ currentUserId: value }),
   setError: (value) => set({ error: value }),
+
+  setPinnedMessages: (conversationId, messages) =>
+    set((state) => ({
+      pinnedMessagesByConversation: {
+        ...state.pinnedMessagesByConversation,
+        [conversationId]: messages,
+      },
+    })),
 
   setListConversation: (items) =>
     set({
@@ -237,6 +264,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         [conversationId]: items,
       },
     })),
+
+  setTypingUsers: (conversationId, users) =>
+    set((state) => ({
+      typingUsersByConversation: {
+        ...state.typingUsersByConversation,
+        [conversationId]: users,
+      },
+    })),
+
+  setOnlineUserIds: (ids) => set({ onlineUserIds: ids }),
 
   fetchListConversation: async (params = { page: 1, limit: 10 }) => {
     const { conversationLoading } = get();

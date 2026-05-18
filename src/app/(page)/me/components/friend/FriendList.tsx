@@ -85,6 +85,7 @@ interface FriendListProps {
   loading?: boolean;
   onSearch?: (value: string) => void;
   onRemoveFriend?: (friendId: string) => void;
+  onlineIds?: string[];
 }
 
 const FriendList: React.FC<FriendListProps> = ({
@@ -92,6 +93,7 @@ const FriendList: React.FC<FriendListProps> = ({
   loading = false,
   onSearch = () => {},
   onRemoveFriend = () => {},
+  onlineIds = [],
 }) => {
   return (
     <Root>
@@ -137,11 +139,25 @@ const FriendList: React.FC<FriendListProps> = ({
               <ListCard key={friend.id}>
                 <CardContent>
                   <Stack direction="row" alignItems="center" spacing={2}>
-                    <Avatar src={friend.avatar} />
+                    <Box sx={{ position: "relative" }}>
+                      <Avatar src={friend.avatar} />
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          backgroundColor: onlineIds.includes(friend.id) ? "#22C55E" : "#9CA3AF",
+                          border: "2px solid #fff",
+                          position: "absolute",
+                          bottom: 0,
+                          right: 0,
+                        }}
+                      />
+                    </Box>
                     <Box flex={1}>
                       <Typography fontWeight={600}>{friend.name}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {friend.status}
+                        {onlineIds.includes(friend.id) ? "Đang hoạt động" : "Không hoạt động"}
                       </Typography>
                     </Box>
                     <Button

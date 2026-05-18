@@ -58,6 +58,7 @@ export interface UiMessage {
   messageId: string;
   conversationId: string;
   senderId: string;
+  senderName?: string;
   body: string;
   createdAt: number;
   attachments: AttachmentDto[];
@@ -111,7 +112,6 @@ export interface IChat {
   setListConversation: (items: ConversationDto[]) => void;
   fetchListConversation: (params?: { page?: number; limit?: number }) => Promise<void>;
 
-  openMockConversation: (conversationId: string) => void;
   initChat: (accessToken: string, currentUserId: string) => void;
   openConversation: (conversationId: string) => Promise<void>;
   loadMoreMessages: (conversationId: string) => Promise<void>;

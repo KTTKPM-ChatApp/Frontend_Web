@@ -4,8 +4,9 @@ export const API = {
     API_AUTH_LOGIN: "/api/auth/login",
     API_AUTH_REFRESH: "/api/auth/refresh",
     API_AUTH_LOGOUT: "/api/auth/logout",
+    API_AUTH_CHANGE_PASSWORD: "/api/auth/change-password",
     // API_AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
-    API_AUTH_RESET_PASSWORD: "/api/auth/reset-password",
+    // API_AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
     
 
@@ -15,6 +16,9 @@ export const API = {
     API_USERS_SEARCH: "/api/users/search",
     API_USERS_PUBLIC_PROFILE: (userId: string) =>
         `/api/users/${userId}`,
+
+    /* ================= PRESENCE ================= */
+    API_PRESENCE_ONLINE: "/api/presence/online",
 
     /* ================= FRIENDS ================= */
     API_FRIENDS_LIST: "/api/friends",

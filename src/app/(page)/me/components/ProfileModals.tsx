@@ -270,6 +270,8 @@ const ProfileModals = ({
         timestamp: authData?.timestamp,
         meta: authData?.meta,
         data: {
+          accessToken: authData?.data?.accessToken ?? "",
+          refreshToken: authData?.data?.refreshToken ?? "",
           user: mergedUser,
           tokens: authData?.data?.tokens ?? {
             accessToken: "",

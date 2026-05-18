@@ -6,6 +6,7 @@ import type {
   MessagePageDto,
   UiMessage,
   ConversationDto,
+  ConversationMemberDto,
 } from "../interface/chat-interface";
 
 type RawConversationMember = {
@@ -63,14 +64,14 @@ const normalizeConversation = (item: RawConversation): ConversationDto => {
     userId: m.userId,
     displayName: m.displayName,
     role: m.role
-  })) || [];
+  })) || (item.memberIds?.map((id: string) => ({
+    userId: id,
+    role: "",
+  } as ConversationMemberDto)) || []);
 
-  // For direct conversations, show the other user's name
   let conversationName = item.name || item.title || "Cuộc trò chuyện";
   if (item.type === 'DIRECT' && members.length > 0) {
-    // Find the other member (not current user - we'll need current user ID for this)
-    // For now, just use the first member's display name if available
-    const otherMember = members.find((m: RawConversationMember) => m.displayName);
+    const otherMember = members.find((m: any) => m.displayName);
     if (otherMember?.displayName) {
       conversationName = otherMember.displayName;
     }
@@ -302,6 +303,13 @@ export const chatService = {
     );
   },
 
+  editMessageContent(conversationId: string, createdAt: number, messageId: string, content: string) {
+    return http.patch<IApiResponse<any>>(
+      API.API_MESSAGE_DETAIL(conversationId, createdAt, messageId),
+      { content }
+    );
+  },
+
   getPinnedMessages(conversationId: string, limit: number = 20) {
     return http.get<IApiResponse<any[]>>(
       `${API.API_MESSAGE_PINS(conversationId)}?limit=${limit}`
@@ -337,11 +345,12 @@ export const chatService = {
 
   createDirectConversation(data: CreateDirectRequest) {
     return http
-      .post<any>(API.API_CONVERSATIONS_LIST, {
-        type: "DIRECT",
-        participantIds: [data.participantId],
+      .post<any>(API.API_CONVERSATIONS_DIRECT, {
+        participantId: data.participantId,
       })
       .then((res) => {
+        // Backend trả về JSON trực tiếp, không có wrapper { success, data }
+        // Nên payload chính là conversation object
         const raw = res?.payload || {};
         const normalized = normalizeConversation(raw);
         return {

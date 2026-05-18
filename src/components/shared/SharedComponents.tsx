@@ -6,6 +6,7 @@
 import { Box } from "@mui/material";
 import MuiAvatar, { AvatarProps } from "@mui/material/Avatar";
 import { styled } from "@mui/material/styles";
+import { Card, Typography, Divider, Popover, Grid, Stack } from "@mui/material";
 
 interface AppAvatarProps extends Omit<AvatarProps, "src"> {
   src?: string | null;
@@ -242,8 +243,6 @@ export const AvatarUI = {
 
 // BOX ICON COMPONENT
 // ==================
-import { Box } from "@mui/material";
-import { styled } from "@mui/material/styles";
 
 interface BoxIconProps {
     outlined: React.ElementType;
@@ -305,7 +304,6 @@ export const BoxIconUI = {
 
 // ICON APP CARD COMPONENT
 // =======================
-import { Box, Card, styled, Typography } from "@mui/material";
 import Image from "next/image";
 
 interface IconAppCardPrps {
@@ -361,7 +359,6 @@ export const IconAppCardUI = {
 
 // INFO ROW COMPONENT
 // ==================
-import { Box, styled, Typography } from "@mui/material";
 
 export interface InfoRowProps {
     label: string;
@@ -422,8 +419,6 @@ export const InfoRowUI = {
 
 // MENU POPOVER COMPONENT
 // =====================
-import { Box, Divider, Popover, Typography } from "@mui/material";
-import { styled } from "@mui/material/styles";
 
 export interface PopoverMenuItem {
     key: string;
@@ -562,7 +557,6 @@ export const MenuPopoverUI = {
 
 // STAT CARD COMPONENT
 // ===================
-import { Box, Grid, Stack, styled, Typography } from "@mui/material";
 
 interface StatCardProps {
     title: string;

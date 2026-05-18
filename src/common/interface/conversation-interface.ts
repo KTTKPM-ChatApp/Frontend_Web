@@ -1,5 +1,7 @@
 // Conversation Management Interfaces
 
+import { ConversationDto } from './chat-interface';
+
 export interface ConversationMember {
   id: string;
   userId: string;
@@ -217,7 +219,6 @@ export interface ApiResponse<T> {
 
 // Re-export existing types from chat-interface
 export type {
-  ConversationDto,
   ConversationListMeta,
   UiMessage,
   MessagePageDto,

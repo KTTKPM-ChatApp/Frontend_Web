@@ -37,4 +37,8 @@ export const authService = {
   updateUserProfile(body: IUpdateUserPayload) {
     return http.put<IApiResponse<any>>(API.API_USERS_ME, body);
   },
+
+  changePassword(oldPassword: string, newPassword: string) {
+    return http.post<IApiResponse<any>>(API.API_AUTH_CHANGE_PASSWORD, { oldPassword, newPassword });
+  },
 };

@@ -26,6 +26,7 @@ import {
 // import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { searchService } from "@/src/common/service/search-service";
 import { chatService } from "@/src/common/service/chat-service";
+import { fetchListConversation, openConversation } from "@/src/common/action/chat.action";
 import { IUserSearchItem, SearchResult } from "@/src/common/interface/search-interface";
 import { useDebounce } from "@/src/common/utilities/hook/debounce";
 
@@ -111,7 +112,6 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
     const [searchError, setSearchError] = useState<string | null>(null);
     const debounceSearch = useDebounce(searchValue, 300);
     const { listConversation } = useChatStore();
-    const setActiveConversationId = useChatStore((s) => s.setActiveConversationId);
 
     const handleFocusSearchBar = () => {
         setFocusOnSearch(true);
@@ -149,7 +149,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
 
                 const response = await searchService.searchUsers({
                     q: keyword,
-                    page: 1,
+                    offset: 0,
                     limit: 20,
                 });
 
@@ -190,7 +190,24 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
 
     const handleSelectResult = async (result: SearchResult) => {
         if (result.kind === "conversation") {
-            setActiveConversationId(result.conversation.id);
+            await openConversation(result.conversation.id);
+            setSearchValue("");
+            setFocusOnSearch(false);
+            onResultSelect?.(result);
+            return;
+        }
+
+        // Check if a direct conversation already exists locally
+        const existingConv = listConversation.find((conv) => {
+            if (conv.type !== "direct") return false;
+            const otherMember = (conv as any).members?.find(
+                (m: any) => m.userId === result.id
+            );
+            return !!otherMember;
+        });
+
+        if (existingConv) {
+            await openConversation(existingConv.id);
             setSearchValue("");
             setFocusOnSearch(false);
             onResultSelect?.(result);
@@ -199,20 +216,49 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
 
         // Handle user click - create direct conversation
         try {
+            setLoadingSearch(true);
             const response = await chatService.createDirectConversation({
                 participantId: result.id
             });
             
             if (response.ok && response.payload?.data) {
                 const newConversation = response.payload.data;
-                setActiveConversationId(newConversation.id);
-                setSearchValue("");
-                setFocusOnSearch(false);
-                onResultSelect?.(result);
+                
+                let finalConversation = newConversation;
+                if (!newConversation.members || newConversation.members.length === 0) {
+                    finalConversation = {
+                        ...newConversation,
+                        name: result.displayName || result.user?.displayName || newConversation.name,
+                        members: [{
+                            userId: result.id,
+                            displayName: result.displayName || result.user?.displayName,
+                            role: "MEMBER"
+                        }]
+                    };
+                }
+                
+                const res = await chatService.fetchListConversations({ page: 1, limit: 100 });
+                
+                if (res?.ok && res?.payload?.data) {
+                    const updatedList = res.payload.data;
+                    const exists = updatedList.find((c: any) => c.id === finalConversation.id);
+                    
+                    if (!exists) {
+                        const currentList = useChatStore.getState().listConversation;
+                        useChatStore.getState().setListConversation([finalConversation, ...currentList]);
+                    } else {
+                        useChatStore.getState().setListConversation(updatedList);
+                    }
+                }
+                
+                await openConversation(finalConversation.id);
+            } else {
+                console.error("Failed to create direct conversation:", response);
             }
         } catch (error) {
             console.error("Failed to create direct conversation:", error);
-            // Still close search even if conversation creation fails
+        } finally {
+            setLoadingSearch(false);
             setSearchValue("");
             setFocusOnSearch(false);
         }

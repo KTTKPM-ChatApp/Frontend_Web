@@ -5,12 +5,12 @@ export interface IEditProfileForm {
     bio: string;
     gender: Gender | string;
     dateOfBirth: string;
-    phone: string; // chỉ xem
-    username: string;
-    email: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
+    phone: string;
+    username?: string;
+    email?: string;
+    isActive?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }export interface IUpdateMyProfilePayload {
     displayName?: string;
     bio?: string | null;

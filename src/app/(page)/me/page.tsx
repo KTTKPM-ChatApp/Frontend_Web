@@ -25,6 +25,8 @@ import FriendRequestConfirmModal from "./components/friend/FriendRequestConfirmM
 import ModalAddFriend from "./components/friend/ModalAddFriend";
 import CreateGroupModal from "./components/chat/CreateGroupModal";
 
+import SettingsPanel from "./components/settings/SettingsPanel";
+
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { getcurrentUserId, getSessionToken } from "@/src/common/utilities/utils";
@@ -213,7 +215,13 @@ const Me = () => {
       setContactView("friends");
       setActiveConversationId(null);
     }
+    if (iconName !== "chat") {
+      setActiveConversationId(null);
+    }
   };
+
+  const handleOpenSettings = () => setSelectedIcon("settings");
+  const handleOpenProfile = () => setSelectedIcon("settings");
 
   const handleChangeChatTab = (_event: React.SyntheticEvent, newTab: string) => {
     setChatTab(newTab);
@@ -230,7 +238,7 @@ const Me = () => {
 
   return (
     <Root container>
-      <AppSidebar selectedIcon={selectedIcon} onSelect={handleSelectedIcon} />
+      <AppSidebar selectedIcon={selectedIcon} onSelect={handleSelectedIcon} onOpenProfile={handleOpenProfile} onOpenSettings={handleOpenSettings} />
 
       <ConversationColumn>
         {selectedIcon === "chat" ? (
@@ -351,6 +359,20 @@ const Me = () => {
             )
           ) : selectedIcon === "contact" ? (
             <ContactContentPanel view={contactView} />
+          ) : selectedIcon === "settings" ? (
+            <SettingsPanel />
+          ) : selectedIcon === "cloud" ? (
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
+              Cloud - Tính năng đang phát triển
+            </Box>
+          ) : selectedIcon === "folder" ? (
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
+              Folder - Tính năng đang phát triển
+            </Box>
+          ) : selectedIcon === "business" ? (
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
+              Business - Tính năng đang phát triển
+            </Box>
           ) : null}
         </Panel>
       </ChatColumn>
@@ -358,7 +380,6 @@ const Me = () => {
       <ModalAddFriend
         open={showAddFriendModal}
         onClose={() => setShowAddFriendModal(false)}
-        onSendRequest={() => setShowAddFriendModal(false)}
       />
 
       <CreateGroupModal open={showCreateGroupModal} onClose={() => setShowCreateGroupModal(false)} />

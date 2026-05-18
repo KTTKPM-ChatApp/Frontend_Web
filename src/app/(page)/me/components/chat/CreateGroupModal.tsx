@@ -30,6 +30,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 import { toast } from "react-toastify";
 import { chatService } from "@/src/common/service/chat-service";
+import { friendService } from "@/src/common/service/friend-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
 
 // ==================== STYLED COMPONENTS ====================
@@ -137,13 +138,23 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   const [searchValue, setSearchValue] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
-  const [friends] = useState<Friend[]>([
-    { id: "1", name: "Nguyễn Văn A", avatar: "", phone: "0987654321" },
-    { id: "2", name: "Trần Thị B", avatar: "", phone: "0123456789" },
-    { id: "3", name: "Lê Văn C", avatar: "", phone: "0912345678" },
-    { id: "4", name: "Phạm Thị D", avatar: "", phone: "0987123456" },
-    { id: "5", name: "Hoàng Văn E", avatar: "", phone: "0123987654" },
-  ]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      friendService.getFriends().then((res) => {
+        const list: any[] = res?.data ?? [];
+        setFriends(
+          list.map((f: any) => ({
+            id: f.id,
+            name: f.displayName,
+            avatar: f.avatarUrl || undefined,
+            phone: f.phone || undefined,
+          }))
+        );
+      }).catch(() => {});
+    }
+  }, [open]);
 
   const filteredFriends = friends.filter(friend =>
     friend.name.toLowerCase().includes(searchValue.toLowerCase())

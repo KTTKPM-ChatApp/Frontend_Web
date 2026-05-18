@@ -1,15 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Box, IconButton, TextField } from "@mui/material";
+import { useRef, useState, useCallback } from "react";
+import { Box, IconButton } from "@mui/material";
+import { sendTyping, sendStopTyping } from "@/src/common/action/chat.action";
 import { styled } from "@mui/material/styles";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import MicIcon from "@mui/icons-material/Mic";
+import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import dynamic from "next/dynamic";
 import InsertEmoticonRoundedIcon from "@mui/icons-material/InsertEmoticonRounded";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import ImageIcon from "@mui/icons-material/Image";
 import { EmojiClickData } from "emoji-picker-react";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
@@ -18,67 +16,60 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
 
 interface ChatInputProps {
   disabled?: boolean;
+  conversationId?: string;
   onSend: (value: string) => void;
 }
 
 const ChatInputContainer = styled(Box)({
   background: "#fff",
   borderTop: "1px solid #E5E7EB",
-  padding: "12px 14px",
+  padding: "8px 12px",
 });
 
 const InputRow = styled(Box)({
   display: "flex",
-  alignItems: "flex-end",
-  gap: 8,
+  alignItems: "center",
+  gap: 6,
 });
 
-const InputField = styled(TextField)({
+const InputField = styled("input")({
   flex: 1,
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    "&:hover": {
-      backgroundColor: "#EFF2F7",
-    },
-    "&.Mui-focused": {
-      backgroundColor: "#FFFFFF",
-      boxShadow: "0 0 0 2px #D8E8FF",
-    },
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    borderColor: "transparent",
-  },
-  "& .MuiInputBase-input": {
-    fontSize: 14,
-    color: "#0F172A",
-    padding: "10px 14px",
-  },
-  "& .MuiInputBase-input::placeholder": {
+  height: 40,
+  borderRadius: 20,
+  border: "none",
+  background: "#F0F2F5",
+  padding: "0 14px",
+  fontSize: 14,
+  color: "#0F172A",
+  outline: "none",
+  "&::placeholder": {
     color: "#94A3B8",
   },
-});
-
-const ActionButton = styled(IconButton)({
-  width: 34,
-  height: 34,
-  borderRadius: 8,
-  color: "#64748B",
-  backgroundColor: "#F8FAFC",
-  "&:hover": {
-    backgroundColor: "#E5E7EB",
-    color: "#0F172A",
+  "&:focus": {
+    background: "#FFFFFF",
+    boxShadow: "0 0 0 2px #D8E8FF",
   },
 });
 
-const SendButton = styled(IconButton)({
+const IconBtn = styled(IconButton)({
   width: 34,
   height: 34,
-  borderRadius: 8,
-  backgroundColor: "#0078FF",
+  color: "#64748B",
+  borderRadius: "50%",
+  "&:hover": {
+    background: "#F0F2F5",
+    color: "#005AE0",
+  },
+});
+
+const SendBtn = styled(IconButton)({
+  width: 34,
+  height: 34,
+  borderRadius: "50%",
+  backgroundColor: "#005AE0",
   color: "#FFFFFF",
   "&:hover": {
-    backgroundColor: "#0056CC",
+    backgroundColor: "#004BB5",
   },
   "&:disabled": {
     backgroundColor: "#E5E7EB",
@@ -93,78 +84,75 @@ const EmojiWrap = styled(Box)({
 const PickerBox = styled(Box)({
   position: "absolute",
   bottom: 44,
-  right: 0,
+  left: 0,
   zIndex: 20,
   boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
   borderRadius: 12,
   overflow: "hidden",
 });
 
-export default function ChatInput({ disabled, onSend }: ChatInputProps) {
+export default function ChatInput({ disabled, conversationId, onSend }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [openEmoji, setOpenEmoji] = useState(false);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const hasText = !!value.trim();
+  const lastTypingTime = useRef<number>(0);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setValue(e.target.value);
+      if (conversationId) {
+        const now = Date.now();
+        if (now - lastTypingTime.current >= 1000) {
+          lastTypingTime.current = now;
+          sendTyping(conversationId);
+        }
+      }
+    },
+    [conversationId]
+  );
 
   const handleSend = () => {
     const text = value.trim();
     if (!text || disabled) return;
     onSend(text);
+    if (conversationId) sendStopTyping(conversationId);
     setValue("");
     setOpenEmoji(false);
   };
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
+  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       handleSend();
     }
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
-    const input = inputRef.current;
+    const el = inputRef.current;
     const emoji = emojiData.emoji;
-    if (!input) {
+    if (!el) {
       setValue((prev) => prev + emoji);
       return;
     }
-
-    const start = input.selectionStart ?? value.length;
-    const end = input.selectionEnd ?? value.length;
+    const start = el.selectionStart ?? value.length;
+    const end = el.selectionEnd ?? value.length;
     const newValue = value.slice(0, start) + emoji + value.slice(end);
     setValue(newValue);
-
     requestAnimationFrame(() => {
-      input.focus();
+      el.focus();
       const nextPos = start + emoji.length;
-      input.setSelectionRange(nextPos, nextPos);
+      el.setSelectionRange(nextPos, nextPos);
     });
   };
 
   return (
     <ChatInputContainer>
       <InputRow>
-        <ActionButton disabled={disabled}>
-          <AttachFileIcon fontSize="small" />
-        </ActionButton>
-
-        <InputField
-          fullWidth
-          multiline
-          minRows={1}
-          maxRows={4}
-          placeholder="Nhập tin nhắn..."
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          inputRef={inputRef}
-        />
-
         <EmojiWrap>
-          <ActionButton onClick={() => setOpenEmoji((prev) => !prev)} disabled={disabled} aria-label="emoji">
+          <IconBtn onClick={() => setOpenEmoji((prev) => !prev)} disabled={disabled}>
             <InsertEmoticonRoundedIcon fontSize="small" />
-          </ActionButton>
+          </IconBtn>
           {openEmoji && (
             <PickerBox>
               <EmojiPicker
@@ -179,22 +167,23 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
           )}
         </EmojiWrap>
 
-        <ActionButton disabled={disabled}>
-          <CameraAltIcon fontSize="small" />
-        </ActionButton>
-
-        <ActionButton disabled={disabled}>
-          <ImageIcon fontSize="small" />
-        </ActionButton>
+        <InputField
+          ref={inputRef}
+          placeholder="Nhập tin nhắn..."
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        />
 
         {hasText ? (
-          <SendButton onClick={handleSend} disabled={disabled} aria-label="send">
+          <SendBtn onClick={handleSend} disabled={disabled}>
             <SendRoundedIcon fontSize="small" />
-          </SendButton>
+          </SendBtn>
         ) : (
-          <ActionButton disabled={disabled} aria-label="record">
-            <MicIcon fontSize="small" />
-          </ActionButton>
+          <IconBtn disabled={disabled}>
+            <MicRoundedIcon fontSize="small" />
+          </IconBtn>
         )}
       </InputRow>
     </ChatInputContainer>

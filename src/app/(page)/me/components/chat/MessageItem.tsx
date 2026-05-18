@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Avatar,
@@ -11,7 +11,9 @@ import {
   Tooltip,
   Menu,
   MenuItem,
-  Badge,
+  TextField,
+  ImageList,
+  ImageListItem,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -20,132 +22,104 @@ import PushPinIcon from "@mui/icons-material/PushPin";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import CheckIcon from "@mui/icons-material/Check";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 
-// ==================== STYLED COMPONENTS ====================
-
 const MessageRow = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "mine" && prop !== "isHighlighted",
-})<{ mine?: boolean; isHighlighted?: boolean }>(({ mine, isHighlighted }) => ({
+  shouldForwardProp: (prop) => prop !== "mine" && prop !== "isGrouped",
+})<{ mine?: boolean; isGrouped?: boolean }>(({ mine, isGrouped }) => ({
   display: "flex",
   justifyContent: mine ? "flex-end" : "flex-start",
-  alignItems: "flex-start",
+  alignItems: "flex-end",
   gap: 8,
-  marginBottom: 16,
+  marginBottom: isGrouped ? 2 : 10,
+  padding: "0 14px",
   position: "relative",
-  transition: "background-color 0.3s ease",
-  borderRadius: 8,
-  padding: "4px 8px",
-  ...(isHighlighted && {
-    backgroundColor: "rgba(0, 168, 132, 0.2)",
-    animation: "highlight-pulse 1.5s ease-in-out",
-  }),
 }));
 
-const MessageBubble = styled(Box, {
+const Bubble = styled(Box, {
   shouldForwardProp: (prop) => prop !== "mine" && prop !== "isDeleted",
 })<{ mine?: boolean; isDeleted?: boolean }>(({ mine, isDeleted }) => ({
-  maxWidth: "70%",
-  minWidth: 100,
-  padding: "12px 16px",
-  borderRadius: 16,
-  background: mine ? "#0078FF" : "#F1F5F9",
+  maxWidth: "60%",
+  minWidth: 60,
+  padding: "8px 14px",
+  borderRadius: mine ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
+  background: mine ? "#005AE0" : "#F0F0F0",
   color: mine ? "#fff" : "#0F172A",
   position: "relative",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-  opacity: isDeleted ? 0.6 : 1,
+  opacity: isDeleted ? 0.5 : 1,
   fontStyle: isDeleted ? "italic" : "normal",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    width: 0,
-    height: 0,
-    border: mine ? "8px solid transparent" : "8px solid transparent",
-    ...(mine
-      ? {
-          right: -6,
-          borderLeftColor: "#0078FF",
-          borderTopColor: "#0078FF",
-        }
-      : {
-          left: -6,
-          borderRightColor: "#F1F5F9",
-          borderTopColor: "#F1F5F9",
-        }),
-  },
 }));
 
 const MessageText = styled(Typography)({
   fontSize: 14,
-  lineHeight: 1.4,
+  lineHeight: 1.45,
   wordBreak: "break-word",
+  whiteSpace: "pre-wrap",
+});
+
+const MessageMeta = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  marginTop: 3,
 });
 
 const MessageTime = styled(Typography, {
   shouldForwardProp: (prop) => prop !== "isOwn",
 })<{ isOwn?: boolean }>(({ isOwn }) => ({
   fontSize: 11,
-  color: isOwn ? "#B3D9FF" : "#9CA3AF",
-  marginTop: 4,
-  textAlign: isOwn ? "right" : "left",
+  color: isOwn ? "rgba(255,255,255,0.7)" : "#9CA3AF",
+  lineHeight: 1,
 }));
 
 const MessageAvatar = styled(Avatar)({
-  width: 32,
-  height: 32,
+  width: 24,
+  height: 24,
   flexShrink: 0,
+  fontSize: 11,
+  marginBottom: 2,
 });
 
-const OnlineIndicator = styled(Box)(({ theme }) => ({
-  width: 12,
-  height: 12,
-  borderRadius: "50%",
-  backgroundColor: "#10B981",
-  border: "2px solid #fff",
-  position: "absolute",
-  bottom: 0,
-  right: 0,
-}));
-
-const OfflineIndicator = styled(Box)(({ theme }) => ({
-  width: 12,
-  height: 12,
-  borderRadius: "50%",
-  backgroundColor: "#94A3B8",
-  border: "2px solid #fff",
-  position: "absolute",
-  bottom: 0,
-  right: 0,
-}));
-
-const ActionButtons = styled(Box)({
+const HoverActions = styled(Box)({
   display: "flex",
-  gap: 4,
+  alignItems: "center",
+  gap: 2,
   opacity: 0,
-  transition: "opacity 0.2s ease",
+  transition: "opacity 0.15s ease",
+  position: "absolute",
+  ...({
+    top: -28,
+    right: 0,
+  } as any),
+  background: "#fff",
+  borderRadius: 8,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+  padding: "0 2px",
+  zIndex: 5,
 });
 
-const MessageActionsContainer = styled(Box)({
+const BubbleWrap = styled(Box)({
   position: "relative",
-  "&:hover .action-buttons": {
+  "&:hover .hover-actions": {
     opacity: 1,
   },
 });
 
-const DeliveryStatus = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: 2,
-  marginTop: 4,
-}));
+const HoverBtn = styled(IconButton)({
+  width: 28,
+  height: 28,
+  color: "#64748B",
+  borderRadius: "50%",
+  "&:hover": {
+    background: "#F0F2F5",
+    color: "#005AE0",
+  },
+});
 
-const ReactionChip = styled(Chip)(({ theme }) => ({
+const ReactionChip = styled(Chip)({
   height: 24,
   fontSize: 12,
   margin: "2px",
@@ -153,36 +127,51 @@ const ReactionChip = styled(Chip)(({ theme }) => ({
   "&:hover": {
     backgroundColor: "#E5E7EB",
   },
-}));
+});
+
+const EditedLabel = styled(Typography)({
+  fontSize: 11,
+  color: "rgba(255,255,255,0.5)",
+  fontStyle: "italic",
+  lineHeight: 1,
+});
+
+const SenderName = styled(Typography)({
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#005AE0",
+  marginBottom: 2,
+});
+
+interface Attachment {
+  key?: string;
+  url?: string;
+  thumbnailUrl?: string;
+  type?: string;
+  name?: string;
+  size?: number;
+}
 
 interface MessageItemProps {
   id: string;
   content: string;
-  sender?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
+  sender?: { id: string; name: string; avatar?: string };
   timestamp: string;
   isOwn?: boolean;
   isDeleted?: boolean;
   isPinned?: boolean;
   deliveryStatus?: "sending" | "sent" | "delivered" | "read" | "failed";
   isEdited?: boolean;
-  reactions?: Array<{
-    userId: string;
-    type: string;
-    user: {
-      fullName: string;
-      avatar?: string;
-    };
-  }>;
+  isGrouped?: boolean;
+  attachments?: Attachment[];
+  reactions?: Array<{ userId: string; type: string; user: { fullName: string; avatar?: string } }>;
   onReply?: () => void;
   onForward?: () => void;
   onPin?: () => void;
   onDelete?: () => void;
-  onEdit?: () => void;
+  onEdit?: (newContent: string) => void;
   onReact?: (reaction: string) => void;
+  onImageClick?: (url: string) => void;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -195,6 +184,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   isPinned = false,
   deliveryStatus = "sent",
   isEdited = false,
+  isGrouped = false,
+  attachments = [],
   reactions = [],
   onReply,
   onForward,
@@ -202,146 +193,171 @@ const MessageItem: React.FC<MessageItemProps> = ({
   onDelete,
   onEdit,
   onReact,
+  onImageClick,
 }) => {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(content);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  useEffect(() => {
+    if (editing && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.setSelectionRange(editText.length, editText.length);
+    }
+  }, [editing]);
+
+  const handleEditSave = () => {
+    const trimmed = editText.trim();
+    if (trimmed && trimmed !== content) onEdit?.(trimmed);
+    setEditing(false);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleEditSave();
+    }
+    if (e.key === "Escape") {
+      setEditText(content);
+      setEditing(false);
+    }
   };
 
   const getDeliveryIcon = () => {
     switch (deliveryStatus) {
-      case "sending":
-        return <ScheduleIcon sx={{ fontSize: 14, color: "#9CA3AF" }} />;
-      case "sent":
-        return <CheckIcon sx={{ fontSize: 14, color: "#9CA3AF" }} />;
-      case "delivered":
-        return <DoneAllIcon sx={{ fontSize: 14, color: "#9CA3AF" }} />;
-      case "read":
-        return <DoneAllIcon sx={{ fontSize: 14, color: "#0078FF" }} />;
-      case "failed":
-        return <ScheduleIcon sx={{ fontSize: 14, color: "#EF4444" }} />;
-      default:
-        return null;
+      case "sending": return <ScheduleIcon sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }} />;
+      case "sent": return <CheckIcon sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }} />;
+      case "delivered": return <DoneAllIcon sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }} />;
+      case "read": return <DoneAllIcon sx={{ fontSize: 13, color: "#53D0F0" }} />;
+      case "failed": return <ScheduleIcon sx={{ fontSize: 13, color: "#EF4444" }} />;
+      default: return null;
     }
   };
 
   return (
-    <MessageRow mine={isOwn} id={`message-${id}`}>
-      {!isOwn && sender && (
-        <Box sx={{ position: "relative" }}>
-          <MessageAvatar src={sender.avatar}>
-            {sender.name.charAt(0)}
-          </MessageAvatar>
-          <OnlineIndicator />
-        </Box>
-      )}
-      
-      <Box sx={{ maxWidth: "70%" }}>
-        <MessageActionsContainer>
-          <MessageBubble mine={isOwn} isDeleted={isDeleted}>
-            <MessageText>{content}</MessageText>
-            
-            {/* Reactions */}
-            {reactions.length > 0 && (
-              <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {reactions.map((reaction, index) => (
-                  <ReactionChip
-                    key={index}
-                    label={`${reaction.type} ${reaction.user.fullName}`}
-                    size="small"
-                    onClick={() => onReact?.(reaction.type)}
-                  />
-                ))}
-              </Box>
-            )}
-          </MessageBubble>
-          
-          <ActionButtons className="action-buttons">
-            {onReply && (
-              <Tooltip title={t("CHAT.ACTION_REPLY")}>
-                <IconButton size="small" onClick={onReply}>
-                  <ReplyIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-            
-            {onReact && (
-              <Tooltip title={t("CHAT.ADD_REACTION")}>
-                <IconButton size="small" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-                  <EmojiEmotionsIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-            
-            <Tooltip title={t("CHAT.MORE_OPTIONS")}>
-              <IconButton size="small" onClick={handleMenuClick}>
-                <MoreVertIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              {onForward && (
-                <MenuItem onClick={handleMenuClose}>
-                  <ForwardIcon sx={{ mr: 1 }} fontSize="small" />
-                  {t("CHAT.ACTION_FORWARD")}
-                </MenuItem>
-              )}
-              
-              {onPin && (
-                <MenuItem onClick={handleMenuClose}>
-                  {isPinned ? <StarIcon sx={{ mr: 1 }} fontSize="small" /> : <StarBorderIcon sx={{ mr: 1 }} fontSize="small" />}
-                  {isPinned ? t("CHAT.ACTION_UNPIN") : t("CHAT.ACTION_PIN")}
-                </MenuItem>
-              )}
-              
-              {onEdit && isOwn && (
-                <MenuItem onClick={handleMenuClose}>
-                  <EditIcon sx={{ mr: 1 }} fontSize="small" />
-                  {t("CHAT.ACTION_EDIT")}
-                </MenuItem>
-              )}
-              
-              {onDelete && isOwn && (
-                <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
-                  <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-                  {t("CHAT.ACTION_DELETE")}
-                </MenuItem>
-              )}
-            </Menu>
-          </ActionButtons>
-        </MessageActionsContainer>
-        
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-          <MessageTime isOwn={isOwn}>{timestamp}</MessageTime>
-          {isEdited && (
-            <Typography variant="caption" sx={{ color: "#9CA3AF", fontStyle: "italic" }}>
-              ({t("CHAT.MESSAGE_EDITED")})
-            </Typography>
-          )}
-          {isOwn && (
-            <DeliveryStatus>
-              {getDeliveryIcon()}
-            </DeliveryStatus>
-          )}
-        </Box>
-      </Box>
-      
-      {isOwn && sender && (
-        <MessageAvatar src={sender.avatar}>
-          {sender.name.charAt(0)}
+    <MessageRow mine={isOwn} isGrouped={isGrouped}>
+      {!isOwn && !isGrouped && (
+        <MessageAvatar src={sender?.avatar}>
+          {sender?.name?.charAt(0)?.toUpperCase() || "?"}
         </MessageAvatar>
       )}
+      {!isOwn && isGrouped && <Box width={24} flexShrink={0} />}
+
+      <BubbleWrap>
+        <Bubble mine={isOwn} isDeleted={isDeleted}>
+          {!isOwn && !isGrouped && sender && (
+            <SenderName>{sender.name}</SenderName>
+          )}
+
+          {editing ? (
+            <TextField
+              inputRef={editInputRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onBlur={handleEditSave}
+              onKeyDown={handleEditKeyDown}
+              fullWidth
+              size="small"
+              variant="outlined"
+              sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#fff", borderRadius: 1, fontSize: 14 } }}
+            />
+          ) : (
+            <>
+              {content && <MessageText>{content}</MessageText>}
+              {attachments.filter((a) => a.type === "image" || a.type === "video").length > 0 && (
+                <ImageList
+                  sx={{ mt: content ? 1 : 0, borderRadius: 1, overflow: "hidden" }}
+                  cols={Math.min(attachments.filter((a) => a.type === "image" || a.type === "video").length, 3)}
+                  gap={4}
+                >
+                  {attachments
+                    .filter((a) => a.type === "image" || a.type === "video")
+                    .slice(0, 9)
+                    .map((att, i) => (
+                      <ImageListItem
+                        key={att.key || i}
+                        sx={{ cursor: "pointer", borderRadius: 1, overflow: "hidden", "&:hover": { opacity: 0.85 } }}
+                        onClick={() => onImageClick?.(att.url || att.thumbnailUrl || "")}
+                      >
+                        <Box
+                          component="img"
+                          src={att.thumbnailUrl || att.url}
+                          alt={att.name || ""}
+                          sx={{ width: "100%", height: 120, objectFit: "cover", display: "block" }}
+                        />
+                      </ImageListItem>
+                    ))}
+                </ImageList>
+              )}
+            </>
+          )}
+
+          {reactions.length > 0 && (
+            <Box sx={{ mt: 0.5, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+              {reactions.map((r, i) => (
+                <ReactionChip key={i} label={`${r.type}`} size="small" onClick={() => onReact?.(r.type)} />
+              ))}
+            </Box>
+          )}
+        </Bubble>
+
+        {!(editing) && (
+          <HoverActions className="hover-actions">
+            {onReply && (
+              <Tooltip title={t("CHAT.ACTION_REPLY")}>
+                <HoverBtn size="small" onClick={onReply}><ReplyIcon sx={{ fontSize: 16 }} /></HoverBtn>
+              </Tooltip>
+            )}
+            {onReact && (
+              <Tooltip title={t("CHAT.ADD_REACTION")}>
+                <HoverBtn size="small" onClick={() => {}}><EmojiEmotionsIcon sx={{ fontSize: 16 }} /></HoverBtn>
+              </Tooltip>
+            )}
+            <Tooltip title={t("CHAT.MORE_OPTIONS")}>
+              <HoverBtn size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
+                <MoreVertIcon sx={{ fontSize: 16 }} />
+              </HoverBtn>
+            </Tooltip>
+          </HoverActions>
+        )}
+
+        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+          {onForward && (
+            <MenuItem onClick={() => { setAnchorEl(null); onForward?.(); }}>
+              <ForwardIcon sx={{ mr: 1 }} fontSize="small" />{t("CHAT.ACTION_FORWARD")}
+            </MenuItem>
+          )}
+          {onPin && (
+            <MenuItem onClick={() => { setAnchorEl(null); onPin?.(); }}>
+              <PushPinIcon sx={{ mr: 1 }} fontSize="small" />
+              {isPinned ? t("CHAT.ACTION_UNPIN") : t("CHAT.ACTION_PIN")}
+            </MenuItem>
+          )}
+          {onEdit && isOwn && (
+            <MenuItem onClick={() => { setAnchorEl(null); setEditing(true); }}>
+              <EditIcon sx={{ mr: 1 }} fontSize="small" />{t("CHAT.ACTION_EDIT")}
+            </MenuItem>
+          )}
+          {onDelete && isOwn && (
+            <MenuItem onClick={() => { setAnchorEl(null); onDelete?.(); }} sx={{ color: "#EF4444" }}>
+              <DeleteIcon sx={{ mr: 1 }} fontSize="small" />{t("CHAT.ACTION_DELETE")}
+            </MenuItem>
+          )}
+        </Menu>
+
+        <MessageMeta sx={{ justifyContent: isOwn ? "flex-end" : "flex-start", px: 0.5 }}>
+          <MessageTime isOwn={isOwn}>{timestamp}</MessageTime>
+          {isEdited && !isOwn && (
+            <EditedLabel>(Đã chỉnh sửa)</EditedLabel>
+          )}
+          {isEdited && isOwn && (
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontStyle: "italic", lineHeight: 1 }}>(đã chỉnh sửa)</span>
+          )}
+          {isOwn && getDeliveryIcon()}
+        </MessageMeta>
+      </BubbleWrap>
     </MessageRow>
   );
 };

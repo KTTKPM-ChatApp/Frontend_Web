@@ -10,12 +10,18 @@ import ChatInput from "./ChatInput";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import {
   deleteMessage,
+  editMessage,
   initChat,
   loadMoreMessages,
   openConversation,
   sendMessage,
+  unpinMessage,
 } from "@/src/common/action/chat.action";
 import { UiMessage } from "@/src/common/interface/chat-interface";
+import PinnedMessageBarComponent from "./PinnedMessageBar";
+import ForwardMessageDialog from "./ForwardMessageDialog";
+import ImagePreviewDialog from "./ImagePreviewDialog";
+import TypingIndicator from "./TypingIndicator";
 
 interface ChatPanelProps {
   accessToken: string;
@@ -80,11 +86,15 @@ export default function ChatPanel({
   const scrollIntentRef = useRef<"none" | "open" | "load-more">("none");
 
   const [showScrollbar, setShowScrollbar] = useState(false);
-  const [replyMessageId,setReplyMessageId] = useState<string | null>(null)
+  const [replyMessageId, setReplyMessageId] = useState<string | null>(null);
+  const [forwardTarget, setForwardTarget] = useState<{ messageId: string; conversationId: string } | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const {
     socketConnected,
     messagesByConversation,
     paginationByConversation,
+    pinnedMessagesByConversation,
+    typingUsersByConversation,
     error,
   } = useChatStore();
 
@@ -96,6 +106,11 @@ export default function ChatPanel({
   const pagination = paginationByConversation[conversationId];
   const loadingMore = pagination?.loadingMore;
   const loading = pagination?.loading;
+
+  const pinnedMessages = useMemo(
+    () => pinnedMessagesByConversation[conversationId] || [],
+    [pinnedMessagesByConversation, conversationId]
+  );
 
   const firstMessageId = messages[0]?.messageId ?? null;
   const lastMessageId = messages[messages.length - 1]?.messageId ?? null;
@@ -252,6 +267,30 @@ export default function ChatPanel({
         />
       </HeaderWrap>
 
+      {pinnedMessages.length > 0 && (
+        <PinnedMessageBarComponent
+          messages={pinnedMessages.map((m: any) => ({
+            messageId: m.messageId || m.id,
+            content: m.body || m.content || "",
+            senderName: m.senderName || m.senderId || "",
+            timestamp: m.createdAt
+              ? new Date(m.createdAt).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "",
+          }))}
+          onUnpin={(messageId) => {
+            const msg = pinnedMessages.find(
+              (m: any) => m.messageId === messageId || m.id === messageId
+            );
+            if (msg) {
+              unpinMessage(conversationId, messageId, msg.createdAt ?? Date.now());
+            }
+          }}
+        />
+      )}
+
       <MessageListWrap>
         <MessageList
           listRef={listRef}
@@ -264,15 +303,46 @@ export default function ChatPanel({
           onDeleteMessage={deleteMessage}
           onScroll={handleScroll}
           showScrollbar={showScrollbar}
+          onForwardMessage={(msgId, convId) => setForwardTarget({ messageId: msgId, conversationId: convId })}
+          onEditMessage={editMessage}
+          onImageClick={(url) => setPreviewImage(url)}
         />
       </MessageListWrap>
+
+      {typingUsersByConversation[conversationId]?.length > 0 && (
+        <TypingIndicator
+          names={typingUsersByConversation[conversationId]
+            .slice(0, 2)
+            .map((u) => u.displayName || "Ai đó")}
+          count={typingUsersByConversation[conversationId].length}
+        />
+      )}
 
       <InputWrap>
         <ChatInput
           disabled={false}
+          conversationId={conversationId}
           onSend={(text) => sendMessage(conversationId, text)}
         />
       </InputWrap>
+
+      {forwardTarget && (
+        <ForwardMessageDialog
+          open={true}
+          onClose={() => setForwardTarget(null)}
+          messageId={forwardTarget.messageId}
+          conversationId={forwardTarget.conversationId}
+        />
+      )}
+
+      {previewImage && (
+        <ImagePreviewDialog
+          open={true}
+          images={[{ url: previewImage }]}
+          initialIndex={0}
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
     </Root>
   );
 }

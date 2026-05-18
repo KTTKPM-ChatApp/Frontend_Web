@@ -3,6 +3,7 @@ import { ConversationDto, ConversationLastMessageDto, UiMessage } from "../inter
 import { chatService } from "../service/chat-service";
 import { connectSocket, getSocket } from "../socket/socket";
 import { useChatStore } from "../store/useChatStore";
+import http from "../api/http";
 
 export const rebuildConversationDerivedData = (conversationId: string) => {
   const state = useChatStore.getState();
@@ -55,10 +56,6 @@ export const clearConversationDerivedData = (conversationId: string) => {
   state.setMediaByConversation(conversationId, []);
   state.setFilesByConversation(conversationId, []);
   state.setLinksByConversation(conversationId, []);
-};
-
-export const openMockConversation = (conversationId: string) => {
-  useChatStore.getState().setActiveConversationId(conversationId);
 };
 
 export const fetchListConversation = async (params: { page?: number; limit?: number } = {}) => {
@@ -150,6 +147,10 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     }
 
     appendMessageDerivedData(msg);
+
+    if (msg.senderId && msg.senderId !== currentUserId && document.hidden) {
+      import("../utilities/sound").then(({ playNotificationSound }) => playNotificationSound());
+    }
   };
 
   socket.on("connect", () => {
@@ -179,7 +180,39 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   });
 
   socket.on("chat:new", handleIncomingMessage);
-  socket.on("chat:message", handleIncomingMessage);
+
+  socket.on("chat:typing", (data: { userId: string; conversationId: string }) => {
+    const current = useChatStore.getState();
+    if (!data.conversationId || data.userId === currentUserId) return;
+    const prev = current.typingUsersByConversation[data.conversationId] || [];
+    if (prev.some((u) => u.userId === data.userId)) return;
+    current.setTypingUsers(data.conversationId, [
+      ...prev,
+      { userId: data.userId },
+    ]);
+  });
+
+  socket.on("chat:stop_typing", (data: { userId: string; conversationId: string }) => {
+    const current = useChatStore.getState();
+    if (!data.conversationId) return;
+    const prev = current.typingUsersByConversation[data.conversationId] || [];
+    current.setTypingUsers(
+      data.conversationId,
+      prev.filter((u) => u.userId !== data.userId)
+    );
+  });
+
+  socket.on("presence:online", (data: { userId: string }) => {
+    const current = useChatStore.getState();
+    if (!current.onlineUserIds.includes(data.userId)) {
+      current.setOnlineUserIds([...current.onlineUserIds, data.userId]);
+    }
+  });
+
+  socket.on("presence:offline", (data: { userId: string }) => {
+    const current = useChatStore.getState();
+    current.setOnlineUserIds(current.onlineUserIds.filter((id) => id !== data.userId));
+  });
 
   socket.onAny((event, ...args) => {
     console.log("[socket event]", event, args);
@@ -192,6 +225,13 @@ export const initChat = (accessToken: string, currentUserId: string) => {
       ts: Date.now(),
     });
   }, 30000);
+
+  // Load initial online users
+  http.get<{ success: boolean; data: string[] }>("/api/presence/online").then((res) => {
+    if (res?.ok && Array.isArray(res.payload?.data)) {
+      state.setOnlineUserIds(res.payload.data);
+    }
+  }).catch(() => {});
 
   state.setInitialized(true);
   state.setCurrentUserId(currentUserId);
@@ -233,6 +273,7 @@ export const openConversation = async (conversationId: string) => {
     });
 
     rebuildConversationDerivedData(conversationId);
+    fetchPinnedMessages(conversationId);
   } catch (err: any) {
     state.setError(err?.message || "Không lấy được tin nhắn");
     state.setMessages(conversationId, []);
@@ -412,12 +453,95 @@ export const sendMessage = async (
   );
 };
 
-export const editMessage = (conversationId: string, messageId: string, newBody: string) => {
-  // em làm tiếp nếu cần
+export const pinMessage = async (conversationId: string, messageId: string, createdAt: number) => {
+  try {
+    const res = await chatService.pinMessage(conversationId, createdAt, messageId);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const pinned = state.pinnedMessagesByConversation[conversationId] || [];
+      state.setPinnedMessages(conversationId, [...pinned, res.payload as any]);
+    }
+    return res;
+  } catch (error: any) {
+    console.error("[pinMessage] error:", error);
+    return null;
+  }
+};
+
+export const unpinMessage = async (conversationId: string, messageId: string, createdAt: number) => {
+  try {
+    const res = await chatService.unpinMessage(conversationId, createdAt, messageId);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const pinned = state.pinnedMessagesByConversation[conversationId] || [];
+      state.setPinnedMessages(conversationId, pinned.filter((m: any) => m.messageId !== messageId));
+    }
+    return res;
+  } catch (error: any) {
+    console.error("[unpinMessage] error:", error);
+    return null;
+  }
+};
+
+export const fetchPinnedMessages = async (conversationId: string) => {
+  try {
+    const res = await chatService.getPinnedMessages(conversationId);
+    if (res?.ok) {
+      const data = (res?.payload as any)?.data ?? res?.payload ?? [];
+      const items = Array.isArray(data) ? data : [];
+      useChatStore.getState().setPinnedMessages(conversationId, items);
+    }
+  } catch (error: any) {
+    console.error("[fetchPinnedMessages] error:", error);
+  }
+};
+
+export const editMessage = async (conversationId: string, messageId: string, newBody: string, createdAt: number) => {
+  const trimmed = newBody.trim();
+  if (!trimmed) return;
+  try {
+    const res = await chatService.editMessageContent(conversationId, createdAt, messageId, trimmed);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const messages = state.messagesByConversation[conversationId] || [];
+      state.setMessages(
+        conversationId,
+        messages.map((msg: UiMessage) =>
+          msg.messageId === messageId
+            ? { ...msg, body: trimmed, editedAt: Date.now() }
+            : msg
+        )
+      );
+    }
+  } catch (error: any) {
+    console.error("[editMessage] error:", error);
+  }
 };
 
 export const deleteMessage = (conversationId: string, messageId: string) => {
   // em làm tiếp nếu cần
+};
+
+let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+
+export const sendTyping = (conversationId: string) => {
+  const socket = getSocket();
+  if (!socket?.connected) return;
+  socket.emit("chat:typing", { conversation_id: conversationId });
+  if (typingTimeout) clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    socket.emit("chat:stop_typing", { conversation_id: conversationId });
+  }, 3000);
+};
+
+export const sendStopTyping = (conversationId: string) => {
+  const socket = getSocket();
+  if (!socket?.connected) return;
+  socket.emit("chat:stop_typing", { conversation_id: conversationId });
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+    typingTimeout = null;
+  }
 };
 
 export const cleanupChat = () => {
@@ -432,6 +556,10 @@ export const cleanupChat = () => {
   socket?.off("connect_error");
   socket?.off("chat:new");
   socket?.off("chat:message");
+  socket?.off("chat:typing");
+  socket?.off("chat:stop_typing");
+  socket?.off("presence:online");
+  socket?.off("presence:offline");
   socket?.offAny();
 
   if (socket?.connected) socket.disconnect();
