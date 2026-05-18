@@ -2,6 +2,7 @@ import { IUpdateMyProfilePayload } from "../interface/user-interface";
 import http from "../api/http";
 import { API } from "../api/path";
 import { IApiResponse, IUser } from "../interface/auth-interface";
+import type { IUpdateMyProfilePayload } from "../interface/user-interface";
 
 export const userService = {
     userGetMe() {

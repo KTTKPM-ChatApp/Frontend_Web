@@ -5,14 +5,11 @@ import { useTranslation } from "react-i18next";
 import { searchService } from "@/src/common/service/search-service";
 import { friendService } from "@/src/common/service/friend-service";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
+  Avatar,
   Box,
-  Typography,
+  Button,
+  CircularProgress,
+  InputBase,
   List,
   ListItem,
   Avatar,
@@ -145,14 +142,14 @@ const FooterButton = styled(Button)({
   borderRadius: 12,
 });
 
-const ModalAddFriend: React.FC<ModalAddFriendProps> = ({
+export default function AddFriendDialog({
   open,
   onClose,
 }) => {
   const { t } = useTranslation();
 
   const [searchValue, setSearchValue] = useState("");
-  const [results, setResults] = useState<User[]>([]);
+  const [results, setResults] = useState<IUserSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);

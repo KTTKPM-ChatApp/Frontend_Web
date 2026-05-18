@@ -1,6 +1,5 @@
 import http from "../api/http";
 import { API } from "../api/path";
-import { IApiResponse } from "../interface/auth-interface";
 import type {
   ConversationListResponse,
   MessagePageDto,
@@ -198,60 +197,17 @@ export interface UpdateGroupSettingsRequest {
 }
 
 export const chatService = {
-  // Existing functions
-  fetchListConversations(params: { page?: number; limit?: number }) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 10;
-    const offset = (page - 1) * limit;
-    return http
-      .get<ConversationListResponse>(
-        `${API.API_CONVERSATIONS_LIST}?limit=${limit}&offset=${offset}`
-      )
-      .then((res) => {
-        const payload: any = res?.payload || {};
-        const rows: RawConversation[] = Array.isArray(payload.data) ? payload.data : [];
-        return {
-          ...res,
-          payload: {
-            ...payload,
-            data: rows.map(normalizeConversation),
-          },
-        };
-      });
+  fetchListConversations(params: { limit?: number; offset?: number }) {
+    const limit = params.limit || 20;
+    const offset = params.offset || 0;
+    return http.get<ConversationListResponse>(`${API.API_CONVERSATIONS_LIST}?limit=${limit}&offset=${offset}`);
   },
 
-  fetchMessages(
-    conversationId: string,
-    params: { limit?: number; cursor?: string }
-  ) {
-    const searchParams = new URLSearchParams();
-    searchParams.set("limit", String(params.limit ?? 50));
-    if (params.cursor) {
-      searchParams.set("before", params.cursor);
-    }
-
-    const url = `${API.API_MESSAGES(conversationId)}?${searchParams.toString()}`;
-    return http.get<any>(url).then((res) => {
-      const payload: any = res?.payload || {};
-      const rows: RawMessage[] = Array.isArray(payload.data) ? payload.data : [];
-      const items = rows.map((row) => normalizeMessage(row, conversationId));
-      const hasMore = Boolean(payload?.meta?.hasNext) || items.length >= (params.limit ?? 50);
-      const nextCursor =
-        hasMore && items.length > 0 ? new Date(items[0].createdAt).toISOString() : null;
-
-      const transformed: IApiResponse<MessagePageDto> = {
-        success: true,
-        data: {
-          items,
-          nextCursor,
-          hasMore,
-        },
-      } as any;
-
-      return {
-        ...res,
-        payload: transformed,
-      };
+  createConversation(type: 'DIRECT' | 'GROUP', participantIds: string[], title?: string) {
+    return http.post(API.API_CONVERSATIONS_CREATE, {
+      type,
+      participantIds,
+      title
     });
   },
 
@@ -378,190 +334,102 @@ export const chatService = {
     );
   },
 
-  removeMember(conversationId: string, memberId: string) {
-    return http.delete<IApiResponse<any>>(
-      API.API_CONVERSATIONS_REMOVE_MEMBER(conversationId, memberId)
-    );
+  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: AttachmentDto[] = []) {
+    return http.post(API.API_CONVERSATIONS_SEND_MESSAGE(conversationId), {
+      content,
+      contentType,
+      attachments
+    });
   },
 
-  leaveConversation(conversationId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_LEAVE(conversationId)
-    );
+  fetchMessageDetail(conversationId: string, createdAt: number, messageId: string) {
+    console.log('fetchMessageDetail called with:', { conversationId, createdAt, messageId });
+    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
-  updateMemberRole(conversationId: string, memberId: string, data: UpdateRoleRequest) {
-    return http.patch<IApiResponse<any>>(
-      API.API_CONVERSATIONS_UPDATE_ROLE(conversationId, memberId),
-      data
-    );
+  fetchMessageReactions(messageId: string) {
+    console.log('fetchMessageReactions called with:', messageId);
+    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
-  updateConversationSettings(conversationId: string, data: UpdateSettingsRequest) {
-    return http.patch<IApiResponse<any>>(
-      API.API_CONVERSATIONS_SETTINGS(conversationId),
-      data
-    );
+  forwardMessage(payload: ForwardMessagePayload) {
+    return http.post(API.API_MESSAGES_FORWARD, payload);
   },
 
-  markAsRead(conversationId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_READ(conversationId)
-    );
+  fetchConversationById(conversationId: string) {
+    return http.get(API.API_CONVERSATIONS_DETAIL(conversationId));
   },
 
-  // Pin management
   pinConversation(conversationId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_PIN(conversationId)
-    );
+    console.log('pinConversation called with:', conversationId);
+    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
   unpinConversation(conversationId: string) {
-    return http.delete<IApiResponse<any>>(
-      API.API_CONVERSATIONS_UNPIN(conversationId)
-    );
+    console.log('unpinConversation called with:', conversationId);
+    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
-  // Group settings
-  updateGroupSettings(conversationId: string, data: UpdateGroupSettingsRequest) {
-    return http.patch<IApiResponse<any>>(
-      API.API_CONVERSATIONS_GROUP_SETTINGS(conversationId),
-      data
-    );
+  pinMessage(conversationId: string, createdAt: number, messageId: string) {
+    console.log('pinMessage called with:', { conversationId, createdAt, messageId });
+    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
-  disbandGroup(conversationId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_DISBAND(conversationId)
-    );
+  unpinMessage(conversationId: string, createdAt: number, messageId: string) {
+    console.log('unpinMessage called with:', { conversationId, createdAt, messageId });
+    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
-  // Invitation management
-  sendInvites(conversationId: string, data: SendInviteRequest) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_INVITES_SEND(conversationId),
-      data
-    );
+  fetchPinnedMessages(conversationId: string) {
+    return http.get<{ data?: { items?: unknown[] } }>(API.API_MESSAGE_PINS(conversationId));
   },
 
-  getPendingInvites(params: { page?: number; limit?: number; status?: string }) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 20;
-    const status = params.status ? `&status=${params.status}` : '';
-    
-    return http.get<IApiResponse<any>>(
-      `${API.API_CONVERSATIONS_INVITES_PENDING}?page=${page}&limit=${limit}${status}`
-    );
+  searchMessages(conversationId: string, params: SearchMessagesParams) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) queryParams.append(key, String(value));
+    });
+    const suffix = queryParams.toString() ? `?${queryParams.toString()}` : "";
+    return http.get(`${API.API_MESSAGES_SEARCH(conversationId)}${suffix}`);
   },
 
-  acceptInvite(conversationId: string, inviteId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_INVITES_ACCEPT(conversationId, inviteId)
-    );
+  createGroupConversation(body: { name?: string; title?: string; memberIds: string[]; avatarUrl?: string }) {
+    return http.post(API.API_CONVERSATIONS_CREATE_GROUP, body);
   },
 
-  rejectInvite(conversationId: string, inviteId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_INVITES_REJECT(conversationId, inviteId)
-    );
+  updateConversation(conversationId: string, body: UpdateConversationRequest) {
+    return http.put(API.API_CONVERSATIONS_UPDATE(conversationId), body);
   },
 
-  cancelInvite(conversationId: string, inviteId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_INVITES_CANCEL(conversationId, inviteId)
-    );
+  updateConversationSettings(conversationId: string, body: UpdateSettingsRequest | UpdateGroupSettingsRequest) {
+    return http.patch(API.API_CONVERSATIONS_SETTINGS(conversationId), body);
   },
 
-  // Poll management
-  getPolls(conversationId: string, params: { page?: number; limit?: number; status?: string }) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 20;
-    const status = params.status ? `&status=${params.status}` : '';
-    
-    return http.get<IApiResponse<any>>(
-      `${API.API_CONVERSATIONS_POLLS_LIST(conversationId)}?page=${page}&limit=${limit}${status}`
-    );
+  sendInvites(conversationId: string, body: SendInviteRequest | AddMembersRequest) {
+    return http.post(API.API_CONVERSATIONS_INVITES_SEND(conversationId), body);
   },
 
-  getPollDetails(conversationId: string, pollId: string) {
-    return http.get<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_DETAIL(conversationId, pollId)
-    );
+  createPoll(conversationId: string, body: CreatePollRequest) {
+    return http.post(API.API_CONVERSATIONS_POLLS_CREATE(conversationId), body);
   },
 
-  createPoll(conversationId: string, data: CreatePollRequest) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_CREATE(conversationId),
-      data
-    );
-  },
-
-  updatePoll(conversationId: string, pollId: string, data: any) {
-    return http.patch<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_UPDATE(conversationId, pollId),
-      data
-    );
-  },
-
-  votePoll(conversationId: string, pollId: string, data: VotePollRequest) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_VOTE(conversationId, pollId),
-      data
-    );
+  votePoll(conversationId: string, pollId: string, body: VotePollRequest) {
+    return http.post(API.API_CONVERSATIONS_POLLS_VOTE(conversationId, pollId), body);
   },
 
   withdrawVote(conversationId: string, pollId: string) {
-    return http.delete<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_WITHDRAW(conversationId, pollId)
-    );
-  },
-
-  addPollOption(conversationId: string, pollId: string, data: AddPollOptionRequest) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_ADD_OPTION(conversationId, pollId),
-      data
-    );
-  },
-
-  removePollOption(conversationId: string, pollId: string, optionId: string) {
-    return http.delete<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_REMOVE_OPTION(conversationId, pollId, optionId)
-    );
+    return http.delete(API.API_CONVERSATIONS_POLLS_WITHDRAW(conversationId, pollId));
   },
 
   closePoll(conversationId: string, pollId: string) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_POLLS_CLOSE(conversationId, pollId)
-    );
+    return http.post(API.API_CONVERSATIONS_POLLS_CLOSE(conversationId, pollId));
   },
 
-  // Call management
   getIceServers() {
-    return http.get<IApiResponse<any>>(
-      API.API_CONVERSATIONS_ICE_SERVERS
-    );
-  },
-
-  getCallHistory(conversationId: string, params: { page?: number; limit?: number }) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 20;
-    
-    return http.get<IApiResponse<any>>(
-      `${API.API_CONVERSATIONS_CALLS_HISTORY(conversationId)}?page=${page}&limit=${limit}`
-    );
+    return http.get(API.API_CONVERSATIONS_ICE_SERVERS);
   },
 
   getCallState(conversationId: string) {
-    return http.get<IApiResponse<any>>(
-      API.API_CONVERSATIONS_CALLS_STATE(conversationId)
-    );
-  },
-
-  endCall(conversationId: string, callId: string, data: EndCallRequest) {
-    return http.post<IApiResponse<any>>(
-      API.API_CONVERSATIONS_CALLS_END(conversationId, callId),
-      data
-    );
-  },
+    return http.get(API.API_CONVERSATIONS_CALLS_STATE(conversationId));
+  }
 };

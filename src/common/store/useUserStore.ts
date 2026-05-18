@@ -26,6 +26,11 @@ const initialEditProfileData: IEditProfileForm = {
   gender: "",
   dateOfBirth: "",
   phone: "",
+  username: "",
+  email: "",
+  isActive: false,
+  createdAt: "",
+  updatedAt: "",
 };
 
 export const useUserStore = create<UseUserStoreProps>()((set) => ({
@@ -58,6 +63,11 @@ export const useUserStore = create<UseUserStoreProps>()((set) => ({
         gender: user?.gender ?? "",
         dateOfBirth: user?.dateOfBirth?.toISOString() ?? "",
         phone: user?.phone ?? "",
+        username: user?.username ?? "",
+        email: user?.email ?? "",
+        isActive: user?.isActive ?? false,
+        createdAt: user?.createdAt ? String(user.createdAt) : "",
+        updatedAt: user?.updatedAt ? String(user.updatedAt) : "",
       },
     });
   },

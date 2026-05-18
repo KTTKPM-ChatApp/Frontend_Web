@@ -1,6 +1,7 @@
 import { Gender } from "./auth-interface";
 
 export interface IEditProfileForm {
+    fullName: string;
     displayName: string;
     bio: string;
     gender: Gender | string;

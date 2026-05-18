@@ -14,17 +14,23 @@ export interface ConversationMemberDto {
   userId: string;
   username?: string;
   displayName?: string;
+  fullName?: string;
+  nickname?: string;
+  avatarUrl?: string | null;
   role: string;
 }
 
 export interface ConversationDto {
   id: string;
   name: string;
+  title?: string;
   avatarUrl?: string | null;
   type:  string;
   memberCount?: number;
   unreadCount: number;
   isMuted?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: string | number | null;
   lastMessage?: ConversationLastMessageDto | null ;
   lastMessageAt?: string | number | null;
   createdAt?: string | null;
@@ -45,6 +51,7 @@ export interface ConversationListResponse {
   timestamp?: string;
 }
 export interface AttachmentDto {
+  id?: string;
   key: string;
   type: AttachmentType;
   name: string;
@@ -54,6 +61,55 @@ export interface AttachmentDto {
   url?: string;
   thumbnailUrl?: string;
 }
+
+export interface MessageReplyPreview {
+  messageId: string;
+  senderId: string;
+  body: string;
+  attachments: AttachmentDto[];
+  isDeleted?: boolean;
+}
+
+export interface IMessageReplyPreview extends MessageReplyPreview {}
+
+export enum SystemEventType {
+  MEMBER_ADDED = "MEMBER_ADDED",
+  MEMBER_REMOVED = "MEMBER_REMOVED",
+  MEMBER_LEFT = "MEMBER_LEFT",
+  ROLE_CHANGED = "ROLE_CHANGED",
+  OWNER_TRANSFERRED = "OWNER_TRANSFERRED",
+  GROUP_DISBANDED = "GROUP_DISBANDED",
+}
+
+export interface SystemMemberMetadata {
+  userId?: string;
+  username?: string;
+  displayName?: string;
+  fullName?: string;
+  members?: SystemMemberMetadata[];
+  actorName?: string;
+  targetName?: string;
+  role?: string;
+  full_name?: string;
+  user_name?: string;
+  added_by_name?: string;
+  added_members?: SystemMemberMetadata[];
+  removed_by_name?: string;
+  removed_user_name?: string;
+  previous_owner_name?: string;
+  new_owner_name?: string;
+  updated_by_name?: string;
+  target_user_name?: string;
+  new_role?: string;
+  disbanded_by_name?: string;
+}
+
+export type MemberAddedMetadata = SystemMemberMetadata;
+export type MemberRemovedMetadata = SystemMemberMetadata;
+export type MemberLeftMetadata = SystemMemberMetadata;
+export type RoleChangedMetadata = SystemMemberMetadata;
+export type OwnerTransferredMetadata = SystemMemberMetadata;
+export type GroupDisbandedMetadata = SystemMemberMetadata;
 export interface UiMessage {
   messageId: string;
   conversationId: string;
@@ -62,10 +118,17 @@ export interface UiMessage {
   body: string;
   createdAt: number;
   attachments: AttachmentDto[];
+  type?: string;
+  message_type?: string;
+  system_event_type?: SystemEventType | string;
+  metadata?: Record<string, unknown>;
+  replyTo?: MessageReplyPreview | null;
   replyToMessageId?: string | null;
   editedAt?: number;
   deletedAt?: number;
   isDeleted: boolean;
+  isPinned?: boolean;
+  pinnedAt?: string | number | null;
 
   pending?: boolean;
   failed?: boolean;

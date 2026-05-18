@@ -6,8 +6,9 @@ export interface IUser {
     email: string;
     passwordHash: string;
     displayName: string;
-    avatarUrl?: string;
-    bio?: string;
+    fullName?: string;
+    avatarUrl?: string | null;
+    bio?: string | null;
     gender?: string;
     dateOfBirth?: Date;
     phone?: string;
@@ -33,6 +34,7 @@ export interface ILoginPayload {
 export interface IAuthResponse {
     accessToken: string;
     refreshToken: string;
+    tokens?: IRefreshResponse;
     user: IUser;
     tokens?: {
         accessToken: string;
@@ -48,12 +50,13 @@ export interface IRefreshPayload {
 export interface IRefreshResponse {
     accessToken: string;
     refreshToken: string;
+    expiresIn?: number;
 }
 
 export interface IUpdateUserPayload {
     displayName?: string;
     bio?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
     dateOfBirth?: Date;
     gender?: string;
     email?: string;

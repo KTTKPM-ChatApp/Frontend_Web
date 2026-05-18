@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+// Disable SSR to avoid hydration errors
+// TODO: Re-enable after fixing dynamic values causing hydration mismatch
+
+import React, { useState, useEffect } from "react";
 import { Box, Button, Grid, Tab } from "@mui/material";
 import { styled } from "@mui/material/styles";
+
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
+
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -15,8 +20,12 @@ import SearchBar from "./components/SearchBar";
 import AppSidebar from "./components/AppSideBar";
 import FilterCategoryDropdown from "./components/DropdownCategory";
 import WelcomeSite from "./components/WelcomeSite";
+
+import { useAuthStore } from "@/src/common/store/useAuthStore";
 import ChatPanel from "./components/chat/ChatPanel";
 import ConversationList from "./components/chat/ConversationList";
+import { useChatStore } from "@/src/common/store/useChatStore";
+import { getcurrentUserId, getRefreshToken, getSessionToken } from "@/src/common/utilities/utils";
 import InfConvColumn from "./components/conversation-infor/page";
 import SearchSidebar from "./components/chat/SearchSidebar";
 import ContactFunctionList, { ContactView } from "./components/friend/ContactFunctionList";
@@ -32,188 +41,245 @@ import { useChatStore } from "@/src/common/store/useChatStore";
 import { getcurrentUserId, getSessionToken } from "@/src/common/utilities/utils";
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
 import { fetchAuthData } from "@/src/common/helpers/fetchDataHelpers";
+import { registerCallHandlers, syncCallState } from "@/src/common/service/call-service";
+import CallContainer from "./components/call/CallContainer";
+import ContactFunctionList, { ContactView } from "./components/friend/ContactFunctionList";
+import ContactContentPanel from "./components/friend/ContactContentPanel";
 import { useTrans } from "@/src/common/utilities/hook/trans";
+/* ===================== styled ===================== */
 
-const Root = styled(Grid)({
-  height: "100vh",
-  width: "100vw",
-  background: "#F7F8FA",
-});
+const Root = styled(Grid)(() => ({
+    height: "100vh",
+    width: "100vw",
+}));
 
-const ConversationColumn = styled(Grid)({
-  minWidth: 346,
-  maxWidth: 346,
-  height: "100vh",
-  display: "flex",
-  flexDirection: "column",
-  borderRight: "1px solid #E5E7EB",
-  background: "#FFFFFF",
-});
+const ConversationColumn = styled(Grid)(() => ({
+    minWidth: 345,
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    borderRight: "1px solid #E5E7EB",
+}));
 
-const ChatColumn = styled(Grid)({
-  height: "100vh",
-});
+const ChatColumn = styled(Grid)(() => ({
+    // minWidth: 0,
+    height: "100vh",
+}));
 
-const Panel = styled(Box)({
-  overflow: "hidden",
-  height: "100%",
-});
+// const InfConvColumn = styled(Grid)(() => ({
+//     border: "1px solid black",
+//     minWidth: "300px"
+// }))
 
-const WelcomeWrap = styled(Box)({
-  padding: 16,
-  color: "#6B7280",
-  height: "100%",
-});
+const Panel = styled(Box)(() => ({
+    overflow: "hidden",
+    height: "100%",
+}));
 
-const ChatTabsWrapper = styled(Box)({
-  borderBottom: "1px solid #E5E7EB",
-  padding: "0 12px",
-  display: "flex",
-  justifyContent: "space-between",
-});
+const WelcomeWrap = styled(Box)(() => ({
+    padding: 16,
+    color: "#6B7280",
+    height: "100%",
+}));
 
-const TabsRight = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  gap: 4,
-});
+export const ChatTabsWrapper = styled(Box)(() => ({
+    borderBottom: "1px solid #E5E7EB",
+    padding: "0 16px",
+    display: "flex",
+    justifyContent: "space-between",
+}));
 
-const TabListStyled = styled(TabList)({
-  minHeight: 24,
-  "& .MuiTabs-flexContainer": {
+const TabsRight = styled(Box)(() => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+}));
+
+export const TabListStyled = styled(TabList)(() => ({
     minHeight: 24,
-    gap: "12px",
-  },
-  "& .MuiTabs-indicator": {
-    height: 2,
-    backgroundColor: "#0068FF",
-  },
-});
 
-const TabStyled = styled(Tab)({
-  minHeight: 34,
-  height: 34,
-  padding: "0",
-  textTransform: "none",
-  fontSize: 14,
-  fontWeight: 700,
-  minWidth: "unset",
-  width: "auto",
-  "&:hover": {
-    backgroundColor: "transparent",
-    color: "#0068FF",
-  },
-  "& .MuiTouchRipple-root": {
-    display: "none",
-  },
-  "&.Mui-selected": {
-    color: "#0068FF",
-  },
-});
+    "& .MuiTabs-flexContainer": {
+        minHeight: 24,
+        gap: "12px",
+    },
+    "& .MuiTabs-indicator": {
+        height: 2,
+        backgroundColor: "#005AE0",
+    },
+}));
 
-const TabPanelStyled = styled(TabPanel)({
-  padding: "8px 0 8px 8px",
-  flex: 1,
-  minHeight: 0,
-  overflowY: "auto",
-});
+export const TabStyled = styled(Tab)(() => ({
+    minHeight: 32,
+    height: 32,
+    padding: "0",
+    textTransform: "none",
+    fontSize: 14,
+    fontWeight: 600,
+    minWidth: "unset",
+    width: "auto",
 
-const CategoryFilterButton = styled(Button)({
-  textTransform: "none",
-  fontSize: 13,
-  minHeight: 28,
-  height: 28,
-  borderRadius: 14,
-  padding: "0 10px",
-  color: "#334155",
-  "&:hover": {
-    backgroundColor: "#EBECF0",
-  },
-  "&.active": {
-    backgroundColor: "#E5F1FF",
+    "&:hover": {
+        backgroundColor: "transparent",
+        color: "#005AE0",
+    },
+    "&.Mui-focusVisible": {
+        backgroundColor: "transparent",
+    },
+    "& .MuiTouchRipple-root": {
+        display: "none",
+    },
+    "&.Mui-selected": {
+        color: "#005AE0",
+    },
+}));
+
+const TabPanelStyled = styled(TabPanel)(() => ({
+    padding: 8,
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    // margin:"0px",
+    borderRadius: "8px",
+}));
+
+const CategoryFilterButton = styled(Button)(({ theme }) => ({
+    textTransform: "none",
+    fontSize: 13,
+    minHeight: 24,
+    height: 24,
+    borderRadius: 12,
+    padding: "0 12px",
+    color: theme.palette.text.primary,
+
+    "&:hover": {
+        backgroundColor: "#EBECF0",
+    },
+    "&.active": {
+        backgroundColor: "#E5F1FF",
+        color: "#005ae0",
+    },
+}));
+
+export const DropdownWrapper = styled(Box)(() => ({
+    position: "relative",
+    display: "inline-block",
+}));
+
+export const StyledMoreIcon = styled(MoreHorizIcon)(() => ({
+    fontSize: 20,
+    borderRadius: "50%",
+    padding: 4,
+    cursor: "pointer",
+    transition: "background-color 0.2s ease",
+
+    "&:hover": {
+        backgroundColor: "#EBECF0",
+    },
+}));
+
+const CancelIconStyled = styled(CancelIcon)(() => ({
+    "&&": {
+        fontSize: 16,
+    },
     color: "#005AE0",
-  },
-});
+}));
 
-const DropdownWrapper = styled(Box)({
-  position: "relative",
-  display: "inline-block",
-});
-
-const StyledMoreIcon = styled(MoreHorizIcon)({
-  fontSize: 20,
-  borderRadius: "50%",
-  padding: 4,
-  cursor: "pointer",
-  transition: "background-color 0.2s ease",
-  "&:hover": {
-    backgroundColor: "#EBECF0",
-  },
-});
-
-const CancelIconStyled = styled(CancelIcon)({
-  fontSize: 16,
-  color: "#005AE0",
-});
+/* ===================== types ===================== */
 
 type SidebarKey = "chat" | "contact" | "cloud" | "folder" | "business" | "settings";
-type RightPanelMode = "info" | "search";
 
 export type FilterCategoryKey =
-  | "Customer"
-  | "Family"
-  | "Work"
-  | "Friends"
-  | "Reply later"
-  | "Colleague"
-  | "Other";
+    | "Customer"
+    | "Family"
+    | "Work"
+    | "Friends"
+    | "Reply later"
+    | "Colleague"
+    | "Other";
+
+/* ===================== component ===================== */
 
 const Me = () => {
-  const t = useTrans();
-  const [selectedIcon, setSelectedIcon] = useState<SidebarKey>("chat");
-  const [contactView, setContactView] = useState<ContactView>("friends");
-  const [chatTab, setChatTab] = useState<string>("allChats");
-  const [isSelectedCategory, setSelectedCategory] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<FilterCategoryKey[]>([]);
-  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>("info");
-  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [showFriendRequestModal, setShowFriendRequestModal] = useState(false);
-  const [selectedFriendRequest, setSelectedFriendRequest] = useState<{
-    id: string;
-    name: string;
-    avatar?: string;
-    message?: string;
-  } | null>(null);
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+    const t = useTrans();
+    // type ContactView = "friends" | "groups" | "friendRequests" | "sentRequests";
+    const [selectedIcon, setSelectedIcon] = useState<SidebarKey>("chat");
+    const [contactView, setContactView] = useState<ContactView>("friends");
+    const [chatTab, setChatTab] = useState<string>("allChats");
+    const [isSelectedCategory, setSelectedCategory] = useState(false);
+    const [selectedCategories, setSelectedCategories] = useState<FilterCategoryKey[]>([]);
+    const [showSearchSidebar, setShowSearchSidebar] = useState(false);
+    const authData = useAuthStore((s) => s.authData);
+    // console.log("SenderId", authData?.data?.user?.id)
+    const setActiveConversationId = useChatStore((s)=> s.setActiveConversationId)
+    const activeConversationId = useChatStore((s) => s.activeConversationId);
 
-  const authData = useAuthStore((s) => s.authData);
-  const setActiveConversationId = useChatStore((s) => s.setActiveConversationId);
-  const activeConversationId = useChatStore((s) => s.activeConversationId);
+    // Close search sidebar when conversation changes
+    useEffect(() => {
+        setShowSearchSidebar(false);
+    }, [activeConversationId]);
 
-  useEffect(() => {
-    setRightPanelMode("info");
-  }, [activeConversationId]);
+    useEffect(() => {
+        if (activeConversationId) {
+            syncCallState(activeConversationId);
+        }
+    }, [activeConversationId]);
 
-  useEffect(() => {
-    const accessToken = getSessionToken() || "";
-    const currentUserId = getcurrentUserId() || "";
-    if (accessToken && currentUserId) {
-      initChat(accessToken, currentUserId);
-    }
-    return () => {
-      cleanupChat();
+    const handleSelectedIcon = (iconName: SidebarKey) => {
+        setSelectedIcon(iconName);
+        if (iconName === "contact") {
+            setContactView("friends")
+            setActiveConversationId(null)
+        }
     };
-  }, []);
 
-  useEffect(() => {
-    fetchAuthData();
-  }, []);
+    const handleChangeChatTab = (_event: React.SyntheticEvent, newTab: string) => {
+        setChatTab(newTab);
+    };
 
-  const handleSelectedIcon = (iconName: SidebarKey) => {
-    setSelectedIcon(iconName);
-    if (iconName === "contact") {
-      setContactView("friends");
-      setActiveConversationId(null);
+    const getCategoryLabel = () => {
+        if (selectedCategories.length === 0) return t("ME.CATEGORY");
+        if (selectedCategories.length === 1) return selectedCategories[0];
+        return t("ME.CATEGORY_COUNT", { count: selectedCategories.length });
+    };
+
+    useEffect(() => {
+        const accessToken = getSessionToken() || "";
+        const refreshToken = getRefreshToken() || "";
+        const currentUserId = getcurrentUserId() || "";
+        if (accessToken && currentUserId) {
+            initChat(accessToken, currentUserId);
+        }
+
+        return () => {
+            cleanupChat();
+        };
+    }, []);
+    useEffect(() => {
+        fetchAuthData()
+    }, [])
+
+    const accessToken = getSessionToken() ?? ""
+
+    const currentUserId =
+        authData?.data?.user?.id ||
+        getcurrentUserId() ||
+        "";
+
+    // Register call handlers on mount
+    useEffect(() => {
+        if (currentUserId) {
+            const unregister = registerCallHandlers(currentUserId);
+            return () => unregister();
+        }
+    }, [currentUserId]);
+
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return null;
     }
     if (iconName !== "chat") {
       setActiveConversationId(null);

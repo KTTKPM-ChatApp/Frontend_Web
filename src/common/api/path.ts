@@ -38,6 +38,7 @@ export const API = {
 
     /* ================= CONVERSATIONS ================= */
     API_CONVERSATIONS_LIST: "/api/conversations",
+    API_CONVERSATIONS_CREATE: "/api/conversations",
     API_CONVERSATIONS_DETAIL: (conversationId: string) =>
         `/api/conversations/${conversationId}`,
     API_CONVERSATIONS_UPDATE: (conversationId: string) =>
@@ -110,11 +111,17 @@ export const API = {
         `/api/conversations/${conversationId}/call-state`,
     API_CONVERSATIONS_CALLS_END: (conversationId: string, callId: string) =>
         `/api/conversations/${conversationId}/calls/${callId}/end`,
+    API_CONVERSATION_CALL_END: (conversationId: string, callId: string) =>
+        `/api/conversations/${conversationId}/calls/${callId}/end`,
 
     /* ================= MESSAGES ================= */
 
 
     API_MESSAGES: (conversationId: string) =>
+      `/api/conversations/${conversationId}/messages`,
+    API_CONVERSATIONS_MESSAGES: (conversationId: string) =>
+      `/api/conversations/${conversationId}/messages`,
+    API_CONVERSATIONS_SEND_MESSAGE: (conversationId: string) =>
       `/api/conversations/${conversationId}/messages`,
 
     API_MESSAGE_DETAIL: (

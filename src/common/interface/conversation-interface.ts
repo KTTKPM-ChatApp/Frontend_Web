@@ -1,3 +1,5 @@
+import type { ConversationDto } from "./chat-interface";
+
 // Conversation Management Interfaces
 
 import { ConversationDto } from './chat-interface';
