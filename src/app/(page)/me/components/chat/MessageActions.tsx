@@ -66,10 +66,10 @@ export default function MessageActions({
         </Tooltip>
       )}
 
-      {canPin && (
-        <Tooltip title={isPinned ? t("CHAT.ACTION_UNPIN") : t("CHAT.ACTION_PIN")}>
+      {canPin && !isPinned && (
+        <Tooltip title={t("CHAT.ACTION_PIN")}>
           <IconButton size="small" onClick={onTogglePin}>
-            <PushPinIcon fontSize="small" sx={{ color: isPinned ? "#005AE0" : "inherit" }} />
+            <PushPinIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       )}

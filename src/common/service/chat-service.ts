@@ -1,5 +1,6 @@
 import http from "../api/http";
 import { API } from "../api/path";
+import type { IApiResponse } from "../interface/auth-interface";
 import type {
   ConversationListResponse,
   MessagePageDto,
@@ -211,6 +212,17 @@ export const chatService = {
     });
   },
 
+  fetchMessages(conversationId: string, params: { limit?: number; before?: string | null } = {}) {
+    const urlParams = new URLSearchParams();
+    if (params.limit) urlParams.set("limit", String(params.limit));
+    if (params.before) urlParams.set("cursor", params.before);
+    
+    return http.get<IApiResponse<any>>(
+      `${API.API_MESSAGES_LIST(conversationId)}?${urlParams.toString()}`
+    );
+  },
+
+
   fetchMessageDetail(
     conversationId: string,
     createdAt: number,
@@ -334,27 +346,13 @@ export const chatService = {
     );
   },
 
-  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: AttachmentDto[] = []) {
+  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: any[] = []) {
     return http.post(API.API_CONVERSATIONS_SEND_MESSAGE(conversationId), {
       content,
       contentType,
       attachments
     });
-  },
-
-  fetchMessageDetail(conversationId: string, createdAt: number, messageId: string) {
-    console.log('fetchMessageDetail called with:', { conversationId, createdAt, messageId });
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
-  },
-
-  fetchMessageReactions(messageId: string) {
-    console.log('fetchMessageReactions called with:', messageId);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
-  },
-
-  forwardMessage(payload: ForwardMessagePayload) {
-    return http.post(API.API_MESSAGES_FORWARD, payload);
-  },
+},
 
   fetchConversationById(conversationId: string) {
     return http.get(API.API_CONVERSATIONS_DETAIL(conversationId));
@@ -370,36 +368,11 @@ export const chatService = {
     return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
   },
 
-  pinMessage(conversationId: string, createdAt: number, messageId: string) {
-    console.log('pinMessage called with:', { conversationId, createdAt, messageId });
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
-  },
-
-  unpinMessage(conversationId: string, createdAt: number, messageId: string) {
-    console.log('unpinMessage called with:', { conversationId, createdAt, messageId });
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
-  },
-
   fetchPinnedMessages(conversationId: string) {
     return http.get<{ data?: { items?: unknown[] } }>(API.API_MESSAGE_PINS(conversationId));
   },
 
-  searchMessages(conversationId: string, params: SearchMessagesParams) {
-    const queryParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) queryParams.append(key, String(value));
-    });
-    const suffix = queryParams.toString() ? `?${queryParams.toString()}` : "";
-    return http.get(`${API.API_MESSAGES_SEARCH(conversationId)}${suffix}`);
-  },
 
-  createGroupConversation(body: { name?: string; title?: string; memberIds: string[]; avatarUrl?: string }) {
-    return http.post(API.API_CONVERSATIONS_CREATE_GROUP, body);
-  },
-
-  updateConversation(conversationId: string, body: UpdateConversationRequest) {
-    return http.put(API.API_CONVERSATIONS_UPDATE(conversationId), body);
-  },
 
   updateConversationSettings(conversationId: string, body: UpdateSettingsRequest | UpdateGroupSettingsRequest) {
     return http.patch(API.API_CONVERSATIONS_SETTINGS(conversationId), body);
@@ -431,5 +404,21 @@ export const chatService = {
 
   getCallState(conversationId: string) {
     return http.get(API.API_CONVERSATIONS_CALLS_STATE(conversationId));
-  }
+  },
+
+deleteMessage(conversationId: string, createdAt: number, messageId: string) {
+    return http.delete(`/api/messages/${conversationId}/${createdAt}/${messageId}`);
+  },
+
+  leaveConversation(conversationId: string) {
+    return http.delete(API.API_CONVERSATIONS_MEMBERS(conversationId) + '/me');
+  },
+
+  disbandGroup(conversationId: string) {
+    return http.delete(API.API_CONVERSATIONS_DETAIL(conversationId));
+  },
+
+  removeMember(conversationId: string, memberId: string) {
+    return http.delete(API.API_CONVERSATIONS_MEMBERS(conversationId) + '/' + memberId);
+  },
 };

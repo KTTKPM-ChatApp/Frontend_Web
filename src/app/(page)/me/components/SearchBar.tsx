@@ -19,6 +19,7 @@ import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
 import { useState, useMemo, useEffect } from "react";
 import { useChatStore } from "@/src/common/store/useChatStore";
+import { useAuthStore } from "@/src/common/store/useAuthStore";
 
 import { searchService } from "@/src/common/service/search-service";
 import { chatService } from "@/src/common/service/chat-service";
@@ -98,7 +99,13 @@ const SearchResultItem = styled(ListItem)({
         backgroundColor: "#f0f0f0",
     },
 });
-const SearchBar = () => {
+interface SearchBarProps {
+    onResultSelect?: (result: SearchResult) => void;
+    onAddFriend?: () => void;
+    onCreateGroup?: () => void;
+}
+
+const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProps = {}) => {
     const [focusOnSearch, setFocusOnSearch] = useState(false);
     const [searchValue, setSearchValue] = useState("");
     const [userResults, setUserResults] = useState<IUserSearchItem[]>([]);
@@ -107,11 +114,16 @@ const SearchBar = () => {
     const [openAddFriendDialog, setOpenAddFriendDialog] = useState(false);
     const debounceSearch = useDebounce(searchValue, 300);
     const { listConversation } = useChatStore();
+    const { authData } = useAuthStore();
+    const currentUserId = authData?.data?.user?.id;
 
     const fetchFriends = useFriendStore((s) => s.fetchFriends);
     const fetchPendingRequests = useFriendStore((s) => s.fetchPendingRequests);
     const fetchSentRequests = useFriendStore((s) => s.fetchSentRequests);
     const getRelationStatus = useFriendStore((s) => s.getRelationStatus);
+    const friends = useFriendStore((s) => s.friends);
+    const pendingRequests = useFriendStore((s) => s.pendingRequests);
+    const sentRequests = useFriendStore((s) => s.sentRequests);
     const [openCreateGroupModal, setOpenCreateGroupModal] = useState(false);
     const handleFocusSearchBar = () => {
         setFocusOnSearch(true);
@@ -178,7 +190,8 @@ const SearchBar = () => {
                     limit: 20,
                 });
 
-                const users = response?.payload?.users || [];
+                // Backend returns { data: [...], meta: {...} }
+                const users = (response as any)?.payload?.data || (response as any)?.payload?.users || [];
                 setUserResults(Array.isArray(users) ? users : []);
             } catch (error: any) {
                 console.error("search user error:", error);
@@ -195,7 +208,17 @@ const SearchBar = () => {
     const searchResults = useMemo<SearchResult[]>(() => {
         if (!debounceSearch.trim()) return [];
 
-        const mappedUsers: SearchResult[] = userResults.map((user) => {
+        const mappedUsers: SearchResult[] = userResults
+            .filter((user) => user.id !== currentUserId)
+            .filter((user) => {
+                // Prevent duplicate by checking if there is already a direct conversation in the results
+                const alreadyInConvs = friendConversationResults.some((res) => {
+                    if (res.kind !== "conversation" || res.conversation.type !== "direct") return false;
+                    return res.conversation.members?.some((m) => m.userId === user.id);
+                });
+                return !alreadyInConvs;
+            })
+            .map((user) => {
             const relationStatus = getRelationStatus(user.id);
             return {
 	                kind: "user" as const,
@@ -203,7 +226,7 @@ const SearchBar = () => {
 	                displayName: user.fullName ?? user.displayName ?? "",
 	                fullName: user.fullName ?? user.displayName ?? "",
                 avatarUrl: user.avatarUrl ?? null,
-                phone: user.phone ?? "",
+                phone: user.phone ?? null,
                 friendshipStatus: relationStatus,
                 user,
             };
@@ -273,7 +296,7 @@ const SearchBar = () => {
                     };
                 }
                 
-                const res = await chatService.fetchListConversations({ page: 1, limit: 100 });
+                const res = await chatService.fetchListConversations({ offset: 0, limit: 100 });
                 
                 if (res?.ok && res?.payload?.data) {
                     const updatedList = res.payload.data;
@@ -291,8 +314,10 @@ const SearchBar = () => {
             } else {
                 console.error("Failed to create direct conversation:", response);
             }
-        } catch (error) {
-            console.error("Failed to create direct conversation:", error);
+        } catch (error: any) {
+            console.error("Failed to create direct conversation:", error?.payload || error);
+            const errMsg = error?.payload?.message || error?.message || "Lỗi tạo cuộc trò chuyện";
+            alert(`Lỗi: ${errMsg}`);
         } finally {
             setLoadingSearch(false);
             setSearchValue("");

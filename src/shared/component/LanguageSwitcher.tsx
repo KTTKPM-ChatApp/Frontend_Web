@@ -66,10 +66,8 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ open, onClose }) =>
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {t("COMMON.LANGUAGE")}
-        </Typography>
+      <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem" }}>
+        {t("COMMON.LANGUAGE")}
       </DialogTitle>
       
       <DialogContent>

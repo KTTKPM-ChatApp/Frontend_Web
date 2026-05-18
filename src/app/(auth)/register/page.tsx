@@ -26,6 +26,11 @@ export default function RegisterPage() {
     const Trans = useTrans();
     const { i18n } = useTranslation();
     const [confirmPsw, setConfirmPsw] = useState("");
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleLanguageToggle = () => {
         const newLang = i18n.language === 'vi' ? 'en' : 'vi';
@@ -52,11 +57,16 @@ export default function RegisterPage() {
                 const payload = result?.payload;
 
                 if (result?.ok && payload?.user) {
+                    if (typeof window !== "undefined" && payload.accessToken && payload.refreshToken) {
+                        localStorage.setItem("accessToken", payload.accessToken);
+                        localStorage.setItem("refreshToken", payload.refreshToken);
+                        localStorage.setItem("currentUserId", payload.user.id);
+                    }
                     setAuthData({
                         success: true,
                         data: {
-                            accessToken: "",
-                            refreshToken: "",
+                            accessToken: payload.accessToken || "",
+                            refreshToken: payload.refreshToken || "",
                             user: payload.user
                         },
                         message: "Đăng ký thành công"
@@ -78,9 +88,12 @@ export default function RegisterPage() {
 
 
 
+    if (!mounted) {
+        return null;
+    }
 
     return (
-        <Page>
+        <Page suppressHydrationWarning>
             <Content spacing={2}>
                 <LogoWrap>
                     <Image

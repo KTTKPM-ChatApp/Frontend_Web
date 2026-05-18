@@ -137,10 +137,16 @@ export const fetchListConversation = async (params: { page?: number; limit?: num
     });
 
     const payload = res?.payload as any;
-    const items = Array.isArray(payload?.conversations) ? payload.conversations : [];
+    // Backend returns { data: [], meta: {} }
+    const items = Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.conversations)
+      ? payload.conversations
+      : [];
+    const meta = payload?.meta ?? null;
 
     state.setListConversation(sortConversations(items));
-    state.setConversationMeta(null);
+    state.setConversationMeta(meta);
     state.setConversationLoading(false);
     state.setConversationFetched(true);
   } catch (err: any) {
@@ -255,12 +261,6 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     if (state.isMessagePinned(conversationId, messageId)) {
       state.removePinnedMessage(conversationId, messageId);
     }
-
-    appendMessageDerivedData(msg);
-
-    if (msg.senderId && msg.senderId !== currentUserId && document.hidden) {
-      import("../utilities/sound").then(({ playNotificationSound }) => playNotificationSound());
-    }
   };
 
   const handleSystemMessage = (raw: any) => {
@@ -367,40 +367,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     });
   };
 
-  socket.on("chat:new", handleIncomingMessage);
-
-  socket.on("chat:typing", (data: { userId: string; conversationId: string }) => {
-    const current = useChatStore.getState();
-    if (!data.conversationId || data.userId === currentUserId) return;
-    const prev = current.typingUsersByConversation[data.conversationId] || [];
-    if (prev.some((u) => u.userId === data.userId)) return;
-    current.setTypingUsers(data.conversationId, [
-      ...prev,
-      { userId: data.userId },
-    ]);
-  });
-
-  socket.on("chat:stop_typing", (data: { userId: string; conversationId: string }) => {
-    const current = useChatStore.getState();
-    if (!data.conversationId) return;
-    const prev = current.typingUsersByConversation[data.conversationId] || [];
-    current.setTypingUsers(
-      data.conversationId,
-      prev.filter((u) => u.userId !== data.userId)
-    );
-  });
-
-  socket.on("presence:online", (data: { userId: string }) => {
-    const current = useChatStore.getState();
-    if (!current.onlineUserIds.includes(data.userId)) {
-      current.setOnlineUserIds([...current.onlineUserIds, data.userId]);
-    }
-  });
-
-  socket.on("presence:offline", (data: { userId: string }) => {
-    const current = useChatStore.getState();
-    current.setOnlineUserIds(current.onlineUserIds.filter((id) => id !== data.userId));
-  });
+  // Removed legacy socket.on calls because stompClient does not support them.
+  // Window event listeners below (chat:new, presence:update, etc.) should handle events now.
 
   // Remove existing listeners to prevent duplicates
   window.removeEventListener('chat:new', handleWindowIncomingMessage);
@@ -452,7 +420,9 @@ export const openConversation = async (conversationId: string) => {
 
   try {
     const res = await chatService.fetchMessages(conversationId, { limit: 50 });
-    const messages = (res?.payload as any)?.data || [];
+    const payloadData = (res?.payload as any)?.data;
+    const messages = Array.isArray(payloadData?.items) ? payloadData.items : (Array.isArray(payloadData) ? payloadData : []);
+    
     const normalizedItems = dedupeByMessageId(messages.map(normalizeMessage));
     const hydratedItems = hydrateReplyMessages(normalizedItems);
 
@@ -462,12 +432,11 @@ export const openConversation = async (conversationId: string) => {
 
     state.setMessages(conversationId, merged);
 
-    const payloadMeta = (res?.payload as any)?.meta;
-    const hasNext = payloadMeta?.hasNext ?? false;
-    const oldestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+    const hasNext = payloadData?.hasMore ?? false;
+    const nextCursor = payloadData?.nextCursor ?? (messages.length > 0 ? messages[messages.length - 1].createdAt : null);
 
     state.setPagination(conversationId, {
-      nextCursor: oldestMessage ? oldestMessage.id : null,
+      nextCursor: nextCursor,
       hasMore: hasNext,
       loading: false,
       loadingMore: false,
@@ -509,8 +478,8 @@ export const loadMoreMessages = async (conversationId: string) => {
       limit: 50,
     });
 
-    const payload = res?.payload as any;
-    const messagesData = Array.isArray(payload?.data) ? payload.data : [];
+    const payloadData = (res?.payload as any)?.data;
+    const messagesData = Array.isArray(payloadData?.items) ? payloadData.items : (Array.isArray(payloadData) ? payloadData : []);
     const fetchedMessages = messagesData.map(normalizeMessage);
 
     const oldMessages = hydrateReplyMessages(
@@ -526,7 +495,7 @@ export const loadMoreMessages = async (conversationId: string) => {
       ...currentMessages,
     ]);
 
-    const oldestMessage = messagesData.length > 0 ? messagesData[messagesData.length - 1] : null;
+    const nextCursor = payloadData?.nextCursor ?? (messagesData.length > 0 ? messagesData[messagesData.length - 1].createdAt : null);
 
     useChatStore.setState((state) => ({
       messagesByConversation: {
@@ -537,8 +506,8 @@ export const loadMoreMessages = async (conversationId: string) => {
         ...state.paginationByConversation,
         [conversationId]: {
           ...state.paginationByConversation[conversationId],
-          nextCursor: oldestMessage ? oldestMessage.id : null,
-          hasMore: payload?.meta?.hasNext ?? false,
+          nextCursor: nextCursor,
+          hasMore: payloadData?.hasMore ?? false,
           loading: false,
           loadingMore: false,
         },
@@ -668,73 +637,88 @@ export const sendMessage = async (
   return sendMessageHttp(conversationId, body, attachments, replyMessage);
 };
 
-export const editMessage = async (
+export const deleteMessage = async (
   conversationId: string,
   messageId: string,
-  newBody: string
+  createdAt: number
 ) => {
   const state = useChatStore.getState();
-  const socket = getSocket();
-  const cleanBody = cleanMessageBody(newBody);
 
-  if (!socket?.connected) {
-    state.setError("Socket chưa kết nối");
-    return;
+  try {
+    const res = await chatService.deleteMessage(conversationId, createdAt, messageId);
+    if (res?.ok) {
+      const deletedAt = Date.now();
+
+      useChatStore.setState((prev) => {
+        const msgs = prev.messagesByConversation[conversationId] || [];
+        const updatedMessages = msgs.map((msg) =>
+          msg.messageId === messageId
+            ? {
+                ...msg,
+                isDeleted: true,
+                deletedAt,
+                failed: false,
+              }
+            : msg
+        );
+
+        const pinned = prev.pinnedMessagesByConversation[conversationId] || [];
+        const updatedPinned = pinned.filter(
+          (p: any) => p.messageId !== messageId && (p as any).id !== messageId
+        );
+
+        return {
+          messagesByConversation: {
+            ...prev.messagesByConversation,
+            [conversationId]: updatedMessages,
+          },
+          pinnedMessagesByConversation: {
+            ...prev.pinnedMessagesByConversation,
+            [conversationId]: updatedPinned,
+          },
+        };
+      });
+
+      const socket = getSocket();
+      if (socket?.connected) {
+        sendSocketMessage("/app/chat/delete", {
+          conversation_id: conversationId,
+          message_id: messageId,
+          created_at: createdAt,
+        });
+      }
+    } else {
+      state.setError((res as any)?.payload?.message || "Xóa tin nhắn thất bại");
+    }
+  } catch (error: any) {
+    console.error("[deleteMessage] error:", error);
+    state.setError(error?.message || "Lỗi xóa tin nhắn");
   }
-
-  if (!cleanBody) {
-    state.setError("Nội dung chỉnh sửa không được để trống");
-    return;
-  }
-
-  const editedAt = Date.now();
-
-  useChatStore.setState((prev) => ({
-    messagesByConversation: {
-      ...prev.messagesByConversation,
-      [conversationId]: (prev.messagesByConversation[conversationId] || []).map((msg) =>
-        msg.messageId === messageId
-          ? {
-            ...msg,
-            body: cleanBody,
-            editedAt,
-            failed: false,
-          }
-          : msg
-      ),
-    },
-    listConversation: prev.listConversation.map((cvs) => {
-      if (cvs.id !== conversationId) return cvs;
-
-      const lastMessage = cvs.lastMessage;
-      if (!lastMessage || lastMessage.id !== messageId) return cvs;
-
-      return {
-        ...cvs,
-        lastMessage: {
-          ...lastMessage,
-          content: cleanBody,
-        },
-        lastMessageAt: editedAt,
-      };
-    }),
-  }));
-
-  sendSocketMessage("/app/chat/update", {
-    conversation_id: conversationId,
-    message_id: messageId,
-    body: cleanBody,
-    edited_at: editedAt,
-  });
 };
 
 export const pinMessage = async (conversationId: string, messageId: string, createdAt: number) => {
   try {
+    const state = useChatStore.getState();
+    const pinned = state.pinnedMessagesByConversation[conversationId] || [];
+    
+    if (pinned.some((m: any) => m.messageId === messageId)) {
+      console.warn("[pinMessage] Message already pinned");
+      return { ok: true, payload: {} };
+    }
+
     const res = await chatService.pinMessage(conversationId, createdAt, messageId);
     if (res?.ok) {
-      const state = useChatStore.getState();
-      const pinned = state.pinnedMessagesByConversation[conversationId] || [];
-      state.setPinnedMessages(conversationId, [...pinned, res.payload as any]);
+      const payload = res.payload as any;
+      const pinnedMsg = {
+        id: payload?.id || payload?.messageId || messageId,
+        messageId: payload?.messageId || messageId,
+        body: payload?.message?.content || payload?.content || "",
+        content: payload?.message?.content || payload?.content || "",
+        senderId: payload?.message?.senderId || payload?.senderId || "",
+        createdAt: payload?.message?.createdAt || payload?.createdAt || createdAt,
+        isPinned: true,
+      };
+      state.setPinnedMessages(conversationId, [...pinned, pinnedMsg]);
     }
     return res;
   } catch (error: any) {
@@ -745,15 +729,27 @@ export const pinMessage = async (conversationId: string, messageId: string, crea
 
 export const unpinMessage = async (conversationId: string, messageId: string, createdAt: number) => {
   try {
-    const res = await chatService.unpinMessage(conversationId, createdAt, messageId);
+    console.log("[unpinMessage] Called:", { conversationId, messageId, createdAt });
+    
+    const ts = typeof createdAt === 'number' ? createdAt : Date.now();
+    const res = await chatService.unpinMessage(conversationId, ts, messageId);
+    console.log("[unpinMessage] Response:", res);
+    
     if (res?.ok) {
       const state = useChatStore.getState();
       const pinned = state.pinnedMessagesByConversation[conversationId] || [];
-      state.setPinnedMessages(conversationId, pinned.filter((m: any) => m.messageId !== messageId));
+      const filtered = pinned.filter((m: any) => {
+        const mId = m.messageId || m.id;
+        return mId !== messageId;
+      });
+      console.log("[unpinMessage] Filtered pinned:", filtered.length);
+      state.setPinnedMessages(conversationId, filtered);
+    } else {
+      console.warn("[unpinMessage] Failed:", res?.payload);
     }
     return res;
   } catch (error: any) {
-    console.error("[unpinMessage] error:", error);
+    console.error("[unpinMessage] Error:", error);
     return null;
   }
 };
@@ -850,17 +846,17 @@ let typingTimeout: ReturnType<typeof setTimeout> | null = null;
 export const sendTyping = (conversationId: string) => {
   const socket = getSocket();
   if (!socket?.connected) return;
-  socket.emit("chat:typing", { conversation_id: conversationId });
+  sendSocketMessage("/app/chat/typing", { conversation_id: conversationId });
   if (typingTimeout) clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => {
-    socket.emit("chat:stop_typing", { conversation_id: conversationId });
+    sendSocketMessage("/app/chat/stop_typing", { conversation_id: conversationId });
   }, 3000);
 };
 
 export const sendStopTyping = (conversationId: string) => {
   const socket = getSocket();
   if (!socket?.connected) return;
-  socket.emit("chat:stop_typing", { conversation_id: conversationId });
+  sendSocketMessage("/app/chat/stop_typing", { conversation_id: conversationId });
   if (typingTimeout) {
     clearTimeout(typingTimeout);
     typingTimeout = null;
@@ -874,18 +870,7 @@ export const cleanupChat = () => {
 
   if (heartbeatId) clearInterval(heartbeatId);
 
-  socket?.off("connect");
-  socket?.off("disconnect");
-  socket?.off("connect_error");
-  socket?.off("chat:new");
-  socket?.off("chat:message");
-  socket?.off("chat:typing");
-  socket?.off("chat:stop_typing");
-  socket?.off("presence:online");
-  socket?.off("presence:offline");
-  socket?.offAny();
-
-  if (socket?.connected) socket.deactivate();
+  if (socket?.connected) (socket as any).disconnect();
 
   state.resetChatState();
 };

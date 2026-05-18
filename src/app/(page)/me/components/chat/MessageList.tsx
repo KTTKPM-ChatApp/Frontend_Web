@@ -182,7 +182,7 @@ export default function MessageList({
                   })}
                   isOwn={mine}
                   isDeleted={msg.isDeleted}
-                  isPinned={false}
+                  isPinned={Boolean(msg.isPinned)}
                   isEdited={Boolean(msg.editedAt)}
                   isGrouped={grouped}
                   deliveryStatus="read"
@@ -191,6 +191,7 @@ export default function MessageList({
                   onReply={() => onReplyMessage(msg)}
                   onForward={() => onForwardMessage?.(msg.messageId, conversationId)}
                   onPin={() => pinMessage(conversationId, msg.messageId, msg.createdAt)}
+                  onUnpin={() => unpinMessage(conversationId, msg.messageId, msg.createdAt)}
                   onEdit={(newContent) => onEditMessage?.(conversationId, msg.messageId, newContent, msg.createdAt)}
                   onReact={(reaction) => console.log("React to message:", msg.messageId, reaction)}
                   onImageClick={(url) => onImageClick?.(url)}

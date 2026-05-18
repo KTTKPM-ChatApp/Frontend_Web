@@ -5,8 +5,8 @@ export const API = {
     API_AUTH_REFRESH: "/api/auth/refresh",
     API_AUTH_LOGOUT: "/api/auth/logout",
     API_AUTH_CHANGE_PASSWORD: "/api/auth/change-password",
+    API_AUTH_RESET_PASSWORD: "/api/auth/reset-password",
     // API_AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
-    // API_AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
     
 
@@ -53,6 +53,8 @@ export const API = {
         `/api/conversations/${conversationId}/members/${memberId}`,
     API_CONVERSATIONS_LEAVE: (conversationId: string) =>
         `/api/conversations/${conversationId}/leave`,
+    API_CONVERSATIONS_MEMBERS: (conversationId: string) =>
+        `/api/conversations/${conversationId}/members`,
     API_CONVERSATIONS_UPDATE_ROLE: (conversationId: string, memberId: string) =>
         `/api/conversations/${conversationId}/members/${memberId}/role`,
     API_CONVERSATIONS_SETTINGS: (conversationId: string) =>

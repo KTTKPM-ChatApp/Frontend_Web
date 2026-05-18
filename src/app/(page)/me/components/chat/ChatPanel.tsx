@@ -258,8 +258,12 @@ export default function ChatPanel({
         <PinnedMessageBarComponent
           messages={pinnedMessages.map((m: any) => ({
             messageId: m.messageId || m.id,
+            body: m.body || m.content || "",
             content: m.body || m.content || "",
-            senderName: m.senderName || m.senderId || "",
+            senderId: m.senderId,
+            senderName: m.senderName || "",
+            attachments: m.attachments || [],
+            createdAt: m.createdAt,
             timestamp: m.createdAt
               ? new Date(m.createdAt).toLocaleTimeString("vi-VN", {
                   hour: "2-digit",
@@ -267,6 +271,7 @@ export default function ChatPanel({
                 })
               : "",
           }))}
+          currentUserId={currentUserId}
           onUnpin={(messageId) => {
             const msg = pinnedMessages.find(
               (m: any) => m.messageId === messageId || m.id === messageId

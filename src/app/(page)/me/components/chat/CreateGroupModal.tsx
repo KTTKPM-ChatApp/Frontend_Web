@@ -142,8 +142,8 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
   useEffect(() => {
     if (open) {
-      friendService.getFriends().then((res) => {
-        const list: any[] = res?.data ?? [];
+      friendService.getFriends().then((res: any) => {
+        const list: any[] = res?.data?.payload ?? res?.data ?? [];
         setFriends(
           list.map((f: any) => ({
             id: f.id,

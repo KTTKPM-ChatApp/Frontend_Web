@@ -34,7 +34,6 @@ export interface ILoginPayload {
 export interface IAuthResponse {
     accessToken: string;
     refreshToken: string;
-    tokens?: IRefreshResponse;
     user: IUser;
     tokens?: {
         accessToken: string;
@@ -71,6 +70,8 @@ export interface IApiResponse<T, M = unknown> {
 }
 
 export interface IRegisterResponse {
+    accessToken?: string;
+    refreshToken?: string;
     user: IUser;
     message?: string;
 }

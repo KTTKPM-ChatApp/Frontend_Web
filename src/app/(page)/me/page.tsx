@@ -36,15 +36,10 @@ import CreateGroupModal from "./components/chat/CreateGroupModal";
 
 import SettingsPanel from "./components/settings/SettingsPanel";
 
-import { useAuthStore } from "@/src/common/store/useAuthStore";
-import { useChatStore } from "@/src/common/store/useChatStore";
-import { getcurrentUserId, getSessionToken } from "@/src/common/utilities/utils";
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
 import { fetchAuthData } from "@/src/common/helpers/fetchDataHelpers";
 import { registerCallHandlers, syncCallState } from "@/src/common/service/call-service";
 import CallContainer from "./components/call/CallContainer";
-import ContactFunctionList, { ContactView } from "./components/friend/ContactFunctionList";
-import ContactContentPanel from "./components/friend/ContactContentPanel";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 /* ===================== styled ===================== */
 
@@ -208,6 +203,12 @@ const Me = () => {
     const [isSelectedCategory, setSelectedCategory] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState<FilterCategoryKey[]>([]);
     const [showSearchSidebar, setShowSearchSidebar] = useState(false);
+    const [rightPanelMode, setRightPanelMode] = useState<"info" | "search">("info");
+    const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+    const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+    const [showFriendRequestModal, setShowFriendRequestModal] = useState(false);
+    const [selectedFriendRequest, setSelectedFriendRequest] = useState<any>(null);
+
     const authData = useAuthStore((s) => s.authData);
     // console.log("SenderId", authData?.data?.user?.id)
     const setActiveConversationId = useChatStore((s)=> s.setActiveConversationId)
@@ -227,10 +228,15 @@ const Me = () => {
     const handleSelectedIcon = (iconName: SidebarKey) => {
         setSelectedIcon(iconName);
         if (iconName === "contact") {
-            setContactView("friends")
-            setActiveConversationId(null)
+            setContactView("friends");
+        }
+        if (iconName !== "chat") {
+            setActiveConversationId(null);
         }
     };
+
+    const handleOpenSettings = () => setSelectedIcon("settings");
+    const handleOpenProfile = () => setSelectedIcon("settings");
 
     const handleChangeChatTab = (_event: React.SyntheticEvent, newTab: string) => {
         setChatTab(newTab);
@@ -281,26 +287,6 @@ const Me = () => {
     if (!mounted) {
         return null;
     }
-    if (iconName !== "chat") {
-      setActiveConversationId(null);
-    }
-  };
-
-  const handleOpenSettings = () => setSelectedIcon("settings");
-  const handleOpenProfile = () => setSelectedIcon("settings");
-
-  const handleChangeChatTab = (_event: React.SyntheticEvent, newTab: string) => {
-    setChatTab(newTab);
-  };
-
-  const getCategoryLabel = () => {
-    if (selectedCategories.length === 0) return "Danh mục";
-    if (selectedCategories.length === 1) return selectedCategories[0];
-    return `${selectedCategories.length} danh mục`;
-  };
-
-  const accessToken = getSessionToken() ?? "";
-  const currentUserId = authData?.data?.user?.id || getcurrentUserId() || "";
 
   return (
     <Root container>

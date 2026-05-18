@@ -12,11 +12,15 @@ import {
   InputBase,
   List,
   ListItem,
-  Avatar,
-  CircularProgress,
   IconButton,
   Chip,
   Divider,
+  Typography,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -27,6 +31,7 @@ import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 import { useDebounce } from "@/src/common/utilities/hook/debounce";
+import { useAuthStore } from "@/src/common/store/useAuthStore";
 
 interface User {
   id: string;
@@ -39,6 +44,8 @@ interface User {
 interface ModalAddFriendProps {
   open: boolean;
   onClose: () => void;
+  onSendFriendRequest?: (data: { user: any; message: string }) => Promise<void>;
+  onCancelFriendRequest?: (data: { user: any; requestId: string }) => Promise<void>;
 }
 
 const SearchBarWrapper = styled(Box)({
@@ -142,17 +149,19 @@ const FooterButton = styled(Button)({
   borderRadius: 12,
 });
 
-export default function AddFriendDialog({
+const ModalAddFriend: React.FC<ModalAddFriendProps> = ({
   open,
   onClose,
 }) => {
   const { t } = useTranslation();
 
   const [searchValue, setSearchValue] = useState("");
-  const [results, setResults] = useState<IUserSearchItem[]>([]);
+  const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const { authData } = useAuthStore();
+  const currentUserId = authData?.data?.user?.id;
 
   const debouncedSearch = useDebounce(searchValue, 300);
 
@@ -179,7 +188,9 @@ export default function AddFriendDialog({
         const rawData: any[] = res?.payload?.data ?? [];
 
         setResults(
-          rawData.map((u: any) => ({
+          rawData
+            .filter((u: any) => u.id !== currentUserId)
+            .map((u: any) => ({
             id: u.id,
             name: u.displayName,
             phone: u.phone || "",
@@ -236,7 +247,7 @@ export default function AddFriendDialog({
 
   const handleAddFriend = async (user: User) => {
     try {
-      await friendService.sendRequest(user.id);
+      await friendService.sendRequest({ userId: user.id });
 
       setResults((prev) =>
         prev.map((item) =>
@@ -249,13 +260,15 @@ export default function AddFriendDialog({
         )
       );
     } catch (err: any) {
-      console.error("Failed to send request:", err);
+      console.error("Failed to send request:", err?.payload || err);
+      const errMsg = err?.payload?.message || err?.message || "Lỗi kết bạn";
+      alert(`Lỗi: ${errMsg}`);
     }
   };
 
   const handleAcceptRequest = async (userId: string) => {
     try {
-      await friendService.sendRequest(userId);
+      await friendService.sendRequest({ userId });
 
       setResults((prev) =>
         prev.map((item) =>

@@ -90,8 +90,8 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
 
   const loadFriends = useCallback(async () => {
     try {
-      const res = await friendService.getFriends();
-      const friendList: any[] = res?.data ?? [];
+      const res: any = await friendService.getFriends();
+      const friendList: any[] = res?.data?.payload ?? res?.data ?? [];
       const existingIds = new Set(members.map((m: any) => m.userId));
       const available = friendList
         .filter((f: any) => !existingIds.has(f.id))

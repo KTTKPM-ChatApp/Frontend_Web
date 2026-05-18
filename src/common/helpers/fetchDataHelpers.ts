@@ -13,8 +13,10 @@ export const fetchAuthData = async () => {
         authStore.setLoadingAuth(true);
         authStore.setErrorAuth(null);
         const userData = await userService.userGetMe();
-        const user = userData?.payload?.data ?? null;
-        if (user) {
+        // Backend returns raw user object directly (not wrapped in { data: {...} })
+        const rawPayload = userData?.payload as any;
+        const user = rawPayload?.data ?? rawPayload ?? null;
+        if (user?.id) {
             authStore.setAuthData({
                 success: true,
                 data: {
@@ -25,9 +27,9 @@ export const fetchAuthData = async () => {
                         avatarUrl: user.avatarUrl ?? undefined,
                     },
                 },
-                meta: userData?.payload?.meta ?? null,
-                message: userData?.payload?.message,
-                timestamp: userData?.payload?.timestamp,
+                meta: rawPayload?.meta ?? null,
+                message: rawPayload?.message,
+                timestamp: rawPayload?.timestamp,
             });
         }
     } catch (error: unknown) {

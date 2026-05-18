@@ -55,14 +55,14 @@ const ContactContentPanel: React.FC<ContactContentPanelProps> = ({ view }) => {
     try {
       if (view === "friends") {
         const res = await friendService.getFriends();
-        const list: FriendUser[] = res?.data ?? [];
+        const list: FriendUser[] = res?.payload?.data ?? [];
         setFriends(list);
       } else if (view === "friendRequests") {
         const res = await friendService.getPendingRequests();
-        setPendingRequests(res?.data ?? []);
+        setPendingRequests(res?.payload?.data ?? []);
       } else if (view === "sentRequests") {
         const res = await friendService.getSentRequests();
-        setSentRequests(res?.data ?? []);
+        setSentRequests(res?.payload?.data ?? []);
       } else if (view === "groups") {
         await fetchListConversation({ page: 1, limit: 50 });
       }

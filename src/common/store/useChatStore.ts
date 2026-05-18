@@ -265,6 +265,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       },
     })),
 
+  clearAllPinnedMessages: () =>
+    set((state) => ({
+      pinnedMessagesByConversation: {},
+    })),
+
   isMessagePinned: (conversationId, messageId) => {
     const state = get();
     return Boolean(

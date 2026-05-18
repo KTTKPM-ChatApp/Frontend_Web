@@ -30,6 +30,12 @@ export const authService = {
     });
   },
 
+  authResetPassword(body: { firebaseIdToken: string; newPassword: string }) {
+    return http.post(API.API_AUTH_RESET_PASSWORD, body, {
+      skipAuth: true,
+    });
+  },
+
   authLogout() {
     return http.post(API.API_AUTH_LOGOUT);
   },
