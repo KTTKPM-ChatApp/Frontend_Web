@@ -26,16 +26,17 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
   const { i18n } = useTranslation();
   
-  // Initialize with saved language or default
-  const getInitialLanguage = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('language');
-      return saved || i18n.language || 'vi';
+  const [currentLanguage, setCurrentLanguage] = useState("vi");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const saved = localStorage.getItem('language');
+    if (saved && saved !== "vi") {
+      i18n.changeLanguage(saved);
+      setCurrentLanguage(saved);
     }
-    return i18n.language || 'vi';
-  };
-  
-  const [currentLanguage, setCurrentLanguage] = useState(getInitialLanguage());
+  }, [i18n]);
 
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
