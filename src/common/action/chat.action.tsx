@@ -709,13 +709,14 @@ export const pinMessage = async (conversationId: string, messageId: string, crea
     const res = await chatService.pinMessage(conversationId, createdAt, messageId);
     if (res?.ok) {
       const payload = res.payload as any;
+      const data = payload?.data || payload;
       const pinnedMsg = {
-        id: payload?.id || payload?.messageId || messageId,
-        messageId: payload?.messageId || messageId,
-        body: payload?.message?.content || payload?.content || "",
-        content: payload?.message?.content || payload?.content || "",
-        senderId: payload?.message?.senderId || payload?.senderId || "",
-        createdAt: payload?.message?.createdAt || payload?.createdAt || createdAt,
+        id: data?.id || data?.messageId || messageId,
+        messageId: data?.messageId || messageId,
+        body: data?.message?.content || data?.content || "",
+        content: data?.message?.content || data?.content || "",
+        senderId: data?.message?.senderId || data?.senderId || "",
+        createdAt: data?.message?.createdAt || data?.createdAt || createdAt,
         isPinned: true,
       };
       state.setPinnedMessages(conversationId, [...pinned, pinnedMsg]);

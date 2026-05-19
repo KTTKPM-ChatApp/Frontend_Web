@@ -2,6 +2,7 @@
 
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { useMemo } from "react";
 import { PaginationState, UiMessage } from "@/src/common/interface/chat-interface";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { pinMessage, unpinMessage } from "@/src/common/action/chat.action";
@@ -120,6 +121,16 @@ export default function MessageList({
   onImageClick,
 }: MessageListProps) {
   const paginationByConversation = useChatStore((s) => s.paginationByConversation);
+  const pinnedMessagesMap = useChatStore((s) => s.pinnedMessagesByConversation);
+  const pinnedMessages = pinnedMessagesMap[conversationId] || [];
+  
+  const pinnedMessageIds = useMemo(() => {
+    return new Set(pinnedMessages.map((p: any) => p.messageId));
+  }, [pinnedMessages]);
+  
+  const isMessagePinned = (messageId: string): boolean => {
+    return pinnedMessageIds.has(messageId);
+  };
 
   const shouldShowDateSeparator = (msg: UiMessage, index: number): boolean => {
     if (index === 0) return true;
@@ -182,7 +193,7 @@ export default function MessageList({
                   })}
                   isOwn={mine}
                   isDeleted={msg.isDeleted}
-                  isPinned={Boolean(msg.isPinned)}
+                  isPinned={isMessagePinned(msg.messageId)}
                   isEdited={Boolean(msg.editedAt)}
                   isGrouped={grouped}
                   deliveryStatus="read"

@@ -3,16 +3,7 @@ import { initReactI18next } from "react-i18next";
 import en from "@/src/locales/en.json";
 import vi from "@/src/locales/vi.json";
 
-// Get saved language from localStorage (for client-side only)
-const getSavedLanguage = () => {
-  if (typeof window !== "undefined") {
-    const savedLang = localStorage.getItem("language");
-    if (savedLang && ["vi", "en"].includes(savedLang)) {
-      return savedLang;
-    }
-  }
-  return "vi"; // default
-};
+const defaultLanguage = "vi";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -23,17 +14,19 @@ i18n.use(initReactI18next).init({
       translation: vi
     }
   },
-  lng: getSavedLanguage(),
-  fallbackLng: "vi",
+  lng: defaultLanguage,
+  fallbackLng: defaultLanguage,
   interpolation: {
     escapeValue: false
+  },
+  react: {
+    useSuspense: false
   }
 });
 
-// On client side, change language if there's a saved preference
 if (typeof window !== "undefined") {
   const savedLang = localStorage.getItem("language");
-  if (savedLang && ["vi", "en"].includes(savedLang) && savedLang !== i18n.language) {
+  if (savedLang && ["vi", "en"].includes(savedLang)) {
     i18n.changeLanguage(savedLang);
   }
 }

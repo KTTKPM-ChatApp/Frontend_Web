@@ -256,21 +256,25 @@ export default function ChatPanel({
 
       {pinnedMessages.length > 0 && (
         <PinnedMessageBarComponent
-          messages={pinnedMessages.map((m: any) => ({
-            messageId: m.messageId || m.id,
-            body: m.body || m.content || "",
-            content: m.body || m.content || "",
-            senderId: m.senderId,
-            senderName: m.senderName || "",
-            attachments: m.attachments || [],
-            createdAt: m.createdAt,
-            timestamp: m.createdAt
-              ? new Date(m.createdAt).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "",
-          }))}
+          messages={pinnedMessages.map((m: any) => {
+            const nestedMsg = m.message;
+            return {
+              messageId: m.messageId || m.id,
+              body: nestedMsg?.body || m.body || m.content || "",
+              content: nestedMsg?.body || m.body || m.content || "",
+              senderId: nestedMsg?.senderId || m.senderId,
+              senderName: m.senderName || "",
+              createdAt: nestedMsg?.createdAt || m.createdAt,
+              pinnedBy: m.pinnedBy,
+              pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : undefined,
+              timestamp: (nestedMsg?.createdAt || m.createdAt)
+                ? new Date(nestedMsg?.createdAt || m.createdAt).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "",
+            };
+          })}
           currentUserId={currentUserId}
           onUnpin={(messageId) => {
             const msg = pinnedMessages.find(

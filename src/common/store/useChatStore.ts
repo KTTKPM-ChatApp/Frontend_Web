@@ -43,8 +43,6 @@ export interface ChatState {
   conversationFetched: boolean;
   pinnedMessagesByConversation: Record<string, UiMessage[]>;
 
-  pinnedMessagesByConversation: Record<string, any[]>;
-
   typingUsersByConversation: Record<string, TypingUser[]>;
   onlineUserIds: string[];
 
@@ -128,8 +126,6 @@ export const initialChatState: ChatState = {
   conversationDetailById: {},
   conversationLoading: false,
   conversationFetched: false,
-  pinnedMessagesByConversation: {},
-
   pinnedMessagesByConversation: {},
 
   typingUsersByConversation: {},

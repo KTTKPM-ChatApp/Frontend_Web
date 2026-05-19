@@ -84,7 +84,7 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
     window.dispatchEvent(event);
   });
 
-  socket.activate?.();
+  if (socket.connect) socket.connect();
 
   return socket;
 };
