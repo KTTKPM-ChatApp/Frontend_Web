@@ -425,7 +425,7 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
   },
 
   leaveConversation(conversationId: string) {
-    return http.delete(API.API_CONVERSATIONS_MEMBERS(conversationId) + '/me');
+    return http.post(API.API_CONVERSATIONS_LEAVE(conversationId));
   },
 
   disbandGroup(conversationId: string) {
@@ -433,6 +433,10 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
   },
 
   removeMember(conversationId: string, memberId: string) {
-    return http.delete(API.API_CONVERSATIONS_MEMBERS(conversationId) + '/' + memberId);
+    return http.delete(API.API_CONVERSATIONS_REMOVE_MEMBER(conversationId, memberId));
+  },
+
+  updateMemberRole(conversationId: string, memberId: string, role: 'ADMIN' | 'MEMBER') {
+    return http.patch(API.API_CONVERSATIONS_UPDATE_ROLE(conversationId, memberId), { role });
   },
 };
