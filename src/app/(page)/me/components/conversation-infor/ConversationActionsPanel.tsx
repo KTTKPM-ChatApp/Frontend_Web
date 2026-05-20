@@ -45,21 +45,74 @@ const InlineActions = styled(Box)({
 });
 
 const ActionButton = styled(Button)({
+  height: 36,
   borderRadius: 8,
+  fontSize: 14,
+  fontWeight: 500,
   textTransform: "none",
-  fontWeight: 700,
+  boxShadow: "none",
+  padding: "0 14px",
+});
+
+const PrimaryButton = styled(ActionButton)({
+  background: "#0068FF",
+  color: "#fff",
+  "&:hover": {
+    background: "#005AE0",
+    boxShadow: "none",
+  },
+  "&:disabled": {
+    background: "#E5E7EB",
+    color: "#94A3B8",
+  },
+});
+
+const OutlinedButton = styled(ActionButton)({
+  background: "transparent",
+  border: "1px solid #E5E7EB",
+  color: "#000000",
+  "&:hover": {
+    background: "#F7F7F8",
+    border: "1px solid #E5E7EB",
+    boxShadow: "none",
+  },
+});
+
+const StyledTextField = styled(TextField)({
+  "& .MuiInputBase-root": {
+    fontSize: 14,
+    height: 40,
+    borderRadius: 8,
+  },
+  "& .MuiInputBase-input": {
+    padding: "10px 12px",
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: "#E5E7EB",
+  },
+  "&:hover .MuiOutlinedInput-notchedOutline": {
+    borderColor: "#0068FF",
+  },
+  "& .Mui-focused .MuiOutlinedInput-notchedOutline": {
+    borderColor: "#0068FF",
+    borderWidth: 1,
+  },
+  "& .MuiInputLabel-root": {
+    fontSize: 13,
+    color: "#767A7F",
+  },
 });
 
 const HelperText = styled(Typography)({
   fontSize: 12,
-  color: "#64748B",
-  lineHeight: 1.45,
+  color: "#767A7F",
+  lineHeight: 1.5,
 });
 
 const ResultBox = styled(Box)({
   border: "1px solid #E5E7EB",
   borderRadius: 8,
-  background: "#F8FAFC",
+  background: "#F7F7F8",
   padding: 10,
   maxHeight: 130,
   overflow: "auto",
@@ -67,6 +120,12 @@ const ResultBox = styled(Box)({
   fontSize: 12,
   color: "#334155",
   whiteSpace: "pre-wrap",
+});
+
+const SwitchLabel = styled(Typography)({
+  fontSize: 14,
+  fontWeight: 500,
+  color: "#000000",
 });
 
 const parseIds = (value: string) =>
@@ -197,17 +256,19 @@ export default function ConversationActionsPanel({
     <SectionBlock title="Quản lý hội thoại" defaultOpen>
       <Content>
         <FormArea>
-          <TextField
+          <StyledTextField
             label="Tên hội thoại"
             size="small"
             value={name}
             onChange={(event) => setName(event.target.value)}
+            fullWidth
           />
-          <TextField
+          <StyledTextField
             label="Biệt danh của bạn"
             size="small"
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
+            fullWidth
           />
           <InlineActions>
             <FormControlLabel
@@ -215,18 +276,26 @@ export default function ConversationActionsPanel({
                 <Switch
                   checked={muted}
                   onChange={(_, checked) => setMuted(checked)}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: "#0068FF",
+                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                      backgroundColor: "#0068FF",
+                    },
+                  }}
                 />
               }
-              label="Tắt thông báo"
+              label={<SwitchLabel>Tắt thông báo</SwitchLabel>}
             />
-            <ActionButton
+            <PrimaryButton
               variant="contained"
-              startIcon={<SaveOutlinedIcon />}
+              startIcon={<SaveOutlinedIcon sx={{ fontSize: 18 }} />}
               onClick={handleSaveProfile}
               disabled={saving}
             >
               Lưu
-            </ActionButton>
+            </PrimaryButton>
           </InlineActions>
         </FormArea>
 
@@ -234,65 +303,69 @@ export default function ConversationActionsPanel({
 
         <FormArea>
           <HelperText>Nhập user ID, cách nhau bằng dấu phẩy hoặc xuống dòng.</HelperText>
-          <TextField
+          <StyledTextField
             label="User ID cần mời"
             size="small"
             multiline
             minRows={2}
             value={inviteIds}
             onChange={(event) => setInviteIds(event.target.value)}
+            fullWidth
           />
-          <TextField
+          <StyledTextField
             label="Lời nhắn"
             size="small"
             value={inviteMessage}
             onChange={(event) => setInviteMessage(event.target.value)}
+            fullWidth
           />
-          <ActionButton
+          <OutlinedButton
             variant="outlined"
-            startIcon={<PersonAddAltOutlinedIcon />}
+            startIcon={<PersonAddAltOutlinedIcon sx={{ fontSize: 18 }} />}
             onClick={handleSendInvites}
           >
             Gửi lời mời
-          </ActionButton>
+          </OutlinedButton>
         </FormArea>
 
         <Divider />
 
         <FormArea>
-          <TextField
+          <StyledTextField
             label="Câu hỏi bình chọn"
             size="small"
             value={pollQuestion}
             onChange={(event) => setPollQuestion(event.target.value)}
+            fullWidth
           />
-          <TextField
+          <StyledTextField
             label="Lựa chọn"
             size="small"
             multiline
             minRows={3}
             value={pollOptions}
             onChange={(event) => setPollOptions(event.target.value)}
+            fullWidth
           />
-          <ActionButton
+          <OutlinedButton
             variant="outlined"
-            startIcon={<PollOutlinedIcon />}
+            startIcon={<PollOutlinedIcon sx={{ fontSize: 18 }} />}
             onClick={handleCreatePoll}
           >
             Tạo bình chọn
-          </ActionButton>
+          </OutlinedButton>
         </FormArea>
 
         <Divider />
 
         <FormArea>
-          <ActionButton
+          <OutlinedButton
             variant="outlined"
-            startIcon={<SettingsPhoneOutlinedIcon />}
+            startIcon={<SettingsPhoneOutlinedIcon sx={{ fontSize: 18 }} />}
             onClick={handleCallDiagnostics}
           >
             Kiểm tra call API
-          </ActionButton>
+          </OutlinedButton>
           {callResult && <ResultBox>{callResult}</ResultBox>}
         </FormArea>
       </Content>

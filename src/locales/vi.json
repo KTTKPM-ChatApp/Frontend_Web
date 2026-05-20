@@ -172,6 +172,8 @@
   "GROUP.ADD_MEMBER_TITLE": "Thêm thành viên",
   "GROUP.SEARCH_MEMBERS": "Tìm kiếm thành viên",
   "GROUP.NO_MEMBERS_FOUND": "Không tìm thấy thành viên nào",
+  "GROUP.NO_FRIENDS_TO_ADD": "Bạn chưa có bạn bè để thêm",
+  "GROUP.FRIEND_NOT_FOUND": "Không tìm thấy",
 
   "// ============================== SEARCH ==============================": "",
   "SEARCH.TITLE": "Tìm kiếm trong trò chuyện",
@@ -449,6 +451,10 @@
   "CONTACT.SENT_REQUESTS": "Đã gửi lời mời",
 
   "// ============================== DANGER ==============================": "",
+  "DANGER.LEAVE_GROUP": "Rời nhóm",
+  "DANGER.DISBAND_GROUP": "Giải tán nhóm",
+  "DANGER.LEAVE_GROUP_CONFIRM": "Bạn có chắc chắn muốn rời khỏi nhóm này không? Bạn sẽ không thể xem lại tin nhắn.",
+  "DANGER.DISBAND_GROUP_CONFIRM": "Nhóm sẽ bị giải tán và tất cả thành viên sẽ bị xóa. Hành động này không thể hoàn tác.",
   "DANGER.REPORT": "Báo xấu",
   "DANGER.DELETE_HISTORY": "Xoá lịch sử trò chuyện",
 

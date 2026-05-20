@@ -91,18 +91,26 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   const loadFriends = useCallback(async () => {
     try {
       const res: any = await friendService.getFriends();
-      const friendList: any[] = res?.data?.payload ?? res?.data ?? [];
+      console.log('[loadFriends] Raw response:', res);
+      
+      const payload = res?.payload;
+      const friendList: any[] = payload?.data ?? [];
+      console.log('[loadFriends] Friend list:', friendList);
+      
       const existingIds = new Set(members.map((m: any) => m.userId));
       const available = friendList
         .filter((f: any) => !existingIds.has(f.id))
         .map((f: any) => ({
           id: f.id,
-          name: f.displayName,
+          name: f.displayName || f.username || f.id,
           avatar: f.avatarUrl || undefined,
           phone: f.phone || undefined,
         }));
+      console.log('[loadFriends] Available friends:', available);
       setFriends(available);
-    } catch {}
+    } catch (err) {
+      console.error('[loadFriends] Error:', err);
+    }
   }, [members]);
 
   const handleOpenAddMember = () => {
@@ -187,7 +195,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
             name: m.displayName || m.username || m.userId,
             isAdmin: m.role === "OWNER" || m.role === "ADMIN",
           }))}
-          totalCount={conversation?.memberCount ?? members.length}
+          totalCount={members.length > 0 ? members.length : (conversation?.memberCount ?? 0)}
           searchValue={memberSearch}
           onSearch={setMemberSearch}
           onRemoveMember={handleRemoveMember}
@@ -200,7 +208,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
       {isGroup && (
         <AddMemberGroupDialog
           open={showAddMember}
-          availableMembers={friends}
+          friends={friends}
           onClose={() => setShowAddMember(false)}
           onAddMember={handleAddMember}
         />

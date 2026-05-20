@@ -7,35 +7,36 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  InputAdornment,
+  InputBase,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 
 const Root = styled(Box)({
   height: "100%",
-  background: "#F3F5F7",
+  background: "#F7F7F8",
   display: "flex",
   flexDirection: "column",
 });
 
 const Header = styled(Box)({
-  height: 76,
+  height: 70,
   background: "#FFFFFF",
   borderBottom: "1px solid #E5E7EB",
   display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
   padding: "0 20px",
 });
 
 const HeaderTitle = styled(Typography)({
-  fontSize: 24,
-  fontWeight: 700,
-  color: "#0F172A",
+  fontSize: 20,
+  fontWeight: 600,
+  color: "#000000",
 });
 
 const Content = styled(Box)({
@@ -44,33 +45,125 @@ const Content = styled(Box)({
   overflowY: "auto",
 });
 
-const SectionTitle = styled(Typography)({
-  fontSize: 16,
-  fontWeight: 700,
-  color: "#0F172A",
-  marginBottom: 14,
+const SearchWrapper = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  height: 42,
+  borderRadius: 10,
+  background: "#F7F7F8",
+  padding: "0 14px",
+  marginBottom: 20,
+  border: "1px solid transparent",
+  transition: "all 0.2s ease",
+  "&:focus-within": {
+    borderColor: "#0068FF",
+    background: "#FFFFFF",
+  },
 });
 
-const FilterWrap = styled(Box)({
-  padding: 16,
-  background: "#FFFFFF",
-  borderRadius: 12,
-  border: "1px solid #E5E7EB",
-  marginBottom: 16,
+const StyledSearch = styled(InputBase)({
+  flex: 1,
+  marginLeft: 8,
+  fontSize: 14,
+  color: "#081B3A",
+  "& input::placeholder": {
+    color: "#86909C",
+    opacity: 1,
+  },
 });
 
-const ListCard = styled(Card)({
+const FriendCard = styled(Card)({
   borderRadius: 12,
   border: "1px solid #E5E7EB",
   boxShadow: "none",
+  transition: "all 0.2s ease",
+  "&:hover": {
+    borderColor: "#0068FF",
+    boxShadow: "0 4px 12px rgba(0, 104, 255, 0.15)",
+  },
 });
 
-const EmptyWrap = styled(Box)({
-  height: 260,
+const FriendAvatar = styled(Avatar)({
+  width: 48,
+  height: 48,
+  backgroundColor: "#0068FF",
+  fontSize: 16,
+  fontWeight: 600,
+});
+
+const FriendName = styled(Typography)({
+  fontSize: 14,
+  fontWeight: 600,
+  color: "#000000",
+});
+
+const FriendStatus = styled(Typography)({
+  fontSize: 13,
+  color: "#767A7F",
+});
+
+const EmptyState = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  height: 300,
+  color: "#767A7F",
+});
+
+const EmptyIcon = styled(Box)({
+  width: 80,
+  height: 80,
+  borderRadius: "50%",
+  background: "#F7F7F8",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "#64748B",
+  marginBottom: 16,
+});
+
+const EmptyText = styled(Typography)({
+  fontSize: 15,
+  fontWeight: 600,
+  color: "#000000",
+  marginBottom: 4,
+});
+
+const EmptySubtext = styled(Typography)({
+  fontSize: 13,
+  color: "#767A7F",
+});
+
+const RemoveButton = styled(Button)({
+  height: 32,
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 500,
+  textTransform: "none",
+  color: "#DB0000",
+  border: "1px solid #FEE2E2",
+  background: "#FEF2F2",
+  padding: "0 12px",
+  "&:hover": {
+    background: "#FEE2E2",
+    borderColor: "#FECACA",
+  },
+});
+
+const OnlineBadge = styled(Box)({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: "#22C55E",
+  border: "2px solid #fff",
+});
+
+const OfflineBadge = styled(Box)({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  backgroundColor: "#9CA3AF",
+  border: "2px solid #fff",
 });
 
 interface Friend {
@@ -102,75 +195,70 @@ const FriendList: React.FC<FriendListProps> = ({
       </Header>
 
       <Content>
-        <SectionTitle>Bạn bè ({friends.length})</SectionTitle>
-
-        <FilterWrap>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Tìm bạn"
-            value=""
+        <SearchWrapper>
+          <SearchIcon sx={{ fontSize: 20, color: "#86909C" }} />
+          <StyledSearch
+            placeholder="Tìm bạn bè"
             onChange={(e) => onSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
           />
-        </FilterWrap>
+        </SearchWrapper>
 
         {loading ? (
-          <Box display="flex" justifyContent="center" py={4}>
+          <Box display="flex" justifyContent="center" py={8}>
             <CircularProgress />
           </Box>
         ) : friends.length === 0 ? (
-          <ListCard>
-            <CardContent>
-              <EmptyWrap>
-                <Typography>Chưa có bạn bè nào</Typography>
-              </EmptyWrap>
-            </CardContent>
-          </ListCard>
+          <EmptyState>
+            <EmptyIcon>
+              <PeopleAltIcon sx={{ fontSize: 36, color: "#767A7F" }} />
+            </EmptyIcon>
+            <EmptyText>Chưa có bạn bè nào</EmptyText>
+            <EmptySubtext>Kết bạn để bắt đầu trò chuyện</EmptySubtext>
+          </EmptyState>
         ) : (
-          <Stack spacing={2}>
+          <Stack spacing={1.5}>
             {friends.map((friend) => (
-              <ListCard key={friend.id}>
-                <CardContent>
+              <FriendCard key={friend.id}>
+                <CardContent sx={{ p: 2 }}>
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <Box sx={{ position: "relative" }}>
-                      <Avatar src={friend.avatar} />
+                      <FriendAvatar src={friend.avatar}>
+                        {friend.name.charAt(0).toUpperCase()}
+                      </FriendAvatar>
                       <Box
                         sx={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: "50%",
-                          backgroundColor: onlineIds.includes(friend.id) ? "#22C55E" : "#9CA3AF",
-                          border: "2px solid #fff",
                           position: "absolute",
-                          bottom: 0,
-                          right: 0,
+                          bottom: -2,
+                          right: -2,
                         }}
-                      />
+                      >
+                        {onlineIds.includes(friend.id) ? (
+                          <OnlineBadge />
+                        ) : (
+                          <OfflineBadge />
+                        )}
+                      </Box>
                     </Box>
-                    <Box flex={1}>
-                      <Typography fontWeight={600}>{friend.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {onlineIds.includes(friend.id) ? "Đang hoạt động" : "Không hoạt động"}
-                      </Typography>
+                    <Box flex={1} minWidth={0}>
+                      <FriendName>{friend.name}</FriendName>
+                      <FriendStatus>
+                        {onlineIds.includes(friend.id)
+                          ? "Đang hoạt động"
+                          : "Không hoạt động"}
+                      </FriendStatus>
                     </Box>
-                    <Button
+                    <RemoveButton
                       size="small"
-                      color="error"
-                      startIcon={<PersonRemoveOutlinedIcon />}
+                      startIcon={
+                        <PersonRemoveOutlinedIcon sx={{ fontSize: 16 }} />
+                      }
                       onClick={() => onRemoveFriend(friend.id)}
                     >
                       Xóa
-                    </Button>
+                    </RemoveButton>
                   </Stack>
                 </CardContent>
-              </ListCard>
+              </FriendCard>
             ))}
           </Stack>
         )}

@@ -16,6 +16,7 @@ import { useChatStore } from "@/src/common/store/useChatStore";
 const Card = styled(Box)({
   background: "#fff",
   marginBottom: 8,
+  borderRadius: 8,
 });
 
 const DangerRow = styled(Box, {
@@ -26,13 +27,73 @@ const DangerRow = styled(Box, {
   display: "flex",
   alignItems: "center",
   gap: 12,
-  color: danger ? "#DC2626" : "#0F172A",
+  color: danger ? "#DB0000" : "#000000",
   cursor: "pointer",
 
   "&:hover": {
-    background: "#F8FAFC",
+    background: "#F7F7F8",
   },
 }));
+
+const ActionText = styled(Typography)({
+  fontSize: 14,
+  fontWeight: 500,
+  lineHeight: 1.4,
+});
+
+const StyledDialog = styled(Dialog)({
+  "& .MuiDialog-paper": {
+    borderRadius: 12,
+    maxWidth: 360,
+  },
+});
+
+const DialogTitleStyled = styled(DialogTitle)({
+  fontSize: 18,
+  fontWeight: 600,
+  color: "#000000",
+  padding: "20px 24px 16px",
+});
+
+const DialogContentStyled = styled(DialogContent)({
+  padding: "0 24px 16px",
+  "& p": {
+    fontSize: 14,
+    color: "#767A7F",
+    lineHeight: 1.5,
+  },
+});
+
+const DialogActionsStyled = styled(DialogActions)({
+  padding: "8px 16px 16px",
+  gap: 8,
+});
+
+const CancelButton = styled(Button)({
+  height: 40,
+  borderRadius: 8,
+  background: "#F7F7F8",
+  color: "#000000",
+  fontSize: 14,
+  fontWeight: 500,
+  textTransform: "none",
+  boxShadow: "none",
+  padding: "0 16px",
+  "&:hover": {
+    background: "#F1F2F4",
+    boxShadow: "none",
+  },
+});
+
+const ConfirmButton = styled(Button)({
+  height: 40,
+  borderRadius: 8,
+  fontSize: 14,
+  fontWeight: 500,
+  textTransform: "none",
+  boxShadow: "none",
+  padding: "0 16px",
+});
 
 interface DangerZoneProps {
   conversationId: string;
@@ -71,11 +132,13 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
 
   const handleDisband = async () => {
     try {
+      console.log('Disbanding conversation:', conversationId);
       await chatService.disbandGroup(conversationId);
       toast.success("Đã giải tán nhóm");
       setActiveConversationId(null);
       await refresh();
-    } catch {
+    } catch (error) {
+      console.error('Disband error:', error);
       toast.error("Không thể giải tán nhóm");
     } finally {
       setConfirmAction(null);
@@ -87,62 +150,72 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
       <Card>
         {isGroup && (
           <>
-          <DangerRow onClick={() => setConfirmAction("leave")}>
-            <ExitToAppIcon />
-            <Typography fontSize={15}>{t("DANGER.LEAVE_GROUP")}</Typography>
-          </DangerRow>
-            <Divider />
+            <DangerRow onClick={() => setConfirmAction("leave")}>
+              <ExitToAppIcon sx={{ fontSize: 20 }} />
+              <ActionText>{t("DANGER.LEAVE_GROUP")}</ActionText>
+            </DangerRow>
+            <Divider sx={{ mx: 0 }} />
           </>
         )}
 
         {isGroup && isOwner && (
           <>
-          <DangerRow danger onClick={() => setConfirmAction("disband")}>
-            <DeleteForeverIcon />
-            <Typography fontSize={15}>{t("DANGER.DISBAND_GROUP")}</Typography>
-          </DangerRow>
-            <Divider />
+            <DangerRow danger onClick={() => setConfirmAction("disband")}>
+              <DeleteForeverIcon sx={{ fontSize: 20 }} />
+              <ActionText>{t("DANGER.DISBAND_GROUP")}</ActionText>
+            </DangerRow>
+            <Divider sx={{ mx: 0 }} />
           </>
         )}
 
         <DangerRow>
-          <ReportGmailerrorredRoundedIcon />
-          <Typography fontSize={15}>{t("DANGER.REPORT")}</Typography>
+          <ReportGmailerrorredRoundedIcon sx={{ fontSize: 20 }} />
+          <ActionText>{t("DANGER.REPORT")}</ActionText>
         </DangerRow>
 
-        <Divider />
+        <Divider sx={{ mx: 0 }} />
 
         <DangerRow danger>
-          <DeleteOutlineRoundedIcon />
-          <Typography fontSize={15}>{t("DANGER.DELETE_HISTORY")}</Typography>
+          <DeleteOutlineRoundedIcon sx={{ fontSize: 20 }} />
+          <ActionText>{t("DANGER.DELETE_HISTORY")}</ActionText>
         </DangerRow>
       </Card>
 
-      <Dialog open={confirmAction === "leave"} onClose={() => setConfirmAction(null)}>
-        <DialogTitle>{t("DANGER.LEAVE_GROUP")}</DialogTitle>
-        <DialogContent>
+      <StyledDialog open={confirmAction === "leave"} onClose={() => setConfirmAction(null)}>
+        <DialogTitleStyled>{t("DANGER.LEAVE_GROUP")}</DialogTitleStyled>
+        <DialogContentStyled>
           <Typography>{t("DANGER.LEAVE_GROUP_CONFIRM")}</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmAction(null)}>Hủy</Button>
-          <Button color="error" variant="contained" onClick={handleLeave}>
+        </DialogContentStyled>
+        <DialogActionsStyled>
+          <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
+          <ConfirmButton 
+            variant="contained" 
+            color="error" 
+            onClick={handleLeave}
+            sx={{ background: "#DB0000" }}
+          >
             Rời nhóm
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </ConfirmButton>
+        </DialogActionsStyled>
+      </StyledDialog>
 
-      <Dialog open={confirmAction === "disband"} onClose={() => setConfirmAction(null)}>
-        <DialogTitle>{t("DANGER.DISBAND_GROUP")}</DialogTitle>
-        <DialogContent>
+      <StyledDialog open={confirmAction === "disband"} onClose={() => setConfirmAction(null)}>
+        <DialogTitleStyled>{t("DANGER.DISBAND_GROUP")}</DialogTitleStyled>
+        <DialogContentStyled>
           <Typography>{t("DANGER.DISBAND_GROUP_CONFIRM")}</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmAction(null)}>Hủy</Button>
-          <Button color="error" variant="contained" onClick={handleDisband}>
+        </DialogContentStyled>
+        <DialogActionsStyled>
+          <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
+          <ConfirmButton 
+            variant="contained" 
+            color="error" 
+            onClick={handleDisband}
+            sx={{ background: "#DB0000" }}
+          >
             Giải tán
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </ConfirmButton>
+        </DialogActionsStyled>
+      </StyledDialog>
     </>
   );
 }

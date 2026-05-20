@@ -470,7 +470,7 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
   },
 
   disbandGroup(conversationId: string) {
-    return http.delete(API.API_CONVERSATIONS_DETAIL(conversationId));
+    return http.post(API.API_CONVERSATIONS_DISBAND(conversationId));
   },
 
   removeMember(conversationId: string, memberId: string) {

@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  experimental: {
+    serverComponentsExternalPackages: ['@emotion/react', '@emotion/styled', '@emotion/cache'],
+  },
+
   // ===== Proxy API để né CORS =====
   async rewrites() {
     return [
