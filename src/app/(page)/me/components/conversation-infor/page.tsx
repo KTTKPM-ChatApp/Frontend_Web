@@ -135,6 +135,26 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
     setActiveConversationId(null);
   };
 
+  const handlePromoteToAdmin = async (memberId: string) => {
+    try {
+      await chatService.updateMemberRole(conversationId, memberId, 'ADMIN');
+      toast.success("Đã phong quản trị viên");
+      await refresh();
+    } catch {
+      toast.error("Không thể phong quản trị viên");
+    }
+  };
+
+  const handleDemoteFromAdmin = async (memberId: string) => {
+    try {
+      await chatService.updateMemberRole(conversationId, memberId, 'MEMBER');
+      toast.success("Đã hạ quyền quản trị viên");
+      await refresh();
+    } catch {
+      toast.error("Không thể hạ quyền quản trị viên");
+    }
+  };
+
   if (!conversationId) return null;
 
   if (!mounted) {
@@ -172,6 +192,8 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
           onSearch={setMemberSearch}
           onRemoveMember={handleRemoveMember}
           onAddMember={handleOpenAddMember}
+          onPromoteToAdmin={handlePromoteToAdmin}
+          onDemoteFromAdmin={handleDemoteFromAdmin}
         />
       )}
 

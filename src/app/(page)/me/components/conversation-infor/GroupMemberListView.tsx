@@ -16,6 +16,7 @@ import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 const Root = styled(Box)({
   background: "#fff",
@@ -178,6 +179,8 @@ interface GroupMemberListViewProps {
   onSearch?: (value: string) => void;
   onRemoveMember?: (memberId: string) => void;
   onAddMember?: () => void;
+  onPromoteToAdmin?: (memberId: string) => void;
+  onDemoteFromAdmin?: (memberId: string) => void;
 }
 
 const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
@@ -187,6 +190,8 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
   onSearch = () => {},
   onRemoveMember = () => {},
   onAddMember = () => {},
+  onPromoteToAdmin = () => {},
+  onDemoteFromAdmin = () => {},
 }) => {
   const [open, setOpen] = useState(true);
 
@@ -242,14 +247,34 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                       </AdminBadge>
                     )}
                   </MemberInfo>
-                  {!member.isAdmin && (
-                    <RemoveBtn
-                      size="small"
-                      onClick={() => onRemoveMember(member.id)}
-                    >
-                      <PersonRemoveIcon sx={{ fontSize: 18 }} />
-                    </RemoveBtn>
-                  )}
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    {!member.isAdmin && onPromoteToAdmin && (
+                      <RemoveBtn
+                        size="small"
+                        onClick={() => onPromoteToAdmin(member.id)}
+                        title="Phong quản trị viên"
+                      >
+                        <ArrowForwardIcon sx={{ fontSize: 18 }} />
+                      </RemoveBtn>
+                    )}
+                    {member.isAdmin && onDemoteFromAdmin && (
+                      <RemoveBtn
+                        size="small"
+                        onClick={() => onDemoteFromAdmin(member.id)}
+                        title="Hạ quyền quản trị viên"
+                      >
+                        <ArrowForwardIcon sx={{ fontSize: 18, transform: "rotate(180deg)" }} />
+                      </RemoveBtn>
+                    )}
+                    {!member.isAdmin && (
+                      <RemoveBtn
+                        size="small"
+                        onClick={() => onRemoveMember(member.id)}
+                      >
+                        <PersonRemoveIcon sx={{ fontSize: 18 }} />
+                      </RemoveBtn>
+                    )}
+                  </Box>
                 </MemberRow>
               ))}
             </MemberList>

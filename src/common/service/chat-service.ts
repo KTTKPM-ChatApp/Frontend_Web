@@ -392,8 +392,49 @@ export const chatService = {
     return http.patch(API.API_CONVERSATIONS_SETTINGS(conversationId), body);
   },
 
+  updateGroupSettings(conversationId: string, data: {
+    permissions?: {
+      canAddMembers?: boolean;
+      canRemoveMembers?: boolean;
+      canCreatePolls?: boolean;
+      canStartCall?: boolean;
+      canSendMessage?: boolean;
+    };
+    policies?: {
+      maxMembers?: number;
+      inviteApproval?: boolean;
+      messageRetention?: number;
+    };
+    features?: {
+      polls?: boolean;
+      calls?: boolean;
+      fileSharing?: boolean;
+      reactions?: boolean;
+    };
+  }) {
+    return http.patch(API.API_CONVERSATIONS_GROUP_SETTINGS(conversationId), data);
+  },
+
   sendInvites(conversationId: string, body: SendInviteRequest | AddMembersRequest) {
     return http.post(API.API_CONVERSATIONS_INVITES_SEND(conversationId), body);
+  },
+
+  getPendingInvites(status?: string, page = 1, limit = 20) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.append('status', status);
+    return http.get(`${API.API_CONVERSATIONS_INVITES_PENDING}?${params.toString()}`);
+  },
+
+  acceptInvite(conversationId: string, inviteId: string) {
+    return http.post(API.API_CONVERSATIONS_INVITES_ACCEPT(conversationId, inviteId));
+  },
+
+  rejectInvite(conversationId: string, inviteId: string) {
+    return http.post(API.API_CONVERSATIONS_INVITES_REJECT(conversationId, inviteId));
+  },
+
+  cancelInvite(conversationId: string, inviteId: string) {
+    return http.post(API.API_CONVERSATIONS_INVITES_CANCEL(conversationId, inviteId));
   },
 
   createPoll(conversationId: string, body: CreatePollRequest) {
@@ -425,7 +466,7 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
   },
 
   leaveConversation(conversationId: string) {
-    return http.delete(API.API_CONVERSATIONS_MEMBERS(conversationId) + '/me');
+    return http.post(API.API_CONVERSATIONS_LEAVE(conversationId));
   },
 
   disbandGroup(conversationId: string) {
@@ -433,6 +474,10 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
   },
 
   removeMember(conversationId: string, memberId: string) {
-    return http.delete(API.API_CONVERSATIONS_MEMBERS(conversationId) + '/' + memberId);
+    return http.delete(API.API_CONVERSATIONS_REMOVE_MEMBER(conversationId, memberId));
+  },
+
+  updateMemberRole(conversationId: string, memberId: string, role: 'ADMIN' | 'MEMBER') {
+    return http.patch(API.API_CONVERSATIONS_UPDATE_ROLE(conversationId, memberId), { role });
   },
 };
