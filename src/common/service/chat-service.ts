@@ -392,8 +392,49 @@ export const chatService = {
     return http.patch(API.API_CONVERSATIONS_SETTINGS(conversationId), body);
   },
 
+  updateGroupSettings(conversationId: string, data: {
+    permissions?: {
+      canAddMembers?: boolean;
+      canRemoveMembers?: boolean;
+      canCreatePolls?: boolean;
+      canStartCall?: boolean;
+      canSendMessage?: boolean;
+    };
+    policies?: {
+      maxMembers?: number;
+      inviteApproval?: boolean;
+      messageRetention?: number;
+    };
+    features?: {
+      polls?: boolean;
+      calls?: boolean;
+      fileSharing?: boolean;
+      reactions?: boolean;
+    };
+  }) {
+    return http.patch(API.API_CONVERSATIONS_GROUP_SETTINGS(conversationId), data);
+  },
+
   sendInvites(conversationId: string, body: SendInviteRequest | AddMembersRequest) {
     return http.post(API.API_CONVERSATIONS_INVITES_SEND(conversationId), body);
+  },
+
+  getPendingInvites(status?: string, page = 1, limit = 20) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.append('status', status);
+    return http.get(`${API.API_CONVERSATIONS_INVITES_PENDING}?${params.toString()}`);
+  },
+
+  acceptInvite(conversationId: string, inviteId: string) {
+    return http.post(API.API_CONVERSATIONS_INVITES_ACCEPT(conversationId, inviteId));
+  },
+
+  rejectInvite(conversationId: string, inviteId: string) {
+    return http.post(API.API_CONVERSATIONS_INVITES_REJECT(conversationId, inviteId));
+  },
+
+  cancelInvite(conversationId: string, inviteId: string) {
+    return http.post(API.API_CONVERSATIONS_INVITES_CANCEL(conversationId, inviteId));
   },
 
   createPoll(conversationId: string, body: CreatePollRequest) {
