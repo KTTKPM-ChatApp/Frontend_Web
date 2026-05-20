@@ -111,6 +111,7 @@ export interface CreateGroupRequest {
   name: string;
   memberIds: string[];
   avatarUrl?: string;
+  description?: string;
 }
 
 export interface CreateDirectRequest {

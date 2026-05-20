@@ -7,6 +7,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SearchIcon from "@mui/icons-material/Search";
+import GroupsIcon from "@mui/icons-material/Groups";
 
 interface ChatHeaderProps {
   socketConnected: boolean;
@@ -112,7 +113,7 @@ export default function ChatHeader({
   const currentUserId = useChatStore((s) => s.currentUserId);
   const conversation = listConversation.find((item) => item.id === conversationId);
 
-  const isDirect = conversation?.type !== "group";
+  const isDirect = conversation?.type !== "group" && conversation?.type !== "GROUP";
   const otherMember = isDirect
     ? conversation?.members?.find((m: any) => m.userId !== currentUserId)
     : null;
@@ -121,18 +122,27 @@ export default function ChatHeader({
 
   const statusText = isDirect
     ? isOtherOnline ? "Đang hoạt động" : "Không hoạt động"
-    : socketConnected ? "Đã kết nối" : "Mất kết nối";
+    : conversation?.memberCount 
+      ? `${conversation.memberCount} thành viên` 
+      : `${conversation?.members?.length || 0} thành viên`;
 
   return (
     <HeaderRoot>
       <HeaderLeft>
-        <StyledAvatar>
-          {conversation?.name?.charAt(0)?.toUpperCase() || "C"}
-        </StyledAvatar>
+        {!isDirect ? (
+          <StyledAvatar sx={{ background: "linear-gradient(135deg, #0068FF 0%, #00B4FF 100%)" }}>
+            <GroupsIcon sx={{ fontSize: 22, color: "#fff" }} />
+          </StyledAvatar>
+        ) : (
+          <StyledAvatar>
+            {conversation?.name?.charAt(0)?.toUpperCase() || "C"}
+          </StyledAvatar>
+        )}
         <ConvInfo>
           <ConvName>{conversation?.name || "Cuộc trò chuyện"}</ConvName>
           <ConvStatus>
-            <StatusDot online={statusOnline} />
+            {!isDirect && <StatusDot online={socketConnected} />}
+            {isDirect && <StatusDot online={statusOnline} />}
             <span>{statusText}</span>
           </ConvStatus>
         </ConvInfo>

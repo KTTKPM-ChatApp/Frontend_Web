@@ -30,7 +30,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 import { toast } from "react-toastify";
 import { chatService } from "@/src/common/service/chat-service";
-import { friendService } from "@/src/common/service/friend-service";
+import { useFriendStore } from "@/src/common/store/useFriendStore";
 import { useChatStore } from "@/src/common/store/useChatStore";
 
 // ==================== STYLED COMPONENTS ====================
@@ -133,30 +133,30 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
+  const { friends, fetchFriends } = useFriendStore();
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
-  const [friends, setFriends] = useState<Friend[]>([]);
 
   useEffect(() => {
-    if (open) {
-      friendService.getFriends().then((res: any) => {
-        const list: any[] = res?.data?.payload ?? res?.data ?? [];
-        setFriends(
-          list.map((f: any) => ({
-            id: f.id,
-            name: f.displayName,
-            avatar: f.avatarUrl || undefined,
-            phone: f.phone || undefined,
-          }))
-        );
-      }).catch(() => {});
+    if (open && friends.length === 0) {
+      fetchFriends();
     }
-  }, [open]);
+  }, [open, friends.length, fetchFriends]);
 
-  const filteredFriends = friends.filter(friend =>
+  const friendList: Friend[] = friends.map(f => {
+    console.log("[CreateGroup] Friend ID:", f.id, "Type:", typeof f.id);
+    return {
+      id: f.id,
+      name: f.fullName,
+      avatar: f.avatarUrl || undefined,
+      phone: f.phone || undefined,
+    };
+  });
+
+  const filteredFriends = friendList.filter(friend =>
     friend.name.toLowerCase().includes(searchValue.toLowerCase())
   );
 
@@ -169,28 +169,51 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   };
 
   const handleCreateGroup = async () => {
-    if (!groupName.trim() || selectedMembers.length === 0) return;
+    if (!groupName.trim()) {
+      toast.error("Vui lòng nhập tên nhóm");
+      return;
+    }
+    if (selectedMembers.length < 2) {
+      toast.error("Cần chọn ít nhất 2 thành viên để tạo nhóm");
+      return;
+    }
 
     setCreating(true);
     try {
-      await chatService.createGroupConversation({
+      console.log("[CreateGroup] Request:", {
         name: groupName.trim(),
         memberIds: selectedMembers,
       });
+      
+      const response = await chatService.createGroupConversation({
+        name: groupName.trim(),
+        memberIds: selectedMembers,
+      });
+      
+      console.log("[CreateGroup] Response:", response);
+      
       onCreate({
         name: groupName.trim(),
         description: groupDescription.trim(),
         members: selectedMembers,
       });
+      console.log("[CreateGroup] Fetching conversation list after create...");
       await fetchListConversation({ page: 1, limit: 20 });
+      const list = useChatStore.getState().listConversation;
+      console.log("[CreateGroup] Conversation list after fetch:", list.length, "items");
+      list.forEach((c, i) => {
+        console.log(`[CreateGroup] Conv ${i}:`, { id: c.id, name: c.name, type: c.type, title: (c as any).title });
+      });
       toast.success("Đã tạo nhóm trò chuyện");
       setGroupName("");
       setGroupDescription("");
       setSelectedMembers([]);
       setSearchValue("");
       onClose();
-    } catch (error) {
-      toast.error("Không thể tạo nhóm trò chuyện");
+    } catch (error: any) {
+      console.error("[CreateGroup] Error:", error);
+      const errorMsg = error?.response?.data?.message || error?.message || "Không thể tạo nhóm trò chuyện";
+      toast.error(errorMsg);
     } finally {
       setCreating(false);
     }
@@ -253,7 +276,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
               </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                 {selectedMembers.map(memberId => {
-                  const friend = friends.find(f => f.id === memberId);
+                  const friend = friendList.find(f => f.id === memberId);
                   return (
                     <SelectedChip
                       key={memberId}
@@ -281,27 +304,36 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
           {/* Members List */}
           <MembersList>
-            {filteredFriends.map(friend => (
-              <MemberItem
-                key={friend.id}
-                onClick={() => handleToggleMember(friend.id)}
-                selected={selectedMembers.includes(friend.id)}
-              >
-                <ListItemIcon>
-                  <Avatar sx={{ width: 40, height: 40 }}>
-                    {friend.name.charAt(0)}
-                  </Avatar>
-                </ListItemIcon>
-                <ListItemText
-                  primary={friend.name}
-                  secondary={friend.phone}
-                />
+            {filteredFriends.length === 0 ? (
+              <Box sx={{ p: 2, textAlign: "center", color: "#94A3B8" }}>
+                {searchValue ? "Không tìm thấy bạn bè" : "Chưa có bạn bè nào"}
+              </Box>
+            ) : (
+              filteredFriends.map(friend => (
+                <MemberItem
+                  key={friend.id}
+                  onClick={() => handleToggleMember(friend.id)}
+                  selected={selectedMembers.includes(friend.id)}
+                >
+                  <ListItemIcon>
+                    <Avatar 
+                      src={friend.avatar} 
+                      sx={{ width: 40, height: 40 }}
+                    >
+                      {friend.name?.charAt(0) || "?"}
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={friend.name}
+                    secondary={friend.phone}
+                  />
                 <Checkbox
-                  checked={selectedMembers.includes(friend.id)}
-                  onChange={() => handleToggleMember(friend.id)}
-                />
-              </MemberItem>
-            ))}
+                    checked={selectedMembers.includes(friend.id)}
+                    onChange={() => handleToggleMember(friend.id)}
+                  />
+                </MemberItem>
+              ))
+            )}
           </MembersList>
         </ModalContent>
       </DialogContent>
@@ -310,7 +342,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         <Button
           onClick={handleCreateGroup}
           variant="contained"
-          disabled={!groupName.trim() || selectedMembers.length === 0 || creating}
+          disabled={!groupName.trim() || selectedMembers.length < 2 || creating}
         >
           {creating ? "Đang tạo..." : t("GROUP.CREATE_SUBMIT")} ({selectedMembers.length})
         </Button>

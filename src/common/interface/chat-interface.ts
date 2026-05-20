@@ -65,6 +65,7 @@ export interface AttachmentDto {
 export interface MessageReplyPreview {
   messageId: string;
   senderId: string;
+  senderName?: string;
   body: string;
   attachments: AttachmentDto[];
   isDeleted?: boolean;

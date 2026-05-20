@@ -8,6 +8,7 @@ import type { ConversationDto } from "@/src/common/interface/chat-interface";
 import { getConversationLastMessageText } from "@/src/common/helpers/conversation.helpers";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
+import GroupsIcon from "@mui/icons-material/Groups";
 import { chatService } from "@/src/common/service/chat-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import MenuPopover from "@/src/shared/component/MenuPopover"; // sửa đúng path của em
@@ -64,10 +65,24 @@ const NameWrap = styled(Box)({
   flex: 1,
 });
 
-const Name = styled(Typography)({
+const GroupBadge = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  gap: 2,
+  background: "#E8F5E9",
+  color: "#2E7D32",
+  padding: "2px 6px",
+  borderRadius: 4,
+  fontSize: 11,
+  fontWeight: 500,
+});
+
+const Name = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "isGroup",
+})<{ isGroup?: boolean }>(({ isGroup }) => ({
   fontSize: 14,
-  fontWeight: 600,
-  color: "#111827",
+  fontWeight: isGroup ? 500 : 600,
+  color: isGroup ? "#1565C0" : "#111827",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -126,7 +141,7 @@ function ConversationListItem({
       console.error("Pin/unpin conversation failed", error);
     }
   };
-  const isGroup = item.type === "group";
+  const isGroup = item.type === "group" || item.type === "GROUP";
 
   const otherMember = !isGroup
     ? item.members?.find((m) => m.userId !== currentUserId)
@@ -153,13 +168,21 @@ function ConversationListItem({
             src={displaySrc}
             name={displayName ?? null}
             size={44}
+            isGroup={isGroup}
           />
 
           <Content>
             <Row>
               <NameWrap>
-                <Name>{item.title}</Name>
-
+                {isGroup && (
+                  <GroupsIcon sx={{ fontSize: 16, color: "#1565C0", flexShrink: 0 }} />
+                )}
+                <Name isGroup={isGroup}>{item.title}</Name>
+                {isGroup && item.memberCount && (
+                  <GroupBadge>
+                    {item.memberCount} thành viên
+                  </GroupBadge>
+                )}
               </NameWrap>
 
               {!!item.unreadCount && (

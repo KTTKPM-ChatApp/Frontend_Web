@@ -181,7 +181,12 @@ export default function ConversationList() {
               onClick={() => openConversation(item.id)}
             >
               <ItemRow>
-                <AppAvatar src={item.avatarUrl ?? ""} name={item.name ?? null} size={44} />
+                <AppAvatar 
+                  src={item.avatarUrl ?? ""} 
+                  name={item.name ?? null} 
+                  size={44} 
+                  isGroup={item.type === "group" || item.type === "GROUP"}
+                />
                 <Content>
                   <Row>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
@@ -189,7 +194,7 @@ export default function ConversationList() {
                       <Name>{item.name || "Cuộc trò chuyện"}</Name>
                     </Box>
                     <Meta>
-                      {item.type === "group" ? <Group sx={{ fontSize: 12, color: "#64748B" }} /> : <Person sx={{ fontSize: 12, color: "#64748B" }} />}
+                      {(item.type === "group" || item.type === "GROUP") ? <Group sx={{ fontSize: 12, color: "#64748B" }} /> : <Person sx={{ fontSize: 12, color: "#64748B" }} />}
                       {isMuted && <VolumeOff sx={{ fontSize: 14, color: "#64748B" }} />}
                       {!!item.unreadCount && (
                         <Badge color="primary" badgeContent={item.unreadCount} />
@@ -226,13 +231,12 @@ export default function ConversationList() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        {selectedConversation &&
-          (() => {
+        {selectedConversation ? (() => {
             const conversation = displayConversations.find((item) => item.id === selectedConversation);
             const isMuted = (conversation as any)?.isMuted || false;
             const isPinned = (conversation as any)?.isPinned || false;
             return (
-              <>
+              <Box>
                 <MenuItem onClick={() => handleToggleMute(selectedConversation, isMuted)}>
                   {isMuted ? (
                     <>
@@ -259,9 +263,9 @@ export default function ConversationList() {
                     </>
                   )}
                 </MenuItem>
-              </>
+              </Box>
             );
-          })()}
+          })() : null}
       </Menu>
     </>
   );

@@ -38,7 +38,7 @@ const normalizeFriendUser = (raw: any): IFriendUser | undefined => {
 
     return {
         id: raw.id ?? "",
-        fullName: raw.fullName ?? raw.full_name ?? "Người dùng",
+        fullName: raw.fullName ?? raw.full_name ?? raw.displayName ?? "Người dùng",
         avatarUrl: raw.avatarUrl ?? raw.avatar_url ?? null,
         phone: raw.phone ?? null,
     };

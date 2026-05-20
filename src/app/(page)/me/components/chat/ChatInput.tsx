@@ -9,6 +9,7 @@ import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import dynamic from "next/dynamic";
 import InsertEmoticonRoundedIcon from "@mui/icons-material/InsertEmoticonRounded";
 import { EmojiClickData } from "emoji-picker-react";
+import ComposerActionPreview from "./ComposerActionPreview";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
@@ -18,6 +19,12 @@ interface ChatInputProps {
   disabled?: boolean;
   conversationId?: string;
   onSend: (value: string) => void;
+  replyMessage?: {
+    messageId: string;
+    body: string;
+    senderName?: string;
+  } | null;
+  onCancelReply?: () => void;
 }
 
 const ChatInputContainer = styled(Box)({
@@ -91,7 +98,7 @@ const PickerBox = styled(Box)({
   overflow: "hidden",
 });
 
-export default function ChatInput({ disabled, conversationId, onSend }: ChatInputProps) {
+export default function ChatInput({ disabled, conversationId, onSend, replyMessage, onCancelReply }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [openEmoji, setOpenEmoji] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -148,6 +155,16 @@ export default function ChatInput({ disabled, conversationId, onSend }: ChatInpu
 
   return (
     <ChatInputContainer>
+      {replyMessage && (
+        <ComposerActionPreview
+          replyMessage={{
+            messageId: replyMessage.messageId,
+            body: replyMessage.body,
+            senderName: replyMessage.senderName,
+          }}
+          onCancelReply={onCancelReply}
+        />
+      )}
       <InputRow>
         <EmojiWrap>
           <IconBtn onClick={() => setOpenEmoji((prev) => !prev)} disabled={disabled}>

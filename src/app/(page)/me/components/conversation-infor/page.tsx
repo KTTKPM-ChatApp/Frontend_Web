@@ -71,7 +71,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
 
   const conversation = listConversation.find((c) => c.id === activeConversationId);
-  const isGroup = conversation?.type === "group";
+  const isGroup = conversation?.type === "group" || conversation?.type === "GROUP";
   const members = conversation?.members ?? [];
 
   const mediaItems = useChatStore(

@@ -171,7 +171,7 @@ export default function MessageList({
             const grouped = shouldGroupWithPrev(msg, index);
 
             return (
-              <Box key={msg.messageId}>
+              <Box key={msg.messageId} id={`msg-${msg.messageId}`}>
                 {shouldShowDateSeparator(msg, index) && (
                   <DateSeparator>
                     <DateLabel>{formatDateLabel(msg.createdAt)}</DateLabel>
@@ -197,6 +197,7 @@ export default function MessageList({
                   isEdited={Boolean(msg.editedAt)}
                   isGrouped={grouped}
                   deliveryStatus="read"
+                  replyTo={msg.replyTo || null}
                   attachments={msg.attachments}
                   reactions={[]}
                   onReply={() => onReplyMessage(msg)}

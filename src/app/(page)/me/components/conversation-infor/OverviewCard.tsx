@@ -37,13 +37,12 @@ export default function OverviewCard() {
     (item) => item.id === activeConversationId
   );
 
-  const isGroup = currentConversation?.type === "group";
+  const isGroup = currentConversation?.type === "group" || currentConversation?.type === "GROUP";
   const memberCount = currentConversation?.memberCount ?? 0;
 
   return (
     <Card>
       <SimpleRow>
-        {isGroup ? <Groups2OutlinedIcon /> : <PersonOutlinedIcon />}
         <Box>
           <SimpleText>
             {isGroup ? `${memberCount} thành viên` : "Hội thoại cá nhân"}

@@ -16,7 +16,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { styled, alpha } from "@mui/material/styles";
+import { styled, alpha, keyframes } from "@mui/material/styles";
+import { getReplyPreview } from "@/src/common/helpers/displayPreviewReply";
 
 import ReplyOutlinedIcon from "@mui/icons-material/ReplyOutlined";
 import ForwardOutlinedIcon from "@mui/icons-material/ForwardOutlined";
@@ -53,6 +54,14 @@ interface MessageItemProps {
   deliveryStatus?: "sending" | "sent" | "delivered" | "read" | "failed";
   isEdited?: boolean;
   isGrouped?: boolean;
+  replyTo?: {
+    messageId: string;
+    body: string;
+    senderId?: string;
+    senderName?: string;
+    attachments?: any[];
+    isDeleted?: boolean;
+  } | null;
   attachments?: Attachment[];
   reactions?: Array<{
     userId: string;
@@ -111,6 +120,20 @@ const BubbleWrap = styled(Box, {
   position: "relative",
 }));
 
+const flashAnimation = keyframes`
+  0% {
+    background-color: #fef08a !important; /* light yellow */
+    border-color: #facc15 !important;
+  }
+  50% {
+    background-color: #fef08a !important;
+    border-color: #facc15 !important;
+  }
+  100% {
+    /* transition back */
+  }
+`;
+
 const Bubble = styled(Box, {
   shouldForwardProp: (prop) =>
     prop !== "mine" && prop !== "isDeleted",
@@ -133,6 +156,11 @@ const Bubble = styled(Box, {
   boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
   opacity: isDeleted ? 0.6 : 1,
   fontStyle: isDeleted ? "italic" : "normal",
+  transition: "background-color 0.3s ease, border-color 0.3s ease",
+
+  "&.flash-active": {
+    animation: `${flashAnimation} 1.5s ease-in-out`,
+  },
 }));
 
 const SenderName = styled(Typography)({
@@ -233,6 +261,47 @@ const ReactionChip = styled(Chip)({
   },
 });
 
+const ReplyPreviewBox = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "mine",
+})<{ mine?: boolean }>(({ mine }) => ({
+  background: mine ? "rgba(0, 0, 0, 0.05)" : "rgba(0, 0, 0, 0.04)",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  marginBottom: 6,
+  borderLeft: "3.5px solid #0068FF",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  minWidth: 140,
+  maxWidth: "100%",
+  userSelect: "none",
+
+  "&:hover": {
+    background: mine ? "rgba(0, 0, 0, 0.09)" : "rgba(0, 0, 0, 0.07)",
+  },
+}));
+
+const ReplySenderName = styled(Box)({
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#0068FF",
+  marginBottom: 2,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const ReplyContent = styled(Box)({
+  fontSize: 12,
+  color: "#4B5563",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "100%",
+});
+
 const MessageItem: React.FC<MessageItemProps> = ({
   content,
   sender,
@@ -243,6 +312,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   deliveryStatus = "sent",
   isEdited = false,
   isGrouped = false,
+  replyTo,
   attachments = [],
   reactions = [],
   onReply,
@@ -327,6 +397,23 @@ const MessageItem: React.FC<MessageItemProps> = ({
     }
   };
 
+  const handleScrollToMessage = () => {
+    if (!replyTo?.messageId) return;
+    const element = document.getElementById(`msg-${replyTo.messageId}`);
+    if (element) {
+      const bubble = element.querySelector(".message-bubble");
+      if (bubble) {
+        bubble.scrollIntoView({ behavior: "smooth", block: "center" });
+        bubble.classList.add("flash-active");
+        setTimeout(() => {
+          bubble.classList.remove("flash-active");
+        }, 1500);
+      } else {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  };
+
   const mediaAttachments = attachments.filter(
     (a) => a.type === "image" || a.type === "video"
   );
@@ -391,6 +478,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         <Bubble
           mine={isOwn}
           isDeleted={isDeleted}
+          className="message-bubble"
         >
           {!isOwn && !isGrouped && sender && (
             <SenderName>
@@ -434,6 +522,52 @@ const MessageItem: React.FC<MessageItemProps> = ({
             />
           ) : (
             <>
+              {replyTo && (() => {
+                const { text: replyText, imageAttachment, videoAttachment } = getReplyPreview(replyTo as any);
+                return (
+                  <ReplyPreviewBox mine={isOwn} onClick={handleScrollToMessage}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <ReplySenderName>
+                        {replyTo.senderName || "Người dùng"}
+                      </ReplySenderName>
+                      <ReplyContent>
+                        {replyTo.isDeleted ? "Tin nhắn đã được thu hồi" : replyText}
+                      </ReplyContent>
+                    </Box>
+                    {!replyTo.isDeleted && imageAttachment && (
+                      <Box
+                        component="img"
+                        src={imageAttachment.url || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${imageAttachment.key}`}
+                        alt="replied-media"
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 1,
+                          objectFit: "cover",
+                          marginLeft: 1.5,
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                    {!replyTo.isDeleted && videoAttachment && (
+                      <Box
+                        component="video"
+                        src={videoAttachment.url || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${videoAttachment.key}`}
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 1,
+                          objectFit: "cover",
+                          marginLeft: 1.5,
+                          flexShrink: 0,
+                          backgroundColor: "#000",
+                        }}
+                      />
+                    )}
+                  </ReplyPreviewBox>
+                );
+              })()}
+
               {!!content && (
                 <MessageText>
                   {content}
