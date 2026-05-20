@@ -49,7 +49,7 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
   const currentUserId = useChatStore((s) => s.currentUserId);
 
   const conversation = listConversation.find((c) => c.id === activeConversationId);
-  const isGroup = conversation?.type === "group";
+  const isGroup = conversation?.type === "group" || conversation?.type === "GROUP";
   const currentUser = conversation?.members?.find((m: any) => m.userId === currentUserId);
   const userRole = (currentUser as any)?.role;
   const isOwner = userRole === "OWNER";

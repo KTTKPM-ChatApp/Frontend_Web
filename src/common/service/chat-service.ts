@@ -69,8 +69,11 @@ const normalizeConversation = (item: RawConversation): ConversationDto => {
     role: "",
   } as ConversationMemberDto)) || []);
 
-  let conversationName = item.name || item.title || "Cuộc trò chuyện";
-  if (item.type === 'DIRECT' && members.length > 0) {
+  let conversationName = item.title || item.name || "Cuộc trò chuyện";
+  // Với GROUP: ưu tiên title (tên nhóm), không dùng name (tên user)
+  if ((item.type || '').toUpperCase() === 'GROUP') {
+    conversationName = item.title || "Cuộc trò chuyện";
+  } else if ((item.type || '').toUpperCase() === 'DIRECT' && members.length > 0) {
     const otherMember = members.find((m: any) => m.displayName);
     if (otherMember?.displayName) {
       conversationName = otherMember.displayName;
@@ -118,6 +121,7 @@ export interface CreateGroupRequest {
   name: string;
   memberIds: string[];
   avatarUrl?: string;
+  description?: string;
 }
 
 export interface CreateDirectRequest {
@@ -198,10 +202,10 @@ export interface UpdateGroupSettingsRequest {
 }
 
 export const chatService = {
-  fetchListConversations(params: { limit?: number; offset?: number }) {
+  fetchListConversations(params: { page?: number; limit?: number }) {
+    const page = params.page || 1;
     const limit = params.limit || 20;
-    const offset = params.offset || 0;
-    return http.get<ConversationListResponse>(`${API.API_CONVERSATIONS_LIST}?limit=${limit}&offset=${offset}`);
+    return http.get<ConversationListResponse>(`${API.API_CONVERSATIONS_LIST}?page=${page}&limit=${limit}`);
   },
 
   createConversation(type: 'DIRECT' | 'GROUP', participantIds: string[], title?: string) {
@@ -293,13 +297,22 @@ export const chatService = {
 
   createGroupConversation(data: CreateGroupRequest) {
     return http
-      .post<any>(API.API_CONVERSATIONS_LIST, {
-        type: "GROUP",
-        title: data.name,
-        participantIds: data.memberIds,
+      .post<any>(API.API_CONVERSATIONS_CREATE_GROUP, {
+        name: data.name,
+        memberIds: data.memberIds,
+        avatarUrl: data.avatarUrl,
+        description: data.description,
       })
       .then((res) => {
+        console.log("[chat-service] createGroupConversation response:", res);
+        
+        if (!res.ok) {
+          console.error("[chat-service] createGroupConversation failed:", res.payload);
+          throw new Error(res.payload?.message || "Failed to create group");
+        }
+        
         const raw = res?.payload || {};
+        console.log("[chat-service] createGroupConversation raw:", raw);
         const normalized = normalizeConversation(raw);
         return {
           ...res,
@@ -346,13 +359,14 @@ export const chatService = {
     );
   },
 
-  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: any[] = []) {
+  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: any[] = [], replyToId?: string | null) {
     return http.post(API.API_CONVERSATIONS_SEND_MESSAGE(conversationId), {
       content,
       contentType,
-      attachments
+      attachments,
+      reply_to_id: replyToId || undefined
     });
-},
+  },
 
   fetchConversationById(conversationId: string) {
     return http.get(API.API_CONVERSATIONS_DETAIL(conversationId));

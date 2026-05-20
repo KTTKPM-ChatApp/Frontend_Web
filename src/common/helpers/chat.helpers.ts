@@ -76,19 +76,40 @@ export const normalizeMessage = (raw: any): UiMessage & {
       ? new Date(rawCreatedAt).getTime()
       : Number(rawCreatedAt);
 
+  // Map replyTo object if it exists in the raw data (from API response or optimistic)
+  const rawReply = raw?.replyTo;
+  const replyTo = rawReply
+    ? {
+        messageId: rawReply.messageId || rawReply.id || "",
+        senderId: rawReply.senderId || rawReply.sender?.id || "",
+        senderName:
+          rawReply.senderName ||
+          rawReply.sender?.displayName ||
+          rawReply.sender?.fullName ||
+          rawReply.sender?.name ||
+          "Người dùng",
+        body: rawReply.body || rawReply.content || "",
+        attachments: Array.isArray(rawReply.attachments) ? rawReply.attachments : [],
+        isDeleted: Boolean(rawReply.isDeleted),
+      }
+    : null;
+
   return {
     messageId: String(messageId),
     clientMessageId: raw?.clientMessageId ?? raw?.client_message_id ?? null,
     conversationId: String(conversationId),
     senderId: String(senderId),
+    senderName: raw?.senderName ?? raw?.sender_name ?? undefined,
     body: raw?.body ?? raw?.content ?? "",
     createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
     attachments: Array.isArray(raw?.attachments) ? raw.attachments : [],
+    replyTo,
     replyToMessageId:
       raw?.replyToMessageId ??
       raw?.reply_to_message_id ??
       raw?.reply_to_id ??
-      raw?.replyTo?.id ??
+      rawReply?.messageId ??
+      rawReply?.id ??
       null,
     editedAt: raw?.editedAt ?? raw?.edited_at ?? null,
     deletedAt: raw?.deletedAt ?? raw?.deleted_at ?? null,

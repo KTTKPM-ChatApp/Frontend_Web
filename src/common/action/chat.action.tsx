@@ -171,6 +171,7 @@ const hydrateReplyMessages = (messages: UiMessage[]): UiMessage[] => {
       replyTo: {
         messageId: repliedMessage.messageId,
         senderId: repliedMessage.senderId,
+        senderName: repliedMessage.senderName || "Người dùng",
         body: repliedMessage.body ?? "",
         attachments: repliedMessage.attachments ?? [],
         isDeleted: Boolean(repliedMessage.isDeleted),
@@ -214,6 +215,7 @@ export const initChat = (accessToken: string, currentUserId: string) => {
             replyTo: {
               messageId: repliedMessage.messageId,
               senderId: repliedMessage.senderId,
+              senderName: repliedMessage.senderName || "Người dùng",
               body: repliedMessage.body ?? "",
               attachments: repliedMessage.attachments ?? [],
               isDeleted: Boolean(repliedMessage.isDeleted),
@@ -571,7 +573,7 @@ export const sendMessageHttp = async (
   
   // Send via HTTP API
   try {
-    const response = await chatService.sendMessage(conversationId, displayBody, 'TEXT', attachments);
+    const response = await chatService.sendMessage(conversationId, displayBody, 'TEXT', attachments, replyMessage?.messageId ?? null);
     
     if (response.ok && response.payload) {
       // Success - Update optimistic message with server data

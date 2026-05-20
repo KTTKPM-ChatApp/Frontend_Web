@@ -87,6 +87,7 @@ export default function ChatPanel({
 
   const [showScrollbar, setShowScrollbar] = useState(false);
   const [replyMessageId, setReplyMessageId] = useState<string | null>(null);
+  const [replyMessageData, setReplyMessageData] = useState<{ messageId: string; body: string; senderName?: string } | null>(null);
   const [forwardTarget, setForwardTarget] = useState<{ messageId: string; conversationId: string } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const {
@@ -169,8 +170,18 @@ export default function ChatPanel({
       void tryLoadMore();
     }
   };
-  const handleReplyMessage = (msgId: UiMessage) => {
-    setReplyMessageId(msgId.messageId);
+  const handleReplyMessage = (msg: UiMessage) => {
+    setReplyMessageId(msg.messageId);
+    setReplyMessageData({
+      messageId: msg.messageId,
+      body: msg.body || "",
+      senderName: msg.senderName,
+    });
+  };
+  
+  const handleCancelReply = () => {
+    setReplyMessageId(null);
+    setReplyMessageData(null);
   };
   useEffect(() => {
     if (!accessToken || !currentUserId) return;
@@ -284,6 +295,17 @@ export default function ChatPanel({
               unpinMessage(conversationId, messageId, msg.createdAt ?? Date.now());
             }
           }}
+          onMessageClick={(messageId) => {
+            const element = document.getElementById(`msg-${messageId}`);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+              element.style.transition = "background-color 0.3s ease";
+              element.style.backgroundColor = "#FFF3CD";
+              setTimeout(() => {
+                element.style.backgroundColor = "transparent";
+              }, 1500);
+            }
+          }}
         />
       )}
 
@@ -320,7 +342,13 @@ export default function ChatPanel({
         <ChatInput
           disabled={false}
           conversationId={conversationId}
-          onSend={(text) => sendMessage(conversationId, text)}
+          onSend={(text) => {
+            const replyMsg = messages.find((m) => m.messageId === replyMessageId);
+            sendMessage(conversationId, text, [], replyMsg);
+            handleCancelReply();
+          }}
+          replyMessage={replyMessageData}
+          onCancelReply={handleCancelReply}
         />
       </InputWrap>
 

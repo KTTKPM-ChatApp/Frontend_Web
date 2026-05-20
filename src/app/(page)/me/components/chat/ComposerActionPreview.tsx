@@ -9,7 +9,7 @@ import { sanitizeInputText } from "@/src/common/helpers/chatInput.helpers";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface ComposerActionPreviewProps {
-  replyMessage?: UiMessage | null;
+  replyMessage?: UiMessage | { messageId: string; body: string; senderId?: string; senderName?: string } | null;
   editMessage?: UiMessage | null;
   onCancelReply?: () => void;
   onCancelEdit?: () => void;
@@ -17,11 +17,14 @@ interface ComposerActionPreviewProps {
 
 const ActionPreviewWrap = styled(Box)({
   padding: "8px 12px",
-  borderBottom: "1px solid #F1F5F9",
+  background: "#F0F4FF",
+  borderLeft: "3px solid #0068FF",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
+  margin: "8px 12px 0 12px",
+  borderRadius: "0 8px 8px 0",
 });
 
 const ActionPreviewLeft = styled(Box)({
@@ -30,14 +33,15 @@ const ActionPreviewLeft = styled(Box)({
 });
 
 const ActionPreviewTitle = styled(Box)({
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 600,
-  marginBottom: 2,
+  marginBottom: 4,
+  color: "#0068FF",
 });
 
 const ActionPreviewText = styled(Box)({
-  fontSize: 12,
-  color: "#64748B",
+  fontSize: 13,
+  color: "#4B5563",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -70,39 +74,21 @@ export default function ComposerActionPreview({
 }: ComposerActionPreviewProps) {
   const t = useTrans();
   if (replyMessage && !editMessage) {
-    const replyPreview = getReplyPreview(replyMessage);
+    const replyText = (replyMessage as any).body || "";
+    const senderName = (replyMessage as any).senderName || (replyMessage as any).senderId || t("CHAT.USER");
 
     return (
       <ActionPreviewWrap>
         <ActionPreviewLeft>
-          <ActionPreviewTitle sx={{ color: "#2563EB" }}>
-            {t("CHAT.REPLYING")}
+          <ActionPreviewTitle>
+            Trả lời {senderName}
           </ActionPreviewTitle>
 
-          <ActionPreviewText>{replyPreview.text}</ActionPreviewText>
-
-          {replyPreview.imageAttachment && (
-            <ReplyPreviewImage
-              src={
-                `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${replyPreview.imageAttachment.key}`
-              }
-              alt={replyPreview.imageAttachment.name ?? "reply-image"}
-            />
-          )}
-
-          {replyPreview.videoAttachment && (
-            <ReplyPreviewVideo
-              src={
-                `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${replyPreview.videoAttachment.key}`
-              }
-              preload="metadata"
-              muted
-            />
-          )}
+          <ActionPreviewText>{replyText || t("CHAT.MESSAGE")}</ActionPreviewText>
         </ActionPreviewLeft>
 
-        <IconButton size="small" onClick={onCancelReply}>
-          <CloseIcon fontSize="inherit" />
+        <IconButton size="small" onClick={onCancelReply} sx={{ color: "#64748B" }}>
+          <CloseIcon fontSize="small" />
         </IconButton>
       </ActionPreviewWrap>
     );

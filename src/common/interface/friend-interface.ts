@@ -3,6 +3,7 @@ export type FriendRequestAction = "accept" | "reject";
 export interface IFriendUser {
     id: string;
     fullName: string;
+    displayName?: string;
     avatarUrl?: string | null;
     phone?: string;
     bio?: string | null;
