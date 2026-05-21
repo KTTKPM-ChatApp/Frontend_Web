@@ -1,8 +1,58 @@
 @import "tailwindcss";
 
 :root {
+  /* Zalo Design System Colors */
+  
+  /* Primary */
+  --color-primary: #0068FF;
+  --color-primary-hover: #005AE0;
+  --color-primary-active: #0047B3;
+  
+  /* Status */
+  --color-success: #32A458;
+  --color-warning: #E05A00;
+  --color-danger: #DB0000;
+  
+  /* Neutral Text */
+  --color-text-primary: #000000;
+  --color-text-secondary: #767A7F;
+  --color-text-muted: #B9BDC1;
+  --color-text-disabled: #C4C7CC;
+  
+  /* Background */
+  --color-background: #FFFFFF;
+  --color-surface: #F7F7F8;
+  --color-surface-hover: #F1F2F4;
+  
+  /* Role Badges */
+  --color-owner: #FFB800;
+  --color-admin: #7C3AED;
+  
+  /* Borders */
+  --color-border: #E5E7EB;
+  --color-border-focus: #0068FF;
+  
+  /* Original */
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Spacing System (4px base) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 @theme inline {
@@ -20,10 +70,143 @@
 }
 
 body {
-  /* background: var(--background);
-  color: var(--foreground); */
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  color: var(--color-text-primary);
+}
+
+/* Typography Scale */
+.text-header {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.text-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.text-body {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.text-caption {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+/* Role Badge Styles */
+.role-badge-owner {
+  background-color: #FFFBEB;
+  color: var(--color-owner);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-badge-admin {
+  background-color: #F5F3FF;
+  color: var(--color-admin);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Danger Zone Button */
+.btn-danger {
+  background-color: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* Confirmation Dialog Styles */
+.dialog-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1300;
+}
+
+.dialog-content {
+  background: white;
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.dialog-icon-warning {
+  width: 48px;
+  height: 48px;
+  background-color: #FEF3C7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--color-warning);
+  font-size: 24px;
+}
+
+.dialog-icon-danger {
+  width: 48px;
+  height: 48px;
+  background-color: #FEE2E2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--color-danger);
+  font-size: 24px;
 }

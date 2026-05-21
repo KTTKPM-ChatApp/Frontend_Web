@@ -6,6 +6,10 @@ import {
   Box,
   Button,
   Collapse,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   IconButton,
   InputBase,
   Typography,
@@ -17,10 +21,13 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 const Root = styled(Box)({
   background: "#fff",
   marginBottom: 8,
+  borderRadius: 8,
 });
 
 const Header = styled(Box)({
@@ -40,14 +47,14 @@ const HeaderLeft = styled(Box)({
 
 const Title = styled(Typography)({
   fontSize: 16,
-  fontWeight: 700,
-  color: "#0F172A",
+  fontWeight: 600,
+  color: "#000000",
 });
 
 const Count = styled(Typography)({
   fontSize: 14,
   fontWeight: 400,
-  color: "#64748B",
+  color: "#767A7F",
 });
 
 const ArrowButton = styled(IconButton, {
@@ -55,7 +62,7 @@ const ArrowButton = styled(IconButton, {
 })<{ open?: boolean }>(({ open }) => ({
   width: 28,
   height: 28,
-  color: "#64748B",
+  color: "#767A7F",
   transform: open ? "rotate(180deg)" : "rotate(0deg)",
   transition: "transform 0.2s ease",
 }));
@@ -69,10 +76,10 @@ const StyledSearch = styled(InputBase)({
   height: 36,
   padding: "0 12px",
   borderRadius: 8,
-  background: "#F3F5F7",
+  background: "#F7F7F8",
   fontSize: 14,
   "& input::placeholder": {
-    color: "#94A3B8",
+    color: "#767A7F",
   },
 });
 
@@ -90,14 +97,16 @@ const MemberRow = styled(Box)({
   padding: "8px 10px",
   borderRadius: 8,
   "&:hover": {
-    background: "#F8FAFC",
+    background: "#F7F7F8",
   },
 });
 
 const MemberAvatar = styled(Avatar)({
-  width: 36,
-  height: 36,
-  fontSize: 14,
+  width: 44,
+  height: 44,
+  fontSize: 16,
+  fontWeight: 500,
+  background: "#0068FF",
 });
 
 const MemberInfo = styled(Box)({
@@ -108,47 +117,88 @@ const MemberInfo = styled(Box)({
 const MemberName = styled(Typography)({
   fontSize: 14,
   fontWeight: 500,
-  color: "#0F172A",
+  color: "#000000",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  lineHeight: 1.4,
 });
 
-const AdminBadge = styled(Box)({
+const OwnerBadge = styled(Box)({
   display: "inline-flex",
   alignItems: "center",
   gap: 3,
-  backgroundColor: "#FEF3C7",
-  color: "#D97706",
-  padding: "1px 7px",
+  backgroundColor: "#FFFBEB",
+  color: "#FFB800",
+  padding: "2px 8px",
   borderRadius: 10,
   fontSize: 11,
   fontWeight: 600,
   marginTop: 2,
 });
 
-const RemoveBtn = styled(IconButton)({
-  width: 28,
-  height: 28,
-  color: "#94A3B8",
+const AdminBadge = styled(Box)({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 3,
+  backgroundColor: "#F5F3FF",
+  color: "#7C3AED",
+  padding: "2px 8px",
+  borderRadius: 10,
+  fontSize: 11,
+  fontWeight: 600,
+  marginTop: 2,
+});
+
+const ActionButton = styled(IconButton)({
+  width: 32,
+  height: 32,
+  color: "#767A7F",
   "&:hover": {
-    color: "#DC2626",
-    background: "#FEE2E2",
+    backgroundColor: "#F7F7F8",
+  },
+});
+
+const PromoteButton = styled(ActionButton)({
+  "&:hover": {
+    color: "#7C3AED",
+    backgroundColor: "#F5F3FF",
+  },
+});
+
+const DemoteButton = styled(ActionButton)({
+  "&:hover": {
+    color: "#E05A00",
+    backgroundColor: "#FEF3C7",
+  },
+});
+
+const RemoveButton = styled(ActionButton)({
+  "&:hover": {
+    color: "#DB0000",
+    backgroundColor: "#FEE2E2",
+  },
+});
+
+const TransferButton = styled(ActionButton)({
+  "&:hover": {
+    color: "#FFB800",
+    backgroundColor: "#FFFBEB",
   },
 });
 
 const ViewAllBtn = styled(Button)({
   height: 40,
   borderRadius: 8,
-  background: "#F3F5F7",
-  color: "#0F172A",
+  background: "#F7F7F8",
+  color: "#000000",
   fontSize: 14,
-  fontWeight: 600,
+  fontWeight: 500,
   textTransform: "none",
   boxShadow: "none",
   margin: "0 16px 16px",
   "&:hover": {
-    background: "#E5E7EB",
+    background: "#F1F2F4",
     boxShadow: "none",
   },
 });
@@ -157,23 +207,105 @@ const AddMemberLine = styled(Box)({
   display: "flex",
   alignItems: "center",
   gap: 12,
-  padding: "8px 10px",
+  padding: "12px 18px",
+  margin: "0 8px 8px",
   borderRadius: 8,
   cursor: "pointer",
-  color: "#005AE0",
+  color: "#0068FF",
+  background: "#E3F2FD",
   "&:hover": {
-    background: "#EFF6FF",
+    background: "#BBDEFB",
   },
 });
 
+const StyledDialog = styled(Dialog)({
+  "& .MuiDialog-paper": {
+    borderRadius: 12,
+    maxWidth: 360,
+  },
+});
+
+const DialogTitleStyled = styled(DialogTitle)({
+  fontSize: 18,
+  fontWeight: 600,
+  color: "#000000",
+  padding: "20px 24px 16px",
+});
+
+const DialogContentStyled = styled(DialogContent)({
+  padding: "0 24px 16px",
+  "& p": {
+    fontSize: 14,
+    color: "#767A7F",
+    lineHeight: 1.5,
+  },
+});
+
+const DialogActionsStyled = styled(DialogActions)({
+  padding: "8px 16px 16px",
+  gap: 8,
+});
+
+const CancelButton = styled(Button)({
+  height: 40,
+  borderRadius: 8,
+  background: "#F7F7F8",
+  color: "#000000",
+  fontSize: 14,
+  fontWeight: 500,
+  textTransform: "none",
+  boxShadow: "none",
+  padding: "0 16px",
+  "&:hover": {
+    background: "#F1F2F4",
+    boxShadow: "none",
+  },
+});
+
+const ConfirmButton = styled(Button)({
+  height: 40,
+  borderRadius: 8,
+  fontSize: 14,
+  fontWeight: 500,
+  textTransform: "none",
+  boxShadow: "none",
+  padding: "0 16px",
+});
+
+const ConfirmButtonDanger = styled(ConfirmButton)({
+  background: "#DB0000",
+  color: "#fff",
+  "&:hover": {
+    background: "#B80000",
+  },
+});
+
+const ConfirmButtonPrimary = styled(ConfirmButton)({
+  background: "#0068FF",
+  color: "#fff",
+  "&:hover": {
+    background: "#005AE0",
+  },
+});
+
+interface Member {
+  id: string;
+  name: string;
+  avatar?: string;
+  isAdmin?: boolean;
+  isOwner?: boolean;
+  phone?: string;
+}
+
+type ConfirmActionType =
+  | { type: "promote"; memberId: string; memberName: string }
+  | { type: "demote"; memberId: string; memberName: string }
+  | { type: "remove"; memberId: string; memberName: string }
+  | { type: "transfer"; memberId: string; memberName: string }
+  | null;
+
 interface GroupMemberListViewProps {
-  members?: Array<{
-    id: string;
-    name: string;
-    avatar?: string;
-    isAdmin?: boolean;
-    phone?: string;
-  }>;
+  members?: Member[];
   totalCount?: number;
   searchValue?: string;
   onSearch?: (value: string) => void;
@@ -181,6 +313,9 @@ interface GroupMemberListViewProps {
   onAddMember?: () => void;
   onPromoteToAdmin?: (memberId: string) => void;
   onDemoteFromAdmin?: (memberId: string) => void;
+  onTransferOwnership?: (memberId: string) => void;
+  canManageMembers?: boolean;
+  canPromote?: boolean;
 }
 
 const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
@@ -192,8 +327,12 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
   onAddMember = () => {},
   onPromoteToAdmin = () => {},
   onDemoteFromAdmin = () => {},
+  onTransferOwnership = () => {},
+  canManageMembers = false,
+  canPromote = false,
 }) => {
   const [open, setOpen] = useState(true);
+  const [confirmAction, setConfirmAction] = useState<ConfirmActionType>(null);
 
   const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchValue.toLowerCase())
@@ -201,6 +340,52 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
 
   const showAll = searchValue || filteredMembers.length <= 5;
   const displayedMembers = showAll ? filteredMembers : filteredMembers.slice(0, 5);
+
+  const handleConfirmAction = () => {
+    if (!confirmAction) return;
+
+    if (confirmAction.type === "promote") {
+      onPromoteToAdmin(confirmAction.memberId);
+    } else if (confirmAction.type === "demote") {
+      onDemoteFromAdmin(confirmAction.memberId);
+    } else if (confirmAction.type === "remove") {
+      onRemoveMember(confirmAction.memberId);
+    } else if (confirmAction.type === "transfer") {
+      onTransferOwnership(confirmAction.memberId);
+    }
+
+    setConfirmAction(null);
+  };
+
+  const getConfirmTitle = () => {
+    if (!confirmAction) return "";
+    switch (confirmAction.type) {
+      case "promote":
+        return "Phong quản trị viên";
+      case "demote":
+        return "Hạ quyền quản trị viên";
+      case "remove":
+        return "Xóa thành viên";
+      case "transfer":
+        return "Chuyển quyền trưởng nhóm";
+    }
+  };
+
+  const getConfirmMessage = () => {
+    if (!confirmAction) return "";
+    switch (confirmAction.type) {
+      case "promote":
+        return `Bạn có chắc chắn muốn phong "${confirmAction.memberName}" làm quản trị viên nhóm?`;
+      case "demote":
+        return `Bạn có chắc chắn muốn hạ quyền "${confirmAction.memberName}" xuống thành viên thường?`;
+      case "remove":
+        return `Bạn có chắc chắn muốn xóa "${confirmAction.memberName}" khỏi nhóm?`;
+      case "transfer":
+        return `Bạn có chắc chắn muốn chuyển quyền trưởng nhóm cho "${confirmAction.memberName}"? Bạn sẽ trở thành quản trị viên.`;
+    }
+  };
+
+  const isDangerAction = confirmAction?.type === "remove";
 
   return (
     <Root>
@@ -221,13 +406,13 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
             value={searchValue}
             onChange={(e) => onSearch(e.target.value)}
             startAdornment={
-              <SearchIcon sx={{ fontSize: 18, color: "#94A3B8", mr: 1 }} />
+              <SearchIcon sx={{ fontSize: 18, color: "#767A7F", mr: 1 }} />
             }
           />
         </SearchWrap>
 
         {filteredMembers.length === 0 ? (
-          <Box p="0 16px 16px" textAlign="center" color="#94A3B8" fontSize={14}>
+          <Box p="0 16px 16px" textAlign="center" color="#767A7F" fontSize={14}>
             {searchValue ? "Không tìm thấy" : "Chưa có thành viên"}
           </Box>
         ) : (
@@ -240,39 +425,81 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                   </MemberAvatar>
                   <MemberInfo>
                     <MemberName>{member.name}</MemberName>
-                    {member.isAdmin && (
+                    {member.isOwner && (
+                      <OwnerBadge>
+                        <EmojiEventsIcon sx={{ fontSize: 12 }} />
+                        Chủ nhóm
+                      </OwnerBadge>
+                    )}
+                    {member.isAdmin && !member.isOwner && (
                       <AdminBadge>
-                        <AdminPanelSettingsIcon sx={{ fontSize: 13 }} />
+                        <AdminPanelSettingsIcon sx={{ fontSize: 12 }} />
                         Quản trị viên
                       </AdminBadge>
                     )}
                   </MemberInfo>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    {!member.isAdmin && onPromoteToAdmin && (
-                      <RemoveBtn
-                        size="small"
-                        onClick={() => onPromoteToAdmin(member.id)}
-                        title="Phong quản trị viên"
-                      >
-                        <ArrowForwardIcon sx={{ fontSize: 18 }} />
-                      </RemoveBtn>
+                  <Box sx={{ display: "flex", gap: 0.5 }}>
+                    {canPromote && !member.isOwner && (
+                      <>
+                        <TransferButton
+                          size="small"
+                          onClick={() =>
+                            setConfirmAction({
+                              type: "transfer",
+                              memberId: member.id,
+                              memberName: member.name,
+                            })
+                          }
+                          title="Chuyển quyền trưởng nhóm"
+                        >
+                          <SwapHorizIcon sx={{ fontSize: 18 }} />
+                        </TransferButton>
+                        {!member.isAdmin && (
+                          <PromoteButton
+                            size="small"
+                            onClick={() =>
+                              setConfirmAction({
+                                type: "promote",
+                                memberId: member.id,
+                                memberName: member.name,
+                              })
+                            }
+                            title="Phong quản trị viên"
+                          >
+                            <ArrowForwardIcon sx={{ fontSize: 18 }} />
+                          </PromoteButton>
+                        )}
+                        {member.isAdmin && (
+                          <DemoteButton
+                            size="small"
+                            onClick={() =>
+                              setConfirmAction({
+                                type: "demote",
+                                memberId: member.id,
+                                memberName: member.name,
+                              })
+                            }
+                            title="Hạ quyền quản trị viên"
+                          >
+                            <ArrowForwardIcon sx={{ fontSize: 18, transform: "rotate(180deg)" }} />
+                          </DemoteButton>
+                        )}
+                      </>
                     )}
-                    {member.isAdmin && onDemoteFromAdmin && (
-                      <RemoveBtn
+                    {canManageMembers && !member.isOwner && (
+                      <RemoveButton
                         size="small"
-                        onClick={() => onDemoteFromAdmin(member.id)}
-                        title="Hạ quyền quản trị viên"
-                      >
-                        <ArrowForwardIcon sx={{ fontSize: 18, transform: "rotate(180deg)" }} />
-                      </RemoveBtn>
-                    )}
-                    {!member.isAdmin && (
-                      <RemoveBtn
-                        size="small"
-                        onClick={() => onRemoveMember(member.id)}
+                        onClick={() =>
+                          setConfirmAction({
+                            type: "remove",
+                            memberId: member.id,
+                            memberName: member.name,
+                          })
+                        }
+                        title="Xóa thành viên"
                       >
                         <PersonRemoveIcon sx={{ fontSize: 18 }} />
-                      </RemoveBtn>
+                      </RemoveButton>
                     )}
                   </Box>
                 </MemberRow>
@@ -287,13 +514,30 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
           </>
         )}
 
-        <AddMemberLine onClick={onAddMember} sx={{ mx: 2, mb: 2 }}>
-          <PersonAddAlt1RoundedIcon sx={{ fontSize: 20 }} />
-          <Typography fontSize={14} fontWeight={500}>
-            Thêm thành viên
-          </Typography>
-        </AddMemberLine>
+        {canManageMembers && (
+          <AddMemberLine onClick={onAddMember}>
+            <PersonAddAlt1RoundedIcon sx={{ fontSize: 20 }} />
+            <Typography fontSize={14} fontWeight={500}>
+              Thêm thành viên
+            </Typography>
+          </AddMemberLine>
+        )}
       </Collapse>
+
+      <StyledDialog open={!!confirmAction} onClose={() => setConfirmAction(null)}>
+        <DialogTitleStyled>{getConfirmTitle()}</DialogTitleStyled>
+        <DialogContentStyled>
+          <Typography>{getConfirmMessage()}</Typography>
+        </DialogContentStyled>
+        <DialogActionsStyled>
+          <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
+          {isDangerAction ? (
+            <ConfirmButtonDanger onClick={handleConfirmAction}>Xác nhận</ConfirmButtonDanger>
+          ) : (
+            <ConfirmButtonPrimary onClick={handleConfirmAction}>Xác nhận</ConfirmButtonPrimary>
+          )}
+        </DialogActionsStyled>
+      </StyledDialog>
     </Root>
   );
 };

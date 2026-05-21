@@ -36,7 +36,21 @@ const nextConfig: NextConfig = {
         hostname: 'i.pravatar.cc',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.vecteezy.com',
+        pathname: '/**',
+      },
     ],
+  },
+
+  experimental: {
+    serverComponentsExternalPackages: ['@emotion/react', '@emotion/styled', '@emotion/cache'],
   },
 
   // ===== Proxy API để né CORS =====

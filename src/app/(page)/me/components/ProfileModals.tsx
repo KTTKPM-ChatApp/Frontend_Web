@@ -32,6 +32,7 @@ import { userService } from "@/src/common/service/user-service";
 import { IUpdateMyProfilePayload } from "@/src/common/interface/user-interface";
 import { IUser } from "@/src/common/interface/auth-interface";
 import { useUserStore } from "@/src/common/store/useUserStore";
+import { DEFAULT_AVATAR_URL } from "@/src/shared/component/Avatar";
 
 const ProfileDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiPaper-root": {
@@ -126,7 +127,7 @@ const ProfileModals = ({
     ? avatarPreview.startsWith("blob:")
       ? avatarPreview
       : resolveMediaUrl(avatarPreview)
-    : resolveMediaUrl(currentUser?.avatarUrl) || "/avatar.jpg";
+    : resolveMediaUrl(currentUser?.avatarUrl) || DEFAULT_AVATAR_URL;
 
   const onCropComplete = (_croppedArea: any, croppedPixels: any) => {
     setCroppedAreaPixels(croppedPixels);
@@ -239,7 +240,7 @@ const ProfileModals = ({
           userId: String(userId),
         });
 
-        uploadedAvatarUrl = uploadResult.key;
+        uploadedAvatarUrl = uploadResult.url || uploadResult.key;
       }
       console.log("avatarKey before update profile:", uploadedAvatarUrl);
       const payload: IUpdateMyProfilePayload = {
@@ -356,7 +357,7 @@ const ProfileModals = ({
         <ProfileDialogContent>
           <ProfileHeader>
             <AvatarWrapper>
-              <AvatarStyled src={resolveMediaUrl(currentUser?.avatarUrl) || "/avatar.jpg"} />
+              <AvatarStyled src={resolveMediaUrl(currentUser?.avatarUrl) || DEFAULT_AVATAR_URL} />
             </AvatarWrapper>
 
             <Box>

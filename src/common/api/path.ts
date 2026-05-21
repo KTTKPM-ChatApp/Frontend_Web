@@ -57,6 +57,8 @@ export const API = {
         `/api/conversations/${conversationId}/members`,
     API_CONVERSATIONS_UPDATE_ROLE: (conversationId: string, memberId: string) =>
         `/api/conversations/${conversationId}/members/${memberId}/role`,
+    API_CONVERSATIONS_TRANSFER_OWNERSHIP: (conversationId: string) =>
+        `/api/conversations/${conversationId}/transfer-ownership`,
     API_CONVERSATIONS_SETTINGS: (conversationId: string) =>
         `/api/conversations/${conversationId}/settings`,
     API_CONVERSATIONS_READ: (conversationId: string) =>

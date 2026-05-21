@@ -19,7 +19,7 @@ const theme = createTheme({
 });
 
 export default function EmotionRegistry({ children }: { children: React.ReactNode }) {
-  const cache = React.useMemo(() => createCache({ key: 'css', prepend: true }), []);
+  const cache = React.useMemo(() => createCache({ key: 'mui' }), []);
   const isServerInsertedHTML = React.useRef(false);
 
   useServerInsertedHTML(() => {
@@ -27,25 +27,24 @@ export default function EmotionRegistry({ children }: { children: React.ReactNod
       return null;
     }
     isServerInsertedHTML.current = true;
-    
+
     const names = Object.keys(cache.inserted);
-    if (names.length === 0) return null;
-    
+    if (names.length === 0) {
+      return null;
+    }
+
     let styles = '';
     for (const name of names) {
-      if (cache.inserted[name]) {
+      if (name !== true && cache.inserted[name] !== true) {
         styles += cache.inserted[name];
       }
     }
-    
+
     return (
       <style
         key={cache.key}
         data-emotion={`${cache.key} ${names.join(' ')}`}
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{
-          __html: styles,
-        }}
+        dangerouslySetInnerHTML={{ __html: styles }}
       />
     );
   });

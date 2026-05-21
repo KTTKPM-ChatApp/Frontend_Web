@@ -79,7 +79,7 @@ const GroupBadge = styled(Box)({
 
 const Name = styled(Typography, {
   shouldForwardProp: (prop) => prop !== "isGroup",
-})<{ isGroup?: boolean }>(({ isGroup }) => ({
+})<{ isGroup?: boolean }>(({ isGroup }: { isGroup?: boolean }) => ({
   fontSize: 14,
   fontWeight: isGroup ? 500 : 600,
   color: isGroup ? "#1565C0" : "#111827",
@@ -87,7 +87,7 @@ const Name = styled(Typography, {
   overflow: "hidden",
   textOverflow: "ellipsis",
   minWidth: 0,
-});
+}));
 
 const LastMessage = styled(Typography)({
   fontSize: 12,

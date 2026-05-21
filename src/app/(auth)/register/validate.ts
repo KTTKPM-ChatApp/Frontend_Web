@@ -8,6 +8,7 @@ export const initialValues = {
     displayName: "",
     dateOfBirth: "",
     gender: "male" as Gender,
+    confirmPsw: "",
 };
 
 export const validationSchemaRegisForm = (Trans: (key: string) => string) =>
@@ -42,4 +43,9 @@ export const validationSchemaRegisForm = (Trans: (key: string) => string) =>
             .mixed<Gender>()
             .oneOf(["male", "female", "other"])
             .required(Trans("REGIS.GENDER_REQUIRED") || "Giới tính là bắt buộc"),
+
+        confirmPsw: yup
+            .string()
+            .oneOf([yup.ref("password")], "Mật khẩu xác nhận không khớp")
+            .required("Vui lòng xác nhận mật khẩu"),
     });

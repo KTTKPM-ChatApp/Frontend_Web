@@ -4,6 +4,9 @@ import MuiAvatar, { AvatarProps } from "@mui/material/Avatar";
 import { getInitialsName } from "../../common/helpers/getInitName.helpers";
 import GroupsIcon from "@mui/icons-material/Groups";
 
+export const DEFAULT_AVATAR_URL =
+  "https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg";
+
 interface AppAvatarProps extends Omit<AvatarProps, "src"> {
   src?: string | null;
   name: string | null;
@@ -23,7 +26,6 @@ export default function AppAvatar({
   isGroup = false,
   ...rest
 }: AppAvatarProps) {
-  // Nếu là group và không có ảnh -> hiển thị icon nhóm Zalo
   if (isGroup && !src) {
     return (
       <MuiAvatar
@@ -43,9 +45,7 @@ export default function AppAvatar({
     );
   }
 
-  const finalSrc =
-    src ||
-    "https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg";
+  const finalSrc = src || DEFAULT_AVATAR_URL;
 
   const fallback = children || getInitialsName(name ?? "") || "A";
   return (

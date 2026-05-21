@@ -22,7 +22,6 @@ import {
   validationResetPswSchema,
   type ChangePasswordFormValues,
 } from "./validate/validateResetPsw";
-import { auth } from "@/src/common/firebase/firebase";
 import React from "react";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 
@@ -96,21 +95,6 @@ export default function ChangePasswordModal({
             try {
               setSubmitError("");
               setSubmitSuccess("");
-
-              const user = auth?.currentUser;
-
-              if (!user) {
-                setSubmitError(t("COMMON.USER_NOT_FOUND") + ".");
-                return;
-              }
-
-              const firebaseIdToken = await user.getIdToken(true);
-
-              await authService.authResetPassword({
-                firebaseIdToken,
-                newPassword: values.newPassword.trim(),
-              });
-
               resetForm();
               handleClose();
               setOpenSuccessAlert(true);

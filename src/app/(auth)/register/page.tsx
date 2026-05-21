@@ -25,7 +25,6 @@ export default function RegisterPage() {
     const router = useRouter();
     const Trans = useTrans();
     const { i18n } = useTranslation();
-    const [confirmPsw, setConfirmPsw] = useState("");
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -43,6 +42,16 @@ export default function RegisterPage() {
         setErrorAuth,
         setAuthData } = useAuthStore();
 
+    const errorAuth = useAuthStore((s) => s.errorAuth);
+
+    const mapErrorMessage = (msg: string | undefined): string => {
+        if (!msg) return Trans("COMMON.ERROR");
+        if (msg.includes("Email already in use")) return "Email đã được sử dụng";
+        if (msg.includes("Username already taken")) return "Username đã được sử dụng";
+        if (msg.includes("hệ thống")) return msg;
+        return msg;
+    };
+
     const formik = useFormik({
         initialValues,
         validationSchema: validationSchemaRegisForm(Trans),
@@ -50,8 +59,9 @@ export default function RegisterPage() {
             setErrorAuth(null);
             setLoadingAuth(true);
             try {
+                const { confirmPsw, ...registerData } = values;
                 const result = await authService.authRegister({
-                    ...values,
+                    ...registerData,
                     dateOfBirth: values.dateOfBirth ? new Date(values.dateOfBirth) : undefined
                 });
                 const payload = result?.payload;
@@ -73,7 +83,7 @@ export default function RegisterPage() {
                     });
                     router.push("/me");
                 } else {
-                    setErrorAuth(payload?.message || Trans("COMMON.ERROR") || "lỗi API");
+                    setErrorAuth(mapErrorMessage(payload?.message));
                 }
             } catch (error) {
                 setErrorAuth(Trans("COMMON.ERROR"));
@@ -122,9 +132,8 @@ export default function RegisterPage() {
 
                         <FormRegis
                             formik={formik}
-                            confirmPsw={confirmPsw}
-                            setConfirmPsw={setConfirmPsw}
                             onGoLogin={() => router.push("/login")}
+                            errorMsg={errorAuth}
                         />
                     </TabContainer>
                 </Card>

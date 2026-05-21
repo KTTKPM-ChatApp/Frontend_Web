@@ -22,17 +22,15 @@ import { useEffect } from "react";
 import { FormikLike } from "@/src/common/interface/formik-interface";
 export interface FormRegisProps {
   formik: FormikLike;
-  confirmPsw: string;
-  setConfirmPsw: (v: string) => void;
   onGoLogin: () => void;
+  errorMsg?: string | null;
 }
 
 export default function FormRegis(props: FormRegisProps) {
   const {
     formik,
-    confirmPsw,
-    setConfirmPsw,
     onGoLogin,
+    errorMsg,
   } = props;
 
 
@@ -106,11 +104,15 @@ export default function FormRegis(props: FormRegisProps) {
           </GridIcon>
           <Grid size={11}>
             <AuthTextField
-              value={confirmPsw}
-              onChange={(e: any) => setConfirmPsw(e.target.value)}
+              name="confirmPsw"
+              value={formik.values.confirmPsw ?? ""}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               placeholder="Nhập lại mật khẩu"
               type="password"
               fullWidth
+              error={Boolean(formik.touched.confirmPsw && formik.errors.confirmPsw)}
+              helperText={formik.touched.confirmPsw ? formik.errors.confirmPsw : ""}
             />
           </Grid>
         </GridPswFrm>
@@ -212,6 +214,12 @@ export default function FormRegis(props: FormRegisProps) {
             </Stack>
           </StyledGenderItem>
         </StyledGenderSelect>
+
+        {errorMsg ? (
+          <Typography color="error" fontSize={13} sx={{ mt: 1 }}>
+            {errorMsg}
+          </Typography>
+        ) : null}
 
         <LoginButton type="submit" fullWidth sx={{ mt: 1 }}>
           Đăng ký

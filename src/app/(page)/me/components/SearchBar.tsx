@@ -125,6 +125,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
     const pendingRequests = useFriendStore((s) => s.pendingRequests);
     const sentRequests = useFriendStore((s) => s.sentRequests);
     const [openCreateGroupModal, setOpenCreateGroupModal] = useState(false);
+    const [isCreatingConversation, setIsCreatingConversation] = useState(false);
     const handleFocusSearchBar = () => {
         setFocusOnSearch(true);
     };
@@ -211,20 +212,19 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
         const mappedUsers: SearchResult[] = userResults
             .filter((user) => user.id !== currentUserId)
             .filter((user) => {
-                // Prevent duplicate by checking if there is already a direct conversation in the results
-                const alreadyInConvs = friendConversationResults.some((res) => {
-                    if (res.kind !== "conversation" || res.conversation.type !== "direct") return false;
-                    return res.conversation.members?.some((m) => m.userId === user.id);
+                const alreadyHasDirectConv = listConversation.some((conv) => {
+                    if (conv.type !== "direct" && conv.type !== "DIRECT") return false;
+                    return conv.members?.some((m) => m.userId === user.id);
                 });
-                return !alreadyInConvs;
+                return !alreadyHasDirectConv;
             })
             .map((user) => {
             const relationStatus = getRelationStatus(user.id);
             return {
-	                kind: "user" as const,
-	                id: user.id,
-	                displayName: user.fullName ?? user.displayName ?? "",
-	                fullName: user.fullName ?? user.displayName ?? "",
+                kind: "user" as const,
+                id: user.id,
+                displayName: user.fullName ?? user.displayName ?? "",
+                fullName: user.fullName ?? user.displayName ?? "",
                 avatarUrl: user.avatarUrl ?? null,
                 phone: user.phone ?? null,
                 friendshipStatus: relationStatus,
@@ -238,6 +238,8 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
         isPhoneSearch,
         userResults,
         friendConversationResults,
+        listConversation,
+        currentUserId,
         getRelationStatus,
         friends,
         pendingRequests,
@@ -274,7 +276,10 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
         }
 
         // Handle user click - create direct conversation
+        if (isCreatingConversation) return;
+        
         try {
+            setIsCreatingConversation(true);
             setLoadingSearch(true);
             const response = await chatService.createDirectConversation({
                 participantId: result.id
@@ -296,7 +301,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                     };
                 }
                 
-                const res = await chatService.fetchListConversations({ offset: 0, limit: 100 });
+                const res = await chatService.fetchListConversations({ page: 1, limit: 100 });
                 
                 if (res?.ok && res?.payload?.data) {
                     const updatedList = res.payload.data;
@@ -320,6 +325,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
             alert(`Lỗi: ${errMsg}`);
         } finally {
             setLoadingSearch(false);
+            setIsCreatingConversation(false);
             setSearchValue("");
             setFocusOnSearch(false);
         }
