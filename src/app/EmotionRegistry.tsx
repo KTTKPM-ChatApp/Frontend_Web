@@ -35,8 +35,9 @@ export default function EmotionRegistry({ children }: { children: React.ReactNod
 
     let styles = '';
     for (const name of names) {
-      if (name !== true && cache.inserted[name] !== true) {
-        styles += cache.inserted[name];
+      const style = (cache.inserted as any)[name];
+      if (typeof style === 'string') {
+        styles += style;
       }
     }
 

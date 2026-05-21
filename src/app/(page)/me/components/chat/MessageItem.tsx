@@ -29,6 +29,8 @@ import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
+import FileAttachmentCard from "./FileAttachmentCard";
+import LinkPreviewCard from "./LinkPreviewCard";
 
 interface Attachment {
   key?: string;
@@ -37,6 +39,8 @@ interface Attachment {
   type?: string;
   name?: string;
   size?: number;
+  contentType?: string;
+  content_type?: string;
 }
 
 interface MessageItemProps {
@@ -78,7 +82,7 @@ interface MessageItemProps {
   onDelete?: () => void;
   onEdit?: (newContent: string) => void;
   onReact?: (reaction: string) => void;
-  onImageClick?: (url: string) => void;
+  onImageClick?: (url: string, mediaList: Attachment[], index: number) => void;
 }
 
 const MessageRow = styled(Box, {
@@ -414,9 +418,22 @@ const MessageItem: React.FC<MessageItemProps> = ({
     }
   };
 
-  const mediaAttachments = attachments.filter(
-    (a) => a.type === "image" || a.type === "video"
-  );
+  const mediaAttachments = attachments.filter((a) => {
+    const type = a.type?.toLowerCase();
+    const contentType = (a.contentType || a.content_type || '').toLowerCase();
+    const isMedia = type === 'image' || type === 'video' || contentType.startsWith('image/') || contentType.startsWith('video/');
+    return isMedia;
+  });
+
+  const fileAttachments = attachments.filter((a) => {
+    const type = a.type?.toLowerCase();
+    const contentType = (a.contentType || a.content_type || '').toLowerCase();
+    const isFile = type === 'document' || type === 'file' || type === 'audio' ||
+      (!contentType.startsWith('image/') && !contentType.startsWith('video/'));
+    return isFile && !mediaAttachments.includes(a);
+  });
+
+  const linkUrls = content.match(/(https?:\/\/[^\s]+)/g) || [];
 
   return (
     <MessageRow mine={isOwn} isGrouped={isGrouped}>
@@ -537,7 +554,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     {!replyTo.isDeleted && imageAttachment && (
                       <Box
                         component="img"
-                        src={imageAttachment.url || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${imageAttachment.key}`}
+                        src={imageAttachment.url || imageAttachment.key}
                         alt="replied-media"
                         sx={{
                           width: 36,
@@ -552,7 +569,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     {!replyTo.isDeleted && videoAttachment && (
                       <Box
                         component="video"
-                        src={videoAttachment.url || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${videoAttachment.key}`}
+                        src={videoAttachment.url || videoAttachment.key}
                         sx={{
                           width: 36,
                           height: 36,
@@ -601,13 +618,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
                           overflow: "hidden",
                           borderRadius: 2,
                           cursor: "pointer",
+                          position: "relative",
 
-                          "& img": {
+                          "& img, & video": {
                             transition:
                               "0.2s ease",
                           },
 
-                          "&:hover img": {
+                          "&:hover img, &:hover video": {
                             transform:
                               "scale(1.03)",
                           },
@@ -616,27 +634,107 @@ const MessageItem: React.FC<MessageItemProps> = ({
                           onImageClick?.(
                             att.url ||
                               att.thumbnailUrl ||
-                              ""
+                              "",
+                            mediaAttachments,
+                            index
                           )
                         }
                       >
-                        <Box
-                          component="img"
-                          src={
-                            att.thumbnailUrl ||
-                            att.url
+                        {(() => {
+                          const isVideo = att.type?.toLowerCase() === 'video' || (att.contentType || att.content_type || '').toLowerCase().startsWith('video/');
+                          if (isVideo) {
+                            return (
+                              <>
+                                <Box
+                                  component="video"
+                                  src={
+                                    att.thumbnailUrl ||
+                                    att.url
+                                  }
+                                  sx={{
+                                    width: "100%",
+                                    height: 150,
+                                    objectFit: "cover",
+                                    display: "block",
+                                    background: "#000",
+                                  }}
+                                />
+                                <Box
+                                  sx={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: "50%",
+                                    background: "rgba(0,0,0,0.6)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    pointerEvents: "none",
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 0,
+                                      height: 0,
+                                      borderStyle: "solid",
+                                      borderWidth: "8px 0 8px 14px",
+                                      borderColor: "transparent transparent transparent #fff",
+                                      ml: 1,
+                                    }}
+                                  />
+                                </Box>
+                              </>
+                            );
                           }
-                          alt={att.name}
-                          sx={{
-                            width: "100%",
-                            height: 150,
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
+                          return (
+                            <Box
+                              component="img"
+                              src={
+                                att.thumbnailUrl ||
+                                att.url
+                              }
+                              alt={att.name}
+                              sx={{
+                                width: "100%",
+                                height: 150,
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
+                          );
+                        })()}
                       </ImageListItem>
                     ))}
                 </ImageList>
+              )}
+
+              {fileAttachments.length > 0 && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: content || mediaAttachments.length > 0 ? 1 : 0 }}>
+                  {fileAttachments.map((att, index) => (
+                    <FileAttachmentCard
+                      key={att.key || index}
+                      attachment={{
+                        name: att.name || "file",
+                        size: att.size || 0,
+                        type: att.type || "document",
+                        url: att.url,
+                        contentType: att.contentType,
+                      }}
+                      isOwn={isOwn}
+                    />
+                  ))}
+                </Box>
+              )}
+
+              {linkUrls.length > 0 && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: content || mediaAttachments.length > 0 || fileAttachments.length > 0 ? 1 : 0 }}>
+                  {linkUrls.map((url, index) => (
+                    <LinkPreviewCard key={index} url={url} isOwn={isOwn} />
+                  ))}
+                </Box>
               )}
             </>
           )}

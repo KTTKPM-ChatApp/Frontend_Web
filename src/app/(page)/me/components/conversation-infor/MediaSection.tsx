@@ -8,6 +8,7 @@ import { AttachmentDto } from "@/src/common/interface/chat-interface";
 
 interface MediaSectionProps {
   items: AttachmentDto[];
+  onMediaClick?: (url: string, mediaList: AttachmentDto[], index: number) => void;
 }
 
 const EmptyHint = styled(Typography)({
@@ -67,14 +68,18 @@ const ViewAllButton = styled(Button)({
   },
 });
 
-export default function MediaSection({ items }: MediaSectionProps) {
+export default function MediaSection({ items, onMediaClick }: MediaSectionProps) {
   return (
     <SectionBlock title="Ảnh/Video" defaultOpen>
       {items.length > 0 ? (
         <>
           <MediaGrid>
-            {items.slice(0, 8).map((item) => (
-              <MediaItem key={item.key || item?.url}>
+            {items.slice(0, 8).map((item, index) => (
+              <MediaItem
+                key={item.key || item?.url}
+                onClick={() => onMediaClick?.(item.url || "", items, index)}
+                sx={{ cursor: onMediaClick ? "pointer" : "default" }}
+              >
                 {item.url ? (
                   <MediaImage src={item?.url} alt={item.name || "media"} />
                 ) : (

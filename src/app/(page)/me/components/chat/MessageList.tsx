@@ -3,7 +3,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useMemo } from "react";
-import { PaginationState, UiMessage } from "@/src/common/interface/chat-interface";
+import { PaginationState, UiMessage, AttachmentDto } from "@/src/common/interface/chat-interface";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { pinMessage, unpinMessage } from "@/src/common/action/chat.action";
 import MessageItem from "./MessageItem";
@@ -21,7 +21,7 @@ interface MessageListProps {
   showScrollbar: boolean;
   onForwardMessage?: (messageId: string, conversationId: string) => void;
   onEditMessage?: (conversationId: string, messageId: string, newBody: string, createdAt: number) => void;
-  onImageClick?: (url: string) => void;
+  onImageClick?: (url: string, mediaList: AttachmentDto[], index: number) => void;
 }
 
 const MessagesWrap = styled(Box, {
@@ -218,7 +218,7 @@ export default function MessageList({
                   onUnpin={() => unpinMessage(conversationId, msg.messageId, msg.createdAt)}
                   onEdit={(newContent) => onEditMessage?.(conversationId, msg.messageId, newContent, msg.createdAt)}
                   onReact={(reaction) => console.log("React to message:", msg.messageId, reaction)}
-                  onImageClick={(url) => onImageClick?.(url)}
+                  onImageClick={(url, mediaList, index) => onImageClick?.(url, (mediaList || msg.attachments) as AttachmentDto[], index || 0)}
                   onDelete={() => onDeleteMessage(conversationId, msg.messageId)}
                 />
               </Box>

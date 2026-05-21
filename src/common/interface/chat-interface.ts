@@ -53,13 +53,18 @@ export interface ConversationListResponse {
 export interface AttachmentDto {
   id?: string;
   key: string;
-  type: AttachmentType;
+  type: "image" | "video" | "document" | "file" | "audio";
   name: string;
   size: number;
   contentType: string;
   thumbnailKey?: string;
   url?: string;
   thumbnailUrl?: string;
+  publicId?: string;
+  resourceType?: "image" | "video" | "raw";
+  width?: number;
+  height?: number;
+  duration?: number;
 }
 
 export interface MessageReplyPreview {
