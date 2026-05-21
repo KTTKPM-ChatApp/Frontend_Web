@@ -75,14 +75,19 @@ export async function uploadMedia({
   }
 
   const result = await uploadRes.json();
+  console.log("[uploadMedia] Cloudinary result:", JSON.stringify(result, null, 2));
 
   if (result.error) {
     throw new Error(result.error.message || "Cloudinary upload error");
   }
 
+  const uploadedUrl = result.secure_url || result.url;
+  console.log("[uploadMedia] Uploaded URL:", uploadedUrl);
+  console.log("[uploadMedia] Resource type:", resourceType, "Public ID:", result.public_id);
+
   return {
     key: result.public_id,
-    url: result.secure_url,
+    url: uploadedUrl,
     visibility: "public",
     thumbnailKey: resourceType === "video" ? result.secure_url : null,
     contentType: file.type,

@@ -147,7 +147,9 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
     try {
       const uploaded = await Promise.all(
         Array.from(files).map(async (file) => {
+          console.log("[ChatInput] Uploading file:", file.name, file.type, file.size);
           const result = await uploadMedia({ file, userId: currentUserId });
+          console.log("[ChatInput] Upload result:", result);
           return {
             key: result.key,
             url: result.url,
@@ -161,9 +163,10 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
           } as ChatAttachmentPayload;
         })
       );
+      console.log("[ChatInput] All uploaded:", uploaded);
       setPendingAttachments((prev) => [...prev, ...uploaded]);
     } catch (err) {
-      console.error("Upload media failed:", err);
+      console.error("[ChatInput] Upload media failed:", err);
     } finally {
       setUploading(false);
     }
