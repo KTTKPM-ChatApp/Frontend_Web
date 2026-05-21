@@ -122,6 +122,7 @@ export default function MessageList({
 }: MessageListProps) {
   const paginationByConversation = useChatStore((s) => s.paginationByConversation);
   const pinnedMessagesMap = useChatStore((s) => s.pinnedMessagesByConversation);
+  const listConversation = useChatStore((s) => s.listConversation);
   const conversationDetailById = useChatStore((s) => s.conversationDetailById);
   const pinnedMessages = pinnedMessagesMap[conversationId] || [];
   
@@ -133,12 +134,14 @@ export default function MessageList({
     return pinnedMessageIds.has(messageId);
   };
 
-  const members = conversationDetailById[conversationId]?.members;
+  const convDetail = conversationDetailById[conversationId];
+  const convFromList = listConversation.find((c) => c.id === conversationId);
+  const members = convDetail?.members || convFromList?.members || [];
 
   const resolveSenderName = (msg: UiMessage): string => {
-    if (msg.senderName) return msg.senderName;
+    if (msg.senderName && msg.senderName !== "Người dùng") return msg.senderName;
     const member = members?.find((m) => m.userId === msg.senderId);
-    return member?.displayName || member?.username || "User";
+    return member?.displayName || member?.username || msg.senderName || "User";
   };
 
   const shouldShowDateSeparator = (msg: UiMessage, index: number): boolean => {
