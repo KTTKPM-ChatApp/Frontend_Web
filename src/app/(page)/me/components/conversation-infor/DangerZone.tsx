@@ -9,6 +9,7 @@ import ReportGmailerrorredRoundedIcon from "@mui/icons-material/ReportGmailerror
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 import { chatService } from "@/src/common/service/chat-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
@@ -44,7 +45,7 @@ const ActionText = styled(Typography)({
 const StyledDialog = styled(Dialog)({
   "& .MuiDialog-paper": {
     borderRadius: 12,
-    maxWidth: 360,
+    maxWidth: 400,
   },
 });
 
@@ -95,13 +96,46 @@ const ConfirmButton = styled(Button)({
   padding: "0 16px",
 });
 
+const DangerButton = styled(ConfirmButton)({
+  background: "#DB0000",
+  color: "#fff",
+  "&:hover": {
+    background: "#B80000",
+  },
+});
+
+const PrimaryButton = styled(ConfirmButton)({
+  background: "#0068FF",
+  color: "#fff",
+  "&:hover": {
+    background: "#005AE0",
+  },
+});
+
+const WarningBox = styled(Box)({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 12,
+  padding: "12px 16px",
+  background: "#FFF7ED",
+  borderRadius: 8,
+  border: "1px solid #FED7AA",
+  marginBottom: 8,
+});
+
+const WarningText = styled(Typography)({
+  fontSize: 13,
+  color: "#C2410C",
+  lineHeight: 1.5,
+});
+
 interface DangerZoneProps {
   conversationId: string;
 }
 
 export default function DangerZone({ conversationId }: DangerZoneProps) {
   const { t } = useTranslation();
-  const [confirmAction, setConfirmAction] = useState<"leave" | "disband" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"leave" | "disband" | "leave-owner" | null>(null);
 
   const listConversation = useChatStore((s) => s.listConversation);
   const activeConversationId = useChatStore((s) => s.activeConversationId);
@@ -114,6 +148,7 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
   const currentUser = conversation?.members?.find((m: any) => m.userId === currentUserId);
   const userRole = (currentUser as any)?.role;
   const isOwner = userRole === "OWNER";
+  const memberCount = conversation?.members?.length ?? conversation?.memberCount ?? 0;
 
   const refresh = () => fetchListConversation({ page: 1, limit: 20 });
 
@@ -123,8 +158,9 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
       toast.success("Đã rời nhóm");
       setActiveConversationId(null);
       await refresh();
-    } catch {
-      toast.error("Không thể rời nhóm");
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể rời nhóm";
+      toast.error(message);
     } finally {
       setConfirmAction(null);
     }
@@ -132,17 +168,38 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
 
   const handleDisband = async () => {
     try {
-      console.log('Disbanding conversation:', conversationId);
       await chatService.disbandGroup(conversationId);
       toast.success("Đã giải tán nhóm");
       setActiveConversationId(null);
       await refresh();
-    } catch (error) {
-      console.error('Disband error:', error);
-      toast.error("Không thể giải tán nhóm");
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể giải tán nhóm";
+      toast.error(message);
     } finally {
       setConfirmAction(null);
     }
+  };
+
+  const handleLeaveClick = () => {
+    if (isOwner && memberCount > 1) {
+      setConfirmAction("leave-owner");
+    } else {
+      setConfirmAction("leave");
+    }
+  };
+
+  const getLeaveTitle = () => {
+    if (confirmAction === "leave-owner") {
+      return "Không thể rời nhóm";
+    }
+    return t("DANGER.LEAVE_GROUP");
+  };
+
+  const getLeaveMessage = () => {
+    if (confirmAction === "leave-owner") {
+      return "Là trưởng nhóm, bạn không thể rời nhóm khi còn thành viên khác. Vui lòng chuyển quyền trưởng nhóm cho người khác hoặc giải tán nhóm.";
+    }
+    return t("DANGER.LEAVE_GROUP_CONFIRM");
   };
 
   return (
@@ -150,7 +207,7 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
       <Card>
         {isGroup && (
           <>
-            <DangerRow onClick={() => setConfirmAction("leave")}>
+            <DangerRow onClick={handleLeaveClick}>
               <ExitToAppIcon sx={{ fontSize: 20 }} />
               <ActionText>{t("DANGER.LEAVE_GROUP")}</ActionText>
             </DangerRow>
@@ -188,32 +245,45 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
         </DialogContentStyled>
         <DialogActionsStyled>
           <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
-          <ConfirmButton 
-            variant="contained" 
-            color="error" 
-            onClick={handleLeave}
-            sx={{ background: "#DB0000" }}
-          >
-            Rời nhóm
-          </ConfirmButton>
+          <DangerButton onClick={handleLeave}>Rời nhóm</DangerButton>
+        </DialogActionsStyled>
+      </StyledDialog>
+
+      <StyledDialog open={confirmAction === "leave-owner"} onClose={() => setConfirmAction(null)}>
+        <DialogTitleStyled>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <SwapHorizIcon sx={{ color: "#FFB800" }} />
+            Chuyển quyền trưởng nhóm
+          </Box>
+        </DialogTitleStyled>
+        <DialogContentStyled>
+          <WarningBox>
+            <WarningText>
+              Bạn là trưởng nhóm. Để rời nhóm, hãy chuyển quyền trưởng nhóm cho thành viên khác trong phần quản lý thành viên, hoặc giải tán nhóm nếu không cần thiết.
+            </WarningText>
+          </WarningBox>
+          <Typography sx={{ mt: 1 }}>
+            <strong>Cách chuyển quyền:</strong> Vào danh sách thành viên → Nhấn icon mũi tên bên cạnh thành viên muốn chuyển quyền → Chọn "Chuyển quyền trưởng nhóm".
+          </Typography>
+        </DialogContentStyled>
+        <DialogActionsStyled>
+          <CancelButton onClick={() => setConfirmAction(null)}>Đóng</CancelButton>
         </DialogActionsStyled>
       </StyledDialog>
 
       <StyledDialog open={confirmAction === "disband"} onClose={() => setConfirmAction(null)}>
         <DialogTitleStyled>{t("DANGER.DISBAND_GROUP")}</DialogTitleStyled>
         <DialogContentStyled>
-          <Typography>{t("DANGER.DISBAND_GROUP_CONFIRM")}</Typography>
+          <WarningBox>
+            <WarningText>
+              Hành động này sẽ xóa vĩnh viễn nhóm và toàn bộ tin nhắn. Không thể hoàn tác.
+            </WarningText>
+          </WarningBox>
+          <Typography sx={{ mt: 1 }}>{t("DANGER.DISBAND_GROUP_CONFIRM")}</Typography>
         </DialogContentStyled>
         <DialogActionsStyled>
           <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
-          <ConfirmButton 
-            variant="contained" 
-            color="error" 
-            onClick={handleDisband}
-            sx={{ background: "#DB0000" }}
-          >
-            Giải tán
-          </ConfirmButton>
+          <DangerButton onClick={handleDisband}>Giải tán</DangerButton>
         </DialogActionsStyled>
       </StyledDialog>
     </>

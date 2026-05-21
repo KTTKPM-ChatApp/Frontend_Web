@@ -13,6 +13,7 @@ type RawConversationMember = {
   userId: string;
   username?: string;
   displayName?: string;
+  avatarUrl?: string | null;
   role: string;
 }
 
@@ -63,6 +64,7 @@ const normalizeConversation = (item: RawConversation): ConversationDto => {
   const members = item.members?.map((m: RawConversationMember) => ({
     userId: m.userId,
     displayName: m.displayName,
+    avatarUrl: m.avatarUrl ?? null,
     role: m.role
   })) || (item.memberIds?.map((id: string) => ({
     userId: id,
@@ -479,5 +481,9 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
 
   updateMemberRole(conversationId: string, memberId: string, role: 'ADMIN' | 'MEMBER') {
     return http.patch(API.API_CONVERSATIONS_UPDATE_ROLE(conversationId, memberId), { role });
+  },
+
+  transferOwnership(conversationId: string, newOwnerId: string) {
+    return http.post(API.API_CONVERSATIONS_TRANSFER_OWNERSHIP(conversationId), { newOwnerId });
   },
 };

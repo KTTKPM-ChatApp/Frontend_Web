@@ -38,8 +38,6 @@ import SettingsPanel from "./components/settings/SettingsPanel";
 
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
 import { fetchAuthData } from "@/src/common/helpers/fetchDataHelpers";
-import { registerCallHandlers, syncCallState } from "@/src/common/service/call-service";
-import CallContainer from "./components/call/CallContainer";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 /* ===================== styled ===================== */
 
@@ -219,12 +217,6 @@ const Me = () => {
         setShowSearchSidebar(false);
     }, [activeConversationId]);
 
-    useEffect(() => {
-        if (activeConversationId) {
-            syncCallState(activeConversationId);
-        }
-    }, [activeConversationId]);
-
     const handleSelectedIcon = (iconName: SidebarKey) => {
         setSelectedIcon(iconName);
         if (iconName === "contact") {
@@ -270,14 +262,6 @@ const Me = () => {
         authData?.data?.user?.id ||
         getcurrentUserId() ||
         "";
-
-    // Register call handlers on mount
-    useEffect(() => {
-        if (currentUserId) {
-            const unregister = registerCallHandlers(currentUserId);
-            return () => unregister();
-        }
-    }, [currentUserId]);
 
     const [mounted, setMounted] = useState(false);
     useEffect(() => {

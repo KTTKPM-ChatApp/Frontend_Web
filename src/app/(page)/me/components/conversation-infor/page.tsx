@@ -69,10 +69,16 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   const activeConversationId = useChatStore((s) => s.activeConversationId);
   const setActiveConversationId = useChatStore((s) => s.setActiveConversationId);
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
+  const currentUserId = useChatStore((s) => s.currentUserId);
 
   const conversation = listConversation.find((c) => c.id === activeConversationId);
   const isGroup = conversation?.type === "group" || conversation?.type === "GROUP";
   const members = conversation?.members ?? [];
+
+  const currentUserMember = members.find((m: any) => m.userId === currentUserId);
+  const currentUserRole = (currentUserMember as any)?.role;
+  const isOwner = currentUserRole === "OWNER";
+  const isAdmin = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
 
   const mediaItems = useChatStore(
     (state) => state.mediaByConversation?.[conversationId] ?? EMPTY_ATTACHMENTS
@@ -119,23 +125,28 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   };
 
   const handleAddMember = async (userId: string) => {
+    const friend = friends.find((f) => f.id === userId);
     try {
       await chatService.addMembers(conversationId, { memberIds: [userId] });
-      toast.success("Đã thêm thành viên");
+      toast.success(`Đã thêm "${friend?.name || userId}" vào nhóm`);
       setFriends((prev) => prev.filter((f) => f.id !== userId));
       await refresh();
-    } catch {
-      toast.error("Không thể thêm thành viên");
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể thêm thành viên";
+      toast.error(message);
     }
   };
 
   const handleRemoveMember = async (memberId: string) => {
+    const member = members.find((m: any) => m.userId === memberId);
+    const memberName = member?.displayName || member?.username || memberId;
     try {
       await chatService.removeMember(conversationId, memberId);
-      toast.success("Đã xóa thành viên");
+      toast.success(`Đã xóa "${memberName}" khỏi nhóm`);
       await refresh();
-    } catch {
-      toast.error("Không thể xóa thành viên");
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể xóa thành viên";
+      toast.error(message);
     }
   };
 
@@ -144,22 +155,41 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   };
 
   const handlePromoteToAdmin = async (memberId: string) => {
+    const member = members.find((m: any) => m.userId === memberId);
+    const memberName = member?.displayName || member?.username || memberId;
     try {
       await chatService.updateMemberRole(conversationId, memberId, 'ADMIN');
-      toast.success("Đã phong quản trị viên");
+      toast.success(`Đã phong "${memberName}" làm quản trị viên`);
       await refresh();
-    } catch {
-      toast.error("Không thể phong quản trị viên");
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể phong quản trị viên";
+      toast.error(message);
     }
   };
 
   const handleDemoteFromAdmin = async (memberId: string) => {
+    const member = members.find((m: any) => m.userId === memberId);
+    const memberName = member?.displayName || member?.username || memberId;
     try {
       await chatService.updateMemberRole(conversationId, memberId, 'MEMBER');
-      toast.success("Đã hạ quyền quản trị viên");
+      toast.success(`Đã hạ quyền "${memberName}" xuống thành viên`);
       await refresh();
-    } catch {
-      toast.error("Không thể hạ quyền quản trị viên");
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể hạ quyền quản trị viên";
+      toast.error(message);
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId: string) => {
+    const newOwner = members.find((m: any) => m.userId === newOwnerId);
+    const newOwnerName = newOwner?.displayName || newOwner?.username || newOwnerId;
+    try {
+      await chatService.transferOwnership(conversationId, newOwnerId);
+      toast.success(`Đã chuyển quyền trưởng nhóm cho "${newOwnerName}"`);
+      await refresh();
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.message || "Không thể chuyển quyền";
+      toast.error(message);
     }
   };
 
@@ -193,6 +223,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
           members={members.map((m: any) => ({
             id: m.userId,
             name: m.displayName || m.username || m.userId,
+            isOwner: m.role === "OWNER",
             isAdmin: m.role === "OWNER" || m.role === "ADMIN",
           }))}
           totalCount={members.length > 0 ? members.length : (conversation?.memberCount ?? 0)}
@@ -202,6 +233,9 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
           onAddMember={handleOpenAddMember}
           onPromoteToAdmin={handlePromoteToAdmin}
           onDemoteFromAdmin={handleDemoteFromAdmin}
+          onTransferOwnership={handleTransferOwnership}
+          canManageMembers={isAdmin}
+          canPromote={isOwner}
         />
       )}
 

@@ -29,6 +29,7 @@ import LanguageSwitcher from "../../../../shared/component/LanguageSwitcher";
 import GlobalLanguageIcon from "@/src/shared/component/GlobalLanguageIcon";
 import LanguageProvider from "@/src/common/context/LanguageContext";
 import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
+import { DEFAULT_AVATAR_URL } from "@/src/shared/component/Avatar";
 
 const Sidebar = styled(Box)({
   minWidth: 56,
@@ -204,7 +205,7 @@ const AppSidebarContent: React.FC<AppSidebarProps> = ({
   );
 
   const avatarUrl = useAuthStore((s) => s.authData?.data?.user?.avatarUrl);
-  const avatarSrc = avatarUrl ? resolveMediaUrl(avatarUrl) : "/avatar.jpg";
+  const avatarSrc = avatarUrl ? resolveMediaUrl(avatarUrl) : DEFAULT_AVATAR_URL;
   const currentItems =
     activePopover === "avatar"
       ? avatarItems

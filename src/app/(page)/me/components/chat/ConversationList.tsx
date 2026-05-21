@@ -173,6 +173,15 @@ export default function ConversationList() {
           const isPinned = (item as any).isPinned || false;
           const isMuted = (item as any).isMuted || false;
           const isActive = activeConversationId === item.id;
+          const isGroup = item.type === "group" || item.type === "GROUP";
+          
+          const otherMember = !isGroup
+            ? item.members?.find((m) => m.userId !== authData?.data?.user?.id)
+            : null;
+          const avatarSrc = isGroup
+            ? item.avatarUrl
+            : otherMember?.avatarUrl || item.avatarUrl;
+          
           return (
             <Item
               key={item.id}
@@ -182,10 +191,10 @@ export default function ConversationList() {
             >
               <ItemRow>
                 <AppAvatar 
-                  src={item.avatarUrl ?? ""} 
+                  src={avatarSrc ?? ""} 
                   name={item.name ?? null} 
                   size={44} 
-                  isGroup={item.type === "group" || item.type === "GROUP"}
+                  isGroup={isGroup}
                 />
                 <Content>
                   <Row>

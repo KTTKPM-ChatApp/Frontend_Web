@@ -1,6 +1,5 @@
 {
   "// ============================== AUTHENTICATE ==============================": "",
-  "REGIS.FIREBASE.REQUIRED": "Thiếu xác thực Firebase. Vui lòng thử lại.",
   "REGIS.FULLNAME_MIN": "Họ tên phải có ít nhất 2 ký tự",
   "REGIS.FULLNAME_REQUIRED": "Vui lòng nhập họ tên",
   "REGIS.EMAIL_INVALID": "Email không hợp lệ",

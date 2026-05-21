@@ -1,6 +1,5 @@
 {
   "// ============================== AUTHENTICATE ==============================": "",
-  "REGIS.FIREBASE.REQUIRED": "Firebase authentication required. Please try again.",
   "REGIS.FULLNAME_MIN": "Full name must be at least 2 characters",
   "REGIS.FULLNAME_REQUIRED": "Please enter full name",
   "REGIS.EMAIL_INVALID": "Invalid email",

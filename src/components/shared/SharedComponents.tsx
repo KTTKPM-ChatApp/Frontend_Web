@@ -54,7 +54,7 @@ export const AvatarUI = {
   // Single Avatar with image
   withImage: (
     <MuiAvatar
-      src="/avatar.jpg"
+      src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
       alt="User Avatar"
       sx={{
         width: 40,
@@ -91,7 +91,7 @@ export const AvatarUI = {
     >
       <GroupClusterWrap>
         <MiniAvatar
-          src="/avatar1.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 25,
@@ -102,7 +102,7 @@ export const AvatarUI = {
           }}
         />
         <MiniAvatar
-          src="/avatar2.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 25,
@@ -128,7 +128,7 @@ export const AvatarUI = {
     >
       <GroupClusterWrap>
         <MiniAvatar
-          src="/avatar1.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 20,
@@ -139,7 +139,7 @@ export const AvatarUI = {
           }}
         />
         <MiniAvatar
-          src="/avatar2.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 20,
@@ -150,7 +150,7 @@ export const AvatarUI = {
           }}
         />
         <MiniAvatar
-          src="/avatar3.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 20,
@@ -177,7 +177,7 @@ export const AvatarUI = {
     >
       <GroupClusterWrap>
         <MiniAvatar
-          src="/avatar1.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 18.4,
@@ -188,7 +188,7 @@ export const AvatarUI = {
           }}
         />
         <MiniAvatar
-          src="/avatar2.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 18.4,
@@ -199,7 +199,7 @@ export const AvatarUI = {
           }}
         />
         <MiniAvatar
-          src="/avatar3.jpg"
+          src="https://static.vecteezy.com/system/resources/previews/026/434/409/non_2x/default-avatar-profile-icon-social-media-user-photo-vector.jpg"
           alt=""
           style={{
             width: 18.4,
