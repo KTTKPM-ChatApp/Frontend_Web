@@ -29,6 +29,8 @@ import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
+import FileAttachmentCard from "./FileAttachmentCard";
+import LinkPreviewCard from "./LinkPreviewCard";
 
 interface Attachment {
   key?: string;
@@ -420,15 +422,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
     const type = a.type?.toLowerCase();
     const contentType = (a.contentType || a.content_type || '').toLowerCase();
     const isMedia = type === 'image' || type === 'video' || contentType.startsWith('image/') || contentType.startsWith('video/');
-    if (isMedia && attachments.length > 0) {
-      console.log('[MessageItem] media attachment:', { key: a.key, type: a.type, url: a.url, contentType: a.contentType });
-    }
     return isMedia;
   });
 
-  if (attachments.length > 0) {
-    console.log('[MessageItem] all attachments:', JSON.stringify(attachments, null, 2));
-  }
+  const fileAttachments = attachments.filter((a) => {
+    const type = a.type?.toLowerCase();
+    const contentType = (a.contentType || a.content_type || '').toLowerCase();
+    const isFile = type === 'document' || type === 'file' || type === 'audio' ||
+      (!contentType.startsWith('image/') && !contentType.startsWith('video/'));
+    return isFile && !mediaAttachments.includes(a);
+  });
+
+  const linkUrls = content.match(/(https?:\/\/[^\s]+)/g) || [];
 
   return (
     <MessageRow mine={isOwn} isGrouped={isGrouped}>
@@ -704,6 +709,32 @@ const MessageItem: React.FC<MessageItemProps> = ({
                       </ImageListItem>
                     ))}
                 </ImageList>
+              )}
+
+              {fileAttachments.length > 0 && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: content || mediaAttachments.length > 0 ? 1 : 0 }}>
+                  {fileAttachments.map((att, index) => (
+                    <FileAttachmentCard
+                      key={att.key || index}
+                      attachment={{
+                        name: att.name || "file",
+                        size: att.size || 0,
+                        type: att.type || "document",
+                        url: att.url,
+                        contentType: att.contentType,
+                      }}
+                      isOwn={isOwn}
+                    />
+                  ))}
+                </Box>
+              )}
+
+              {linkUrls.length > 0 && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: content || mediaAttachments.length > 0 || fileAttachments.length > 0 ? 1 : 0 }}>
+                  {linkUrls.map((url, index) => (
+                    <LinkPreviewCard key={index} url={url} isOwn={isOwn} />
+                  ))}
+                </Box>
               )}
             </>
           )}
