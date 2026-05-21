@@ -122,6 +122,7 @@ export default function MessageList({
 }: MessageListProps) {
   const paginationByConversation = useChatStore((s) => s.paginationByConversation);
   const pinnedMessagesMap = useChatStore((s) => s.pinnedMessagesByConversation);
+  const conversationDetailById = useChatStore((s) => s.conversationDetailById);
   const pinnedMessages = pinnedMessagesMap[conversationId] || [];
   
   const pinnedMessageIds = useMemo(() => {
@@ -130,6 +131,14 @@ export default function MessageList({
   
   const isMessagePinned = (messageId: string): boolean => {
     return pinnedMessageIds.has(messageId);
+  };
+
+  const members = conversationDetailById[conversationId]?.members;
+
+  const resolveSenderName = (msg: UiMessage): string => {
+    if (msg.senderName) return msg.senderName;
+    const member = members?.find((m) => m.userId === msg.senderId);
+    return member?.displayName || member?.username || "User";
   };
 
   const shouldShowDateSeparator = (msg: UiMessage, index: number): boolean => {
@@ -183,7 +192,7 @@ export default function MessageList({
                   sender={
                     mine ? undefined : {
                       id: msg.senderId,
-                      name: msg.senderName || "User",
+                      name: resolveSenderName(msg),
                       avatar: undefined,
                     }
                   }
