@@ -375,13 +375,11 @@ export const chatService = {
   },
 
   pinConversation(conversationId: string) {
-    console.log('pinConversation called with:', conversationId);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
+    return http.post(API.API_CONVERSATIONS_PIN(conversationId));
   },
 
   unpinConversation(conversationId: string) {
-    console.log('unpinConversation called with:', conversationId);
-    return Promise.resolve({ statusCode: 501, ok: false, payload: { message: 'Not implemented yet' } });
+    return http.delete(API.API_CONVERSATIONS_UNPIN(conversationId));
   },
 
   fetchPinnedMessages(conversationId: string) {
