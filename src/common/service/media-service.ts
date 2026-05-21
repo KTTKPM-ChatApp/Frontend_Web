@@ -63,6 +63,10 @@ export async function uploadMedia({
   if (signData.folder) {
     formData.append("folder", signData.folder);
   }
+  // Add fl_attachment transformation for raw files (PDF, DOC, etc.)
+  if (resourceType === "raw") {
+    formData.append("transformation", "fl_attachment");
+  }
 
   const uploadRes = await fetch(signData.uploadUrl, {
     method: "POST",
@@ -85,9 +89,13 @@ export async function uploadMedia({
   console.log("[uploadMedia] Uploaded URL:", uploadedUrl);
   console.log("[uploadMedia] Resource type:", resourceType, "Public ID:", result.public_id);
 
+  // For raw files, Cloudinary returns URL without transformation in the response
+  // We need to construct the URL with fl_attachment manually
   const finalUrl = resourceType === "raw"
     ? uploadedUrl.replace("/upload/", "/upload/fl_attachment/")
     : uploadedUrl;
+
+  console.log("[uploadMedia] Final URL:", finalUrl);
 
   return {
     key: result.public_id,
