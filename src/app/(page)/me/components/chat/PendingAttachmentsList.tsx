@@ -99,7 +99,7 @@ const RemoveButton = styled(IconButton)({
 });
 
 const getPreviewSrc = (item: ChatAttachmentPayload) =>
-  item.url || item.thumbnailUrl || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${item.key}`;
+  item.url || item.thumbnailUrl || "";
 
 const getFileExtension = (fileName?: string, key?: string) => {
   const source = fileName || key || "";

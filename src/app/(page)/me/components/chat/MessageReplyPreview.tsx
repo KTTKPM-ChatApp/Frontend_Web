@@ -94,14 +94,14 @@ export default function MessageReplyPreview({
 
       {!isDeleted && imageAttachment && (
         <ReplyMediaImage
-          src={`${process.env.NEXT_PUBLIC_S3_BASE_URL}/${imageAttachment.key}`}
+          src={imageAttachment.url || imageAttachment.key}
           alt={imageAttachment.name ?? "reply-image"}
         />
       )}
 
       {!isDeleted && videoAttachment && (
         <ReplyMediaVideo
-          src={`${process.env.NEXT_PUBLIC_S3_BASE_URL}/${videoAttachment.key}`}
+          src={videoAttachment.url || videoAttachment.key}
           preload="metadata"
           muted
         />

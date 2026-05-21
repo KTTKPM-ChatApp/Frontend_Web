@@ -14,14 +14,8 @@ export const buildChatAttachmentPayload = (
   content_type: uploaded.contentType || file.type,
   thumbnail_key: uploaded.thumbnailKey ?? undefined,
   visibility: uploaded.visibility,
-  url:
-    uploaded.visibility === "public"
-      ? `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${uploaded.url}`
-      : undefined,
-  thumbnailUrl:
-    uploaded.visibility === "public"
-      ? `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${uploaded.thumbnailKey}`
-      : undefined,
+  url: uploaded.url || undefined,
+  thumbnailUrl: uploaded.type === "video" ? (uploaded.url || uploaded.thumbnailKey) : (uploaded.thumbnailKey || undefined),
 });
 
 export const sanitizeInputText = (value?: string | null) =>

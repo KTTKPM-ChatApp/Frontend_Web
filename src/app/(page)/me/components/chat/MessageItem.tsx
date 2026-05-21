@@ -537,7 +537,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     {!replyTo.isDeleted && imageAttachment && (
                       <Box
                         component="img"
-                        src={imageAttachment.url || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${imageAttachment.key}`}
+                        src={imageAttachment.url || imageAttachment.key}
                         alt="replied-media"
                         sx={{
                           width: 36,
@@ -552,7 +552,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     {!replyTo.isDeleted && videoAttachment && (
                       <Box
                         component="video"
-                        src={videoAttachment.url || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${videoAttachment.key}`}
+                        src={videoAttachment.url || videoAttachment.key}
                         sx={{
                           width: 36,
                           height: 36,

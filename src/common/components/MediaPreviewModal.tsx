@@ -23,14 +23,10 @@ interface MediaPreviewModalProps {
 }
 
 // ✅ FIX: Safe S3 URL builder with fallback
-const S3_BASE_URL = process.env.NEXT_PUBLIC_S3_BASE_URL || "http://18.138.217.102:9000";
-
 export const buildS3Url = (key?: string | null): string => {
   if (!key) return "";
-  // Prevent double slashes
-  const cleanBase = S3_BASE_URL.replace(/\/+$/, "");
-  const cleanKey = key.replace(/^\/+/, "");
-  return `${cleanBase}/${cleanKey}`;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return key;
 };
 
 const ViewerRoot = styled(Box)({
