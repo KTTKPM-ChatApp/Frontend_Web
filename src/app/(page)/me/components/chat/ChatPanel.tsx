@@ -17,10 +17,12 @@ import {
   sendMessage,
   unpinMessage,
 } from "@/src/common/action/chat.action";
-import { UiMessage } from "@/src/common/interface/chat-interface";
+import { UiMessage, AttachmentDto } from "@/src/common/interface/chat-interface";
+import { ChatAttachmentPayload } from "@/src/common/interface/media-interface";
 import PinnedMessageBarComponent from "./PinnedMessageBar";
 import ForwardMessageDialog from "./ForwardMessageDialog";
-import ImagePreviewDialog from "./ImagePreviewDialog";
+import MediaPreviewModal from "@/src/common/components/MediaPreviewModal";
+import { MediaPreviewItem } from "@/src/common/components/MediaPreviewModal";
 import TypingIndicator from "./TypingIndicator";
 
 interface ChatPanelProps {
@@ -89,7 +91,11 @@ export default function ChatPanel({
   const [replyMessageId, setReplyMessageId] = useState<string | null>(null);
   const [replyMessageData, setReplyMessageData] = useState<{ messageId: string; body: string; senderName?: string } | null>(null);
   const [forwardTarget, setForwardTarget] = useState<{ messageId: string; conversationId: string } | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<{ open: boolean; mediaList: MediaPreviewItem[]; initialIndex: number }>({
+    open: false,
+    mediaList: [],
+    initialIndex: 0,
+  });
   const {
     socketConnected,
     messagesByConversation,
@@ -325,7 +331,22 @@ export default function ChatPanel({
           showScrollbar={showScrollbar}
           onForwardMessage={(msgId, convId) => setForwardTarget({ messageId: msgId, conversationId: convId })}
           onEditMessage={editMessage}
-          onImageClick={(url) => setPreviewImage(url)}
+          onImageClick={(url, mediaList, index) => {
+            const items: MediaPreviewItem[] = (mediaList || []).map((att) => ({
+              key: att.url || att.thumbnailUrl || att.key || "",
+              name: att.name || "media",
+              type: att.type || "image",
+            }));
+            if (items.length > 0) {
+              setMediaPreview({ open: true, mediaList: items, initialIndex: index || 0 });
+            } else if (url) {
+              setMediaPreview({
+                open: true,
+                mediaList: [{ key: url, name: "media", type: "image" }],
+                initialIndex: 0,
+              });
+            }
+          }}
         />
       </MessageListWrap>
 
@@ -342,9 +363,9 @@ export default function ChatPanel({
         <ChatInput
           disabled={false}
           conversationId={conversationId}
-          onSend={(text) => {
+          onSend={(text, attachments) => {
             const replyMsg = messages.find((m) => m.messageId === replyMessageId);
-            sendMessage(conversationId, text, [], replyMsg);
+            sendMessage(conversationId, text, attachments, replyMsg);
             handleCancelReply();
           }}
           replyMessage={replyMessageData}
@@ -361,14 +382,13 @@ export default function ChatPanel({
         />
       )}
 
-      {previewImage && (
-        <ImagePreviewDialog
-          open={true}
-          images={[{ url: previewImage }]}
-          initialIndex={0}
-          onClose={() => setPreviewImage(null)}
-        />
-      )}
+      <MediaPreviewModal
+        open={mediaPreview.open}
+        media={mediaPreview.mediaList[0] || null}
+        mediaList={mediaPreview.mediaList}
+        initialIndex={mediaPreview.initialIndex}
+        onClose={() => setMediaPreview({ open: false, mediaList: [], initialIndex: 0 })}
+      />
     </Root>
   );
 }

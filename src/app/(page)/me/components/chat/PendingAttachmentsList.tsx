@@ -98,8 +98,8 @@ const RemoveButton = styled(IconButton)({
   },
 });
 
-const getPreviewSrc = (key: string) =>
-  `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${key}`;
+const getPreviewSrc = (item: ChatAttachmentPayload) =>
+  item.url || item.thumbnailUrl || `${process.env.NEXT_PUBLIC_S3_BASE_URL}/${item.key}`;
 
 const getFileExtension = (fileName?: string, key?: string) => {
   const source = fileName || key || "";
@@ -116,7 +116,7 @@ export default function PendingAttachmentList({
   return (
     <PendingWrap data-testid="preview-file-inputChat">
       {attachments.map((item) => {
-        const previewSrc = getPreviewSrc(item.key);
+        const previewSrc = getPreviewSrc(item);
         const fileExt = getFileExtension(item.name, item.key);
 
         return (

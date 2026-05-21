@@ -78,7 +78,7 @@ interface MessageItemProps {
   onDelete?: () => void;
   onEdit?: (newContent: string) => void;
   onReact?: (reaction: string) => void;
-  onImageClick?: (url: string) => void;
+  onImageClick?: (url: string, mediaList: Attachment[], index: number) => void;
 }
 
 const MessageRow = styled(Box, {
@@ -601,13 +601,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
                           overflow: "hidden",
                           borderRadius: 2,
                           cursor: "pointer",
+                          position: "relative",
 
-                          "& img": {
+                          "& img, & video": {
                             transition:
                               "0.2s ease",
                           },
 
-                          "&:hover img": {
+                          "&:hover img, &:hover video": {
                             transform:
                               "scale(1.03)",
                           },
@@ -616,24 +617,72 @@ const MessageItem: React.FC<MessageItemProps> = ({
                           onImageClick?.(
                             att.url ||
                               att.thumbnailUrl ||
-                              ""
+                              "",
+                            mediaAttachments,
+                            index
                           )
                         }
                       >
-                        <Box
-                          component="img"
-                          src={
-                            att.thumbnailUrl ||
-                            att.url
-                          }
-                          alt={att.name}
-                          sx={{
-                            width: "100%",
-                            height: 150,
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
+                        {att.type === "video" ? (
+                          <>
+                            <Box
+                              component="video"
+                              src={
+                                att.thumbnailUrl ||
+                                att.url
+                              }
+                              sx={{
+                                width: "100%",
+                                height: 150,
+                                objectFit: "cover",
+                                display: "block",
+                                background: "#000",
+                              }}
+                            />
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: "50%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                width: 40,
+                                height: 40,
+                                borderRadius: "50%",
+                                background: "rgba(0,0,0,0.6)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                pointerEvents: "none",
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  width: 0,
+                                  height: 0,
+                                  borderStyle: "solid",
+                                  borderWidth: "8px 0 8px 14px",
+                                  borderColor: "transparent transparent transparent #fff",
+                                  ml: 1,
+                                }}
+                              />
+                            </Box>
+                          </>
+                        ) : (
+                          <Box
+                            component="img"
+                            src={
+                              att.thumbnailUrl ||
+                              att.url
+                            }
+                            alt={att.name}
+                            sx={{
+                              width: "100%",
+                              height: 150,
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                          />
+                        )}
                       </ImageListItem>
                     ))}
                 </ImageList>

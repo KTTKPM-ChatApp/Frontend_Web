@@ -10,6 +10,8 @@ import { useChatStore } from "@/src/common/store/useChatStore";
 import { chatService } from "@/src/common/service/chat-service";
 import { friendService } from "@/src/common/service/friend-service";
 import { AttachmentDto } from "@/src/common/interface/chat-interface";
+import { MediaPreviewItem } from "@/src/common/components/MediaPreviewModal";
+import MediaPreviewModal from "@/src/common/components/MediaPreviewModal";
 import DangerZone from "./DangerZone";
 import FileSection from "./FileSection";
 import LinkSection from "./LinkSection";
@@ -58,6 +60,11 @@ const HeaderTitle = styled(Typography)({
 export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   const [mounted, setMounted] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
+  const [mediaPreview, setMediaPreview] = useState<{ open: boolean; mediaList: MediaPreviewItem[]; initialIndex: number }>({
+    open: false,
+    mediaList: [],
+    initialIndex: 0,
+  });
   const [friends, setFriends] = useState<Array<{ id: string; name: string; avatar?: string; phone?: string }>>([]);
   const [memberSearch, setMemberSearch] = useState("");
 
@@ -248,11 +255,29 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
         />
       )}
 
-      <MediaSection items={mediaItems} />
+      <MediaSection
+        items={mediaItems}
+        onMediaClick={(url, mediaList, index) => {
+          const items: MediaPreviewItem[] = mediaList.map((att) => ({
+            key: att.url || att.thumbnailUrl || att.key || "",
+            name: att.name || "media",
+            type: att.type || "image",
+          }));
+          setMediaPreview({ open: true, mediaList: items, initialIndex: index });
+        }}
+      />
       <FileSection items={fileItems} />
       <LinkSection items={links} />
       <SecuritySection />
       <DangerZone conversationId={conversationId} />
+
+      <MediaPreviewModal
+        open={mediaPreview.open}
+        media={mediaPreview.mediaList[0] || null}
+        mediaList={mediaPreview.mediaList}
+        initialIndex={mediaPreview.initialIndex}
+        onClose={() => setMediaPreview({ open: false, mediaList: [], initialIndex: 0 })}
+      />
     </Root>
   );
 }
