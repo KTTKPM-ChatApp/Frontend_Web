@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import { Box, IconButton, CircularProgress } from "@mui/material";
+import { Box, IconButton, CircularProgress, Divider, Tooltip } from "@mui/material";
 import { sendTyping, sendStopTyping } from "@/src/common/action/chat.action";
 import { styled } from "@mui/material/styles";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
@@ -13,7 +13,7 @@ import InsertEmoticonRoundedIcon from "@mui/icons-material/InsertEmoticonRounded
 import { EmojiClickData } from "emoji-picker-react";
 import ComposerActionPreview from "./ComposerActionPreview";
 import PendingAttachmentsList from "./PendingAttachmentsList";
-import { ChatAttachmentPayload, IUploadedMedia } from "@/src/common/interface/media-interface";
+import { ChatAttachmentPayload } from "@/src/common/interface/media-interface";
 import { uploadMedia } from "@/src/common/service/media-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
 
@@ -36,81 +36,64 @@ interface ChatInputProps {
 const ChatInputContainer = styled(Box)({
   background: "#fff",
   borderTop: "1px solid #E5E7EB",
-  padding: "8px 12px",
+  padding: "8px 12px 12px",
 });
 
-const ToolbarRow = styled(Box)({
-  height: 40,
+const InputWrapper = styled(Box)({
   display: "flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "0 0 4px",
-});
-
-const StyledIconButton = styled(IconButton)({
-  width: 36,
-  minWidth: 36,
-  height: 36,
-  borderRadius: 10,
-  color: "#64748B",
-  flexShrink: 0,
-  "&:hover": {
-    background: "#F1F5F9",
+  alignItems: "flex-end",
+  background: "#F0F2F5",
+  borderRadius: 16,
+  border: "1px solid #E5E7EB",
+  padding: "4px 4px 4px 8px",
+  gap: 2,
+  transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+  "&:focus-within": {
+    borderColor: "#005AE0",
+    boxShadow: "0 0 0 2px rgba(0, 90, 224, 0.1)",
+    background: "#FFFFFF",
   },
-});
-
-const DropZone = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "isDragging",
-})<{ isDragging?: boolean }>(({ isDragging }) => ({
-  position: "relative",
-  borderRadius: 8,
-  border: isDragging ? "2px dashed #005AE0" : "2px dashed transparent",
-  background: isDragging ? "rgba(0, 90, 224, 0.05)" : "transparent",
-  transition: "all 0.2s ease",
-}));
-
-const InputRow = styled(Box)({
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
 });
 
 const InputField = styled("input")({
   flex: 1,
-  height: 40,
-  borderRadius: 20,
+  minHeight: 36,
+  maxHeight: 120,
   border: "none",
-  background: "#F0F2F5",
-  padding: "0 14px",
+  background: "transparent",
+  padding: "8px 8px",
   fontSize: 14,
   color: "#0F172A",
   outline: "none",
+  resize: "none",
+  fontFamily: "inherit",
+  lineHeight: 1.5,
   "&::placeholder": {
     color: "#94A3B8",
-  },
-  "&:focus": {
-    background: "#FFFFFF",
-    boxShadow: "0 0 0 2px #D8E8FF",
   },
 });
 
 const IconBtn = styled(IconButton)({
-  width: 34,
-  height: 34,
+  width: 36,
+  height: 36,
+  minWidth: 36,
   color: "#64748B",
-  borderRadius: "50%",
+  borderRadius: 10,
+  flexShrink: 0,
   "&:hover": {
-    background: "#F0F2F5",
+    background: "rgba(0, 0, 0, 0.06)",
     color: "#005AE0",
   },
 });
 
 const SendBtn = styled(IconButton)({
-  width: 34,
-  height: 34,
-  borderRadius: "50%",
+  width: 36,
+  height: 36,
+  minWidth: 36,
+  borderRadius: 10,
   backgroundColor: "#005AE0",
   color: "#FFFFFF",
+  flexShrink: 0,
   "&:hover": {
     backgroundColor: "#004BB5",
   },
@@ -127,12 +110,22 @@ const EmojiWrap = styled(Box)({
 const PickerBox = styled(Box)({
   position: "absolute",
   bottom: 44,
-  left: 0,
+  right: 0,
   zIndex: 20,
   boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
   borderRadius: 12,
   overflow: "hidden",
 });
+
+const DropZone = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "isDragging",
+})<{ isDragging?: boolean }>(({ isDragging }) => ({
+  borderRadius: 16,
+  border: isDragging ? "2px dashed #005AE0" : "2px dashed transparent",
+  background: isDragging ? "rgba(0, 90, 224, 0.05)" : "transparent",
+  transition: "all 0.2s ease",
+  padding: isDragging ? "8px" : 0,
+}));
 
 export default function ChatInput({ disabled, conversationId, onSend, replyMessage, onCancelReply }: ChatInputProps) {
   const [value, setValue] = useState("");
@@ -281,24 +274,28 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
       />
 
       <DropZone isDragging={isDragging}>
-        <ToolbarRow>
-          <StyledIconButton
-            onClick={() => imageInputRef.current?.click()}
-            disabled={disabled || uploading}
-            aria-label="send-image"
-          >
-            <ImageOutlinedIcon fontSize="small" />
-          </StyledIconButton>
+        <InputWrapper>
+          <Tooltip title="Gửi ảnh/Video" placement="top">
+            <IconBtn
+              onClick={() => imageInputRef.current?.click()}
+              disabled={disabled || uploading}
+              aria-label="send-image"
+            >
+              <ImageOutlinedIcon fontSize="small" />
+            </IconBtn>
+          </Tooltip>
 
-          <StyledIconButton
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || uploading}
-            aria-label="send-file"
-          >
-            <AttachFileRoundedIcon fontSize="small" />
-          </StyledIconButton>
+          <Tooltip title="Gửi tệp" placement="top">
+            <IconBtn
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || uploading}
+              aria-label="send-file"
+            >
+              <AttachFileRoundedIcon fontSize="small" />
+            </IconBtn>
+          </Tooltip>
 
-          {uploading && <CircularProgress size={16} />}
+          {uploading && <CircularProgress size={16} sx={{ mx: 1 }} />}
 
           <input
             ref={imageInputRef}
@@ -317,47 +314,49 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
             multiple
             onChange={handleFileChange}
           />
-        </ToolbarRow>
-      </DropZone>
 
-      <InputRow>
-        <EmojiWrap>
-          <IconBtn onClick={() => setOpenEmoji((prev) => !prev)} disabled={disabled}>
-            <InsertEmoticonRoundedIcon fontSize="small" />
-          </IconBtn>
-          {openEmoji && (
-            <PickerBox>
-              <EmojiPicker
-                onEmojiClick={handleEmojiClick}
-                width={320}
-                height={400}
-                previewConfig={{ showPreview: false }}
-                searchDisabled={false}
-                skinTonesDisabled
-              />
-            </PickerBox>
+          <InputField
+            ref={inputRef}
+            placeholder="Nhập tin nhắn..."
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+          />
+
+          <EmojiWrap>
+            <Tooltip title="Emoji" placement="top">
+              <IconBtn onClick={() => setOpenEmoji((prev) => !prev)} disabled={disabled}>
+                <InsertEmoticonRoundedIcon fontSize="small" />
+              </IconBtn>
+            </Tooltip>
+            {openEmoji && (
+              <PickerBox>
+                <EmojiPicker
+                  onEmojiClick={handleEmojiClick}
+                  width={320}
+                  height={400}
+                  previewConfig={{ showPreview: false }}
+                  searchDisabled={false}
+                  skinTonesDisabled
+                />
+              </PickerBox>
+            )}
+          </EmojiWrap>
+
+          {hasText || hasAttachments ? (
+            <SendBtn onClick={handleSend} disabled={disabled || uploading}>
+              <SendRoundedIcon fontSize="small" />
+            </SendBtn>
+          ) : (
+            <Tooltip title="Gửi tin nhắn thoại" placement="top">
+              <IconBtn disabled={disabled}>
+                <MicRoundedIcon fontSize="small" />
+              </IconBtn>
+            </Tooltip>
           )}
-        </EmojiWrap>
-
-        <InputField
-          ref={inputRef}
-          placeholder="Nhập tin nhắn..."
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-        />
-
-        {hasText || hasAttachments ? (
-          <SendBtn onClick={handleSend} disabled={disabled || uploading}>
-            <SendRoundedIcon fontSize="small" />
-          </SendBtn>
-        ) : (
-          <IconBtn disabled={disabled}>
-            <MicRoundedIcon fontSize="small" />
-          </IconBtn>
-        )}
-      </InputRow>
+        </InputWrapper>
+      </DropZone>
     </ChatInputContainer>
   );
 }
