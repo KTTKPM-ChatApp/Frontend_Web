@@ -1,6 +1,36 @@
-import type { ConversationDto, UiMessage } from "@/src/common/interface/chat-interface";
+import type { ConversationDto, UiMessage, AttachmentDto } from "@/src/common/interface/chat-interface";
 
 const LINK_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function normalizeAttachment(raw: any): AttachmentDto {
+  if (!raw) return {} as AttachmentDto;
+  const contentType = raw.contentType || raw.mimeType || raw.content_type || '';
+  const inferredType = raw.type ||
+    (contentType.startsWith('image/') ? 'image' :
+     contentType.startsWith('video/') ? 'video' :
+     contentType.startsWith('audio/') ? 'audio' : 'document');
+  return {
+    id: raw.id,
+    key: raw.key || raw.publicId || '',
+    type: inferredType,
+    name: raw.name || raw.fileName || raw.originalName || 'file',
+    size: raw.size || 0,
+    contentType,
+    thumbnailKey: raw.thumbnailKey,
+    url: raw.url || undefined,
+    thumbnailUrl: raw.thumbnailUrl || undefined,
+    publicId: raw.publicId || raw.key || undefined,
+    resourceType: raw.resourceType || undefined,
+  };
+}
+
+function parseAttachments(raw: any): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return []; }
+  }
+  return [];
+}
 
 export const uniqAttachments = <T extends Record<string, any>>(items: T[]) => {
   const map = new Map<string, T>();
@@ -23,21 +53,15 @@ export const uniqAttachments = <T extends Record<string, any>>(items: T[]) => {
 export const uniqStrings = (items: string[]) => Array.from(new Set(items));
 
 export const extractMediaFromMessage = (message: Partial<UiMessage>) => {
-  const attachments = Array.isArray(message?.attachments)
-    ? message.attachments
-    : [];
-
+  const attachments = parseAttachments(message?.attachments);
   return attachments.filter(
     (att: any) => att?.type === "image" || att?.type === "video"
-  );
+  ).map(normalizeAttachment);
 };
 
 export const extractFilesFromMessage = (message: Partial<UiMessage>) => {
-  const attachments = Array.isArray(message?.attachments)
-    ? message.attachments
-    : [];
-
-  return attachments.filter((att: any) => att?.type === "document");
+  const attachments = parseAttachments(message?.attachments);
+  return attachments.filter((att: any) => att?.type === "document" || att?.type === "file").map(normalizeAttachment);
 };
 
 export const extractLinksFromMessage = (message: Partial<UiMessage>) => {
@@ -89,7 +113,7 @@ export const normalizeMessage = (raw: any): UiMessage & {
           rawReply.sender?.name ||
           "Người dùng",
         body: rawReply.body || rawReply.content || "",
-        attachments: Array.isArray(rawReply.attachments) ? rawReply.attachments : [],
+        attachments: parseAttachments(rawReply.attachments).map(normalizeAttachment),
         isDeleted: Boolean(rawReply.isDeleted),
       }
     : null;
@@ -102,7 +126,7 @@ export const normalizeMessage = (raw: any): UiMessage & {
     senderName: raw?.senderName ?? raw?.sender_name ?? raw?.senderName ?? undefined,
     body: raw?.body ?? raw?.content ?? "",
     createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
-    attachments: Array.isArray(raw?.attachments) ? raw.attachments : [],
+    attachments: parseAttachments(raw?.attachments).map(normalizeAttachment),
     replyTo,
     replyToMessageId:
       raw?.replyToMessageId ??

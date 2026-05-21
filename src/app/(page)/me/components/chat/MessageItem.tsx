@@ -37,6 +37,8 @@ interface Attachment {
   type?: string;
   name?: string;
   size?: number;
+  contentType?: string;
+  content_type?: string;
 }
 
 interface MessageItemProps {
@@ -635,66 +637,70 @@ const MessageItem: React.FC<MessageItemProps> = ({
                       >
                         {(() => {
                           const isVideo = att.type?.toLowerCase() === 'video' || (att.contentType || att.content_type || '').toLowerCase().startsWith('video/');
-                          return isVideo ? (
-                          <>
+                          if (isVideo) {
+                            return (
+                              <>
+                                <Box
+                                  component="video"
+                                  src={
+                                    att.thumbnailUrl ||
+                                    att.url
+                                  }
+                                  sx={{
+                                    width: "100%",
+                                    height: 150,
+                                    objectFit: "cover",
+                                    display: "block",
+                                    background: "#000",
+                                  }}
+                                />
+                                <Box
+                                  sx={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: "50%",
+                                    background: "rgba(0,0,0,0.6)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    pointerEvents: "none",
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 0,
+                                      height: 0,
+                                      borderStyle: "solid",
+                                      borderWidth: "8px 0 8px 14px",
+                                      borderColor: "transparent transparent transparent #fff",
+                                      ml: 1,
+                                    }}
+                                  />
+                                </Box>
+                              </>
+                            );
+                          }
+                          return (
                             <Box
-                              component="video"
+                              component="img"
                               src={
                                 att.thumbnailUrl ||
                                 att.url
                               }
+                              alt={att.name}
                               sx={{
                                 width: "100%",
                                 height: 150,
                                 objectFit: "cover",
                                 display: "block",
-                                background: "#000",
                               }}
                             />
-                            <Box
-                              sx={{
-                                position: "absolute",
-                                top: "50%",
-                                left: "50%",
-                                transform: "translate(-50%, -50%)",
-                                width: 40,
-                                height: 40,
-                                borderRadius: "50%",
-                                background: "rgba(0,0,0,0.6)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                pointerEvents: "none",
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  width: 0,
-                                  height: 0,
-                                  borderStyle: "solid",
-                                  borderWidth: "8px 0 8px 14px",
-                                  borderColor: "transparent transparent transparent #fff",
-                                  ml: 1,
-                                }}
-                              />
-                            </Box>
-                          </>
-                        ) : (
-                          <Box
-                            component="img"
-                            src={
-                              att.thumbnailUrl ||
-                              att.url
-                            }
-                            alt={att.name}
-                            sx={{
-                              width: "100%",
-                              height: 150,
-                              objectFit: "cover",
-                              display: "block",
-                            }}
-                          />
-                        )}
+                          );
+                        })()}
                       </ImageListItem>
                     ))}
                 </ImageList>

@@ -21,6 +21,7 @@ export interface UseUserStoreProps {
 }
 
 const initialEditProfileData: IEditProfileForm = {
+  fullName: "",
   displayName: "",
   bio: "",
   gender: "",
@@ -58,6 +59,7 @@ export const useUserStore = create<UseUserStoreProps>()((set) => ({
 
     set({
       editProfileData: {
+        fullName: user?.fullName ?? "",
         displayName: user?.displayName ?? "",
         bio: user?.bio ?? "",
         gender: user?.gender ?? "",

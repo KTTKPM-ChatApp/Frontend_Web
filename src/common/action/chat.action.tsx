@@ -134,7 +134,7 @@ export const fetchListConversation = async (params: { page?: number; limit?: num
     const res = await chatService.fetchListConversations({
       limit: params.limit ?? 10,
       offset: params.page ? (params.page - 1) * (params.limit ?? 10) : 0,
-    });
+    } as any);
 
     const payload = res?.payload as any;
     // Backend returns { data: [], meta: {} }
