@@ -35,6 +35,8 @@ import {
 } from "@/src/common/service/friend-service";
 
 import { useChatStore } from "@/src/common/store/useChatStore";
+import { openConversation } from "@/src/common/action/chat.action";
+import { chatService } from "@/src/common/service/chat-service";
 
 const PanelContainer = styled(Box)({
   flex: 1,
@@ -319,6 +321,31 @@ const ContactContentPanel: React.FC<
     }
   };
 
+  const handleFriendClick = async (friendId: string) => {
+    const existingConv = listConversation.find((conv) => {
+      if (conv.type !== "direct" && conv.type !== "DIRECT") return false;
+      return conv.members?.some((m) => m.userId === friendId);
+    });
+
+    if (existingConv) {
+      await openConversation(existingConv.id);
+      return;
+    }
+
+    try {
+      const response = await chatService.createDirectConversation({
+        participantId: friendId,
+      });
+      const newConversation = (response.payload as any)?.data;
+      if (newConversation?.id) {
+        await fetchListConversation({ page: 1, limit: 50 });
+        await openConversation(newConversation.id);
+      }
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
+    }
+  };
+
   const handleAcceptRequest = async (
     requestId: string
   ) => {
@@ -428,6 +455,7 @@ const ContactContentPanel: React.FC<
             onRemoveFriend={
               handleRemoveFriend
             }
+            onFriendClick={handleFriendClick}
             onlineIds={onlineUserIds}
           />
         );
@@ -447,7 +475,7 @@ const ContactContentPanel: React.FC<
                 0,
             }))}
             onGroupClick={(id) =>
-              setActiveConversationId(id)
+              openConversation(id)
             }
           />
         );

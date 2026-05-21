@@ -217,6 +217,13 @@ const Me = () => {
         setShowSearchSidebar(false);
     }, [activeConversationId]);
 
+    // Switch to chat tab when a conversation is opened from Contact tab
+    useEffect(() => {
+        if (activeConversationId && selectedIcon !== "chat") {
+            setSelectedIcon("chat");
+        }
+    }, [activeConversationId]);
+
     const handleSelectedIcon = (iconName: SidebarKey) => {
         setSelectedIcon(iconName);
         if (iconName === "contact") {

@@ -178,6 +178,7 @@ interface FriendListProps {
   loading?: boolean;
   onSearch?: (value: string) => void;
   onRemoveFriend?: (friendId: string) => void;
+  onFriendClick?: (friendId: string) => void;
   onlineIds?: string[];
 }
 
@@ -186,6 +187,7 @@ const FriendList: React.FC<FriendListProps> = ({
   loading = false,
   onSearch = () => {},
   onRemoveFriend = () => {},
+  onFriendClick,
   onlineIds = [],
 }) => {
   return (
@@ -218,7 +220,7 @@ const FriendList: React.FC<FriendListProps> = ({
         ) : (
           <Stack spacing={1.5}>
             {friends.map((friend) => (
-              <FriendCard key={friend.id}>
+              <FriendCard key={friend.id} onClick={() => onFriendClick?.(friend.id)} sx={{ cursor: onFriendClick ? "pointer" : "default" }}>
                 <CardContent sx={{ p: 2 }}>
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <Box sx={{ position: "relative" }}>
@@ -252,7 +254,10 @@ const FriendList: React.FC<FriendListProps> = ({
                       startIcon={
                         <PersonRemoveOutlinedIcon sx={{ fontSize: 16 }} />
                       }
-                      onClick={() => onRemoveFriend(friend.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveFriend(friend.id);
+                      }}
                     >
                       Xóa
                     </RemoveButton>
