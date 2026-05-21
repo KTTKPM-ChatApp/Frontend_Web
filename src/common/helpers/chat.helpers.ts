@@ -99,7 +99,7 @@ export const normalizeMessage = (raw: any): UiMessage & {
     clientMessageId: raw?.clientMessageId ?? raw?.client_message_id ?? null,
     conversationId: String(conversationId),
     senderId: String(senderId),
-    senderName: raw?.senderName ?? raw?.sender_name ?? undefined,
+    senderName: raw?.senderName ?? raw?.sender_name ?? raw?.senderName ?? undefined,
     body: raw?.body ?? raw?.content ?? "",
     createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
     attachments: Array.isArray(raw?.attachments) ? raw.attachments : [],

@@ -115,7 +115,7 @@ export default function PinnedItem({
   const sender = members?.find((m) => m.userId === message.senderId);
   const senderName = message.senderId === currentUserId
     ? t("CHAT.YOU")
-    : (sender?.nickname || sender?.fullName || t("CHAT.USER"));
+    : (sender?.nickname || sender?.displayName || sender?.username || t("CHAT.USER"));
 
   return (
     <Container onClick={onPress}>
