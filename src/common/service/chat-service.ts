@@ -480,7 +480,7 @@ deleteMessage(conversationId: string, createdAt: number, messageId: string) {
   },
 
   updateMemberRole(conversationId: string, memberId: string, role: 'ADMIN' | 'MEMBER') {
-    return http.patch(API.API_CONVERSATIONS_UPDATE_ROLE(conversationId, memberId), { role });
+    return http.patch(API.API_CONVERSATIONS_UPDATE_ROLE(conversationId, memberId), { role: role.toLowerCase() });
   },
 
   transferOwnership(conversationId: string, newOwnerId: string) {
