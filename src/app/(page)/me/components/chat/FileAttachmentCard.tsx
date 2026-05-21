@@ -121,9 +121,20 @@ export default function FileAttachmentCard({ attachment, isOwn }: FileAttachment
   const ext = getFileExtension(attachment.name);
 
   const handleDownload = () => {
-    if (attachment.url) {
-      window.open(attachment.url, "_blank");
+    const fileUrl = attachment.url;
+    if (!fileUrl) {
+      console.warn('[FileAttachmentCard] No URL for file:', attachment.name);
+      return;
     }
+    console.log('[FileAttachmentCard] Downloading:', fileUrl);
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.download = attachment.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
