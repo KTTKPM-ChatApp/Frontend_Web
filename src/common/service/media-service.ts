@@ -85,9 +85,13 @@ export async function uploadMedia({
   console.log("[uploadMedia] Uploaded URL:", uploadedUrl);
   console.log("[uploadMedia] Resource type:", resourceType, "Public ID:", result.public_id);
 
+  const finalUrl = resourceType === "raw"
+    ? uploadedUrl.replace("/upload/", "/upload/fl_attachment/")
+    : uploadedUrl;
+
   return {
     key: result.public_id,
-    url: uploadedUrl,
+    url: finalUrl,
     visibility: "public",
     thumbnailKey: resourceType === "video" ? result.secure_url : null,
     contentType: file.type,
