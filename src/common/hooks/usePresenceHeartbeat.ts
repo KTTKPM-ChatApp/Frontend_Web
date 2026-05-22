@@ -1,14 +1,7 @@
-/**
- * Presence Heartbeat Hook
- * Emits presence:heartbeat every 25s when connected
- * Handles presence:update from server
- */
-
 import { useEffect, useRef } from 'react';
-import type { Socket } from 'socket.io-client';
-import { getSocket } from '../socket/socket';
+import { getSocket, sendSocketMessage } from '../socket/socket';
 
-const HEARTBEAT_INTERVAL_MS = 25_000; // 25 seconds
+const HEARTBEAT_INTERVAL_MS = 25_000;
 
 interface PresenceUpdatePayload {
   user_id: string;
@@ -37,8 +30,7 @@ export function usePresenceHeartbeat({
     if (!socket) return;
 
     const sendHeartbeat = () => {
-      // STOMP client doesn't have .emit() method
-      // sendSocketMessage("/app/presence/heartbeat", { ts: Date.now() });
+      sendSocketMessage("/app/presence/heartbeat", { ts: Date.now() });
     };
 
     const handleConnect = () => {
@@ -54,25 +46,26 @@ export function usePresenceHeartbeat({
       }
     };
 
-    const handlePresenceUpdate = (payload: PresenceUpdatePayload) => {
-      onPresenceUpdate(payload);
-    };
-
-    const handleWsError = (payload: any) => {
-      if (payload.code === 'UNAUTHORIZED') {
+    const handlePresenceUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.event === 'UNAUTHORIZED') {
         handleDisconnect();
         onUnauthorized?.();
       }
+      onPresenceUpdate({
+        user_id: detail?.userId ?? detail?.user_id ?? '',
+        status: detail?.event === 'USER_ONLINE' || detail?.event === 'online'
+          ? 'online' : 'offline',
+        last_seen_at: Date.now(),
+      });
     };
 
-    // STOMP client doesn't have .on() method - handled via window events
+    window.addEventListener('presence:update', handlePresenceUpdate);
 
-    // If already connected, start heartbeat immediately
     if (socket?.connected) handleConnect();
 
     return () => {
-      // STOMP client doesn't have .off() method
-      // Cleanup handled by component unmount
+      window.removeEventListener('presence:update', handlePresenceUpdate);
       handleDisconnect();
     };
   }, [onPresenceUpdate, onUnauthorized]);

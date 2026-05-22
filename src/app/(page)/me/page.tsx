@@ -389,9 +389,21 @@ const Me = () => {
                     conversationId={activeConversationId}
                     onClose={() => setRightPanelMode("info")}
                     onMessageClick={(message) => {
-                      const messageElement = document.getElementById(`message-${message.messageId}`);
-                      if (messageElement) {
-                        messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                      const id = `msg-${message.messageId}`;
+                      const el = document.getElementById(id);
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        setTimeout(() => {
+                          el.style.transition = "background-color 0.3s ease, border-color 0.3s ease";
+                          el.style.backgroundColor = "#FFF3CD";
+                          el.style.borderRadius = "8px";
+                          el.style.outline = "2px solid #FCD34D";
+                          setTimeout(() => {
+                            el.style.backgroundColor = "";
+                            el.style.outline = "";
+                            el.style.borderRadius = "";
+                          }, 2000);
+                        }, 500);
                       }
                     }}
                   />

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Socket } from "socket.io-client";
+import { Client } from "@stomp/stompjs";
 import { ChatTypingUpdatePayload, TypingIndicatorState } from "../interface/typing-interface";
 import { createTypingIndicatorService, formatTypingIndicator } from "../service/typingIndicatorService";
 
 type UseTypingIndicatorOptions = {
-  socket: Socket | null;
+  socket: Client | null;
   conversationId: string;
   myUserId: string;
   enabled?: boolean;

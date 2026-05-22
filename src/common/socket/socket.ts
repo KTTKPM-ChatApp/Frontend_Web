@@ -1,141 +1,234 @@
-import { io, Socket } from "socket.io-client";
+import { Client, IMessage } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4321";
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080";
 
-let socket: Socket | null = null;
+let stompClient: Client | null = null;
 let currentUserId: string | null = null;
+const conversationSubscriptions = new Map<string, any[]>();
 
 export const connectSocket = (accessToken?: string, userId?: string) => {
   currentUserId = userId || null;
 
-  if (socket && socket.connected) {
-    return socket;
+  if (stompClient && stompClient.connected) {
+    return stompClient;
   }
 
-  if (socket) {
-    socket.disconnect();
-    socket = null;
+  if (stompClient) {
+    stompClient.deactivate();
+    stompClient = null;
   }
 
-  socket = io(socketUrl, {
-    path: "/socket.io",
-    auth: {
-      token: accessToken ? `Bearer ${accessToken}` : "",
+  stompClient = new Client({
+    webSocketFactory: () => new SockJS(`${socketUrl}/ws`),
+    connectHeaders: {
+      Authorization: accessToken ? `Bearer ${accessToken}` : "",
     },
-    transports: ["websocket", "polling"],
-    reconnection: true,
-    reconnectionDelay: 5000,
-    withCredentials: false,
+    debug: (str) => console.log("[STOMP]", str),
+    reconnectDelay: 5000,
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
+    onConnect: () => {
+      console.log("STOMP connected");
+
+      if (currentUserId) {
+        stompClient?.subscribe(
+          `/user/${currentUserId}/queue/messages`,
+          (message: IMessage) => {
+            try {
+              const data = JSON.parse(message.body);
+              const event = new CustomEvent("chat:new", { detail: data });
+              window.dispatchEvent(event);
+            } catch (err) {
+              console.error("Failed to parse user message:", err);
+            }
+          },
+        );
+
+        stompClient?.subscribe(
+          "/topic/presence-updates",
+          (message: IMessage) => {
+            try {
+              const data = JSON.parse(message.body);
+              const event = new CustomEvent("presence:update", {
+                detail: data,
+              });
+              window.dispatchEvent(event);
+            } catch (err) {
+              console.error("Failed to parse presence update:", err);
+            }
+          },
+        );
+      }
+    },
+    onStompError: (frame) => {
+      console.error("STOMP error:", frame.headers["message"]);
+      const event = new CustomEvent("socket:error", {
+        detail: { message: frame.headers["message"] },
+      });
+      window.dispatchEvent(event);
+    },
+    onWebSocketClose: (event) => {
+      console.log("STOMP disconnected:", event.reason);
+      const evt = new CustomEvent("socket:disconnect", {
+        detail: event.reason,
+      });
+      window.dispatchEvent(evt);
+    },
   });
 
-  socket.on("connect", () => {
-    console.log("Socket.IO connected:", socket?.id);
-  });
-
-  socket.on("connect_error", (err) => {
-    console.error("Socket.IO connection error:", err.message);
-    const event = new CustomEvent("socket:error", { detail: err });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log("Socket.IO disconnected:", reason);
-    const event = new CustomEvent("socket:disconnect", { detail: reason });
-    window.dispatchEvent(event);
-  });
-
-  // Forward real-time events to window CustomEvents
-  socket.on("chat:new", (data) => {
-    const event = new CustomEvent("chat:new", { detail: data });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("chat:typing", (data) => {
-    const event = new CustomEvent("chat:typing", { detail: data });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("chat:stop_typing", (data) => {
-    const event = new CustomEvent("chat:stop_typing", { detail: data });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("presence:online", (data) => {
-    const event = new CustomEvent("presence:update", {
-      detail: { ...data, online: true },
-    });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("presence:offline", (data) => {
-    const event = new CustomEvent("presence:update", {
-      detail: { ...data, online: false },
-    });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("message:read", (data) => {
-    const event = new CustomEvent("message:read", { detail: data });
-    window.dispatchEvent(event);
-  });
-
-  socket.on("conversation:created", (data) => {
-    const event = new CustomEvent("conversation:created", { detail: data });
-    window.dispatchEvent(event);
-  });
-
-  if (socket.connect) socket.connect();
-
-  return socket;
+  stompClient.activate();
+  return stompClient;
 };
 
-export const getSocket = () => socket;
+export const getSocket = () => stompClient;
 
 export const disconnectSocket = () => {
-  if (!socket) return;
-  socket.disconnect();
-  socket = null;
+  conversationSubscriptions.forEach((subs) => {
+    subs.forEach((sub) => sub.unsubscribe());
+  });
+  conversationSubscriptions.clear();
+
+  if (stompClient) {
+    stompClient.deactivate();
+    stompClient = null;
+  }
   currentUserId = null;
 };
 
-export const sendSocketMessage = (
-  destination: string,
-  body: any
-): boolean => {
-  if (!socket || !socket.connected) {
-    console.warn("Socket not connected, cannot send message");
+export const sendSocketMessage = (destination: string, body: any): boolean => {
+  if (!stompClient || !stompClient.connected) {
+    console.warn("STOMP not connected, cannot send message");
     return false;
   }
 
   try {
-    // Map StompJS-style destinations to Socket.IO events
-    // e.g. "/app/chat.send" -> "chat:send"
-    const event = destination.replace("/app/", "").replace(".", ":");
-    socket.emit(event, body);
+    stompClient.publish({
+      destination,
+      body: JSON.stringify(body),
+    });
     return true;
   } catch (error) {
-    console.error("Failed to send socket message:", error);
+    console.error("Failed to send STOMP message:", error);
     return false;
   }
 };
 
-/** Join a conversation room */
+export const subscribeToConversation = (conversationId: string) => {
+  if (!stompClient || !stompClient.connected || !conversationId) return;
+  if (conversationSubscriptions.has(conversationId)) return;
+
+  const typingSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/typing`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const eventName = data.typing ? "chat:typing" : "chat:stop_typing";
+        const event = new CustomEvent(eventName, { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse typing event:", err);
+      }
+    },
+  );
+
+  const readSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/read`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const event = new CustomEvent("message:read", { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse read receipt:", err);
+      }
+    },
+  );
+
+  const deleteSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/delete`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const event = new CustomEvent("chat:deleted", { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse delete event:", err);
+      }
+    },
+  );
+
+  const pinSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/pin`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const eventName = data.pinned ? "chat:pinned" : "chat:unpinned";
+        const event = new CustomEvent(eventName, { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse pin event:", err);
+      }
+    },
+  );
+
+  const systemSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/system`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const event = new CustomEvent("chat:system-message", { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse system event:", err);
+      }
+    },
+  );
+
+  const messageSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/messages`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const event = new CustomEvent("chat:new", { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse new message event:", err);
+      }
+    },
+  );
+
+  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub]);
+};
+
+export const unsubscribeFromConversation = (conversationId: string) => {
+  const subs = conversationSubscriptions.get(conversationId);
+  if (subs) {
+    subs.forEach((sub) => sub.unsubscribe());
+    conversationSubscriptions.delete(conversationId);
+  }
+};
+
 export const joinConversation = (conversationId: string) => {
-  if (socket?.connected) {
-    socket.emit("chat:join", { conversation_id: conversationId });
+  if (stompClient?.connected) {
+    sendSocketMessage("/app/chat/join", {
+      conversation_id: conversationId,
+    });
   }
 };
 
-/** Send a typing indicator */
 export const sendTyping = (conversationId: string) => {
-  if (socket?.connected) {
-    socket.emit("chat:typing", { conversation_id: conversationId });
+  if (stompClient?.connected) {
+    sendSocketMessage("/app/chat/typing", {
+      conversation_id: conversationId,
+    });
   }
 };
 
-/** Stop typing indicator */
 export const stopTyping = (conversationId: string) => {
-  if (socket?.connected) {
-    socket.emit("chat:stop_typing", { conversation_id: conversationId });
+  if (stompClient?.connected) {
+    sendSocketMessage("/app/chat/stop_typing", {
+      conversation_id: conversationId,
+    });
   }
 };

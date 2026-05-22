@@ -5,8 +5,9 @@ import { sortConversations } from "../helpers/sortConservation";
 import { ConversationDto, ConversationLastMessageDto, UiMessage } from "../interface/chat-interface";
 import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interface";
 import { chatService } from "../service/chat-service";
-import { connectSocket, getSocket, sendSocketMessage } from "../socket/socket";
+import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscribeToConversation } from "../socket/socket";
 import { useChatStore } from "../store/useChatStore";
+import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
 
 export const rebuildConversationDerivedData = (conversationId: string) => {
@@ -185,70 +186,7 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   const state = useChatStore.getState();
   const socket = connectSocket(accessToken, currentUserId);
 
-  const oldHeartbeat = state.heartbeatId;
-  if (oldHeartbeat) clearInterval(oldHeartbeat);
-
-  // STOMP client doesn't have .off() method like Socket.IO
   // Event cleanup is handled by window.removeEventListener in cleanupChat
-
-  const handleIncomingMessage = (raw: any) => {
-    const normalized = normalizeMessage(raw);
-
-    if (!normalized.conversationId || !normalized.messageId) return;
-
-    let finalMessage = normalized;
-
-    useChatStore.setState((state) => {
-      const currentMessages =
-        state.messagesByConversation[normalized.conversationId] || [];
-
-      let msg = normalized;
-
-      if (!msg.replyTo && msg.replyToMessageId) {
-        const repliedMessage = currentMessages.find(
-          (item) => item.messageId === msg.replyToMessageId
-        );
-
-        if (repliedMessage) {
-          msg = {
-            ...msg,
-            replyTo: {
-              messageId: repliedMessage.messageId,
-              senderId: repliedMessage.senderId,
-              senderName: repliedMessage.senderName || "Người dùng",
-              body: repliedMessage.body ?? "",
-              attachments: repliedMessage.attachments ?? [],
-              isDeleted: Boolean(repliedMessage.isDeleted),
-            },
-          };
-        }
-      }
-
-      finalMessage = msg;
-
-      const nextMessages = upsertIncomingMessage(currentMessages, msg);
-
-      const nextConversations = state.listConversation.some(
-        (cvs) => cvs.id === msg.conversationId
-      )
-        ? moveConversationToTopWithLastMessage(
-          state.listConversation,
-          msg.conversationId,
-          msg
-        )
-        : state.listConversation;
-
-      return {
-        messagesByConversation: {
-          ...state.messagesByConversation,
-          [msg.conversationId]: nextMessages,
-        },
-        listConversation: nextConversations,
-      };
-    });
-
-    appendMessageDerivedData(finalMessage);
-  };
 
   const handleDeletedMessage = (raw: any) => {
     const messageId = raw?.message_id ?? raw?.messageId;
@@ -258,8 +196,22 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     if (!messageId || !conversationId) return;
 
     const state = useChatStore.getState();
-    
-    // Auto unpin when message is deleted/revoked
+
+    useChatStore.setState((prev) => {
+      const messages = prev.messagesByConversation[conversationId] || [];
+      return {
+        messagesByConversation: {
+          ...prev.messagesByConversation,
+          [conversationId]: applyDeletedMessage(messages, messageId, deletedAt),
+        },
+        listConversation: patchConversationPreviewWhenDeleted(
+          prev.listConversation,
+          conversationId,
+          messageId,
+        ),
+      };
+    });
+
     if (state.isMessagePinned(conversationId, messageId)) {
       state.removePinnedMessage(conversationId, messageId);
     }
@@ -329,6 +281,38 @@ export const initChat = (accessToken: string, currentUserId: string) => {
         listConversation: nextConversations,
       };
     });
+
+    const st = useChatStore.getState();
+    const currentUserId = st.currentUserId;
+    const eventType = systemMessage.system_event_type;
+
+    switch (eventType) {
+      case 'MEMBER_ADDED':
+      case 'ROLE_CHANGED':
+      case 'OWNER_TRANSFERRED':
+      case 'CONVERSATION_UPDATED':
+        st.fetchConversationDetail(conversationId, true);
+        break;
+      case 'MEMBER_REMOVED': {
+        const removedUserId = systemMessage.metadata?.removed_user_id as string | undefined;
+        if (removedUserId && removedUserId === currentUserId) {
+          st.removeConversationLocally(conversationId);
+        } else {
+          st.fetchConversationDetail(conversationId, true);
+        }
+        break;
+      }
+      case 'MEMBER_LEFT': {
+        const leftUserId = systemMessage.metadata?.user_id as string | undefined;
+        if (leftUserId && leftUserId === currentUserId) {
+          st.removeConversationLocally(conversationId);
+        }
+        break;
+      }
+      case 'GROUP_DISBANDED':
+        st.removeConversationLocally(conversationId);
+        break;
+    }
   };
 
   const handlePinnedMessage = (raw: any) => {
@@ -369,6 +353,10 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     });
   };
 
+  const handleWindowSystemMessage = (event: any) => {
+    handleSystemMessage(event.detail);
+  };
+
   // Removed legacy socket.on calls because stompClient does not support them.
   // Window event listeners below (chat:new, presence:update, etc.) should handle events now.
 
@@ -377,20 +365,20 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.removeEventListener('presence:update', handlePresenceUpdate);
   window.removeEventListener('socket:error', handleSocketError);
   window.removeEventListener('socket:disconnect', handleSocketDisconnect);
+  window.removeEventListener('chat:deleted', handleWindowDeletedMessage);
+  window.removeEventListener('chat:pinned', handlePinnedMessage);
+  window.removeEventListener('chat:unpinned', handleUnpinnedMessage);
+  window.removeEventListener('chat:system-message', handleWindowSystemMessage);
 
   // Add event listeners for STOMP events dispatched from socket.ts
   window.addEventListener('chat:new', handleWindowIncomingMessage);
   window.addEventListener('presence:update', handlePresenceUpdate);
   window.addEventListener('socket:error', handleSocketError);
   window.addEventListener('socket:disconnect', handleSocketDisconnect);
-
-  const heartbeatId = setInterval(() => {
-    if (!socket?.connected) return;
-
-    sendSocketMessage("/app/presence/heartbeat", {
-      ts: Date.now(),
-    });
-  }, 30000);
+  window.addEventListener('chat:deleted', handleWindowDeletedMessage);
+  window.addEventListener('chat:pinned', handlePinnedMessage);
+  window.addEventListener('chat:unpinned', handleUnpinnedMessage);
+  window.addEventListener('chat:system-message', handleWindowSystemMessage);
 
   // Load initial online users
   http.get<{ success: boolean; data: string[] }>("/api/presence/online").then((res) => {
@@ -401,7 +389,6 @@ export const initChat = (accessToken: string, currentUserId: string) => {
 
   state.setInitialized(true);
   state.setCurrentUserId(currentUserId);
-  state.setHeartbeatId(heartbeatId);
 };
 
 export const openConversation = async (conversationId: string) => {
@@ -413,6 +400,7 @@ export const openConversation = async (conversationId: string) => {
 
   if (socket?.connected) {
     sendSocketMessage("/app/chat/join", { conversation_id: conversationId });
+    subscribeToConversation(conversationId);
   }
 
   state.setPagination(conversationId, {
@@ -578,17 +566,24 @@ export const sendMessageHttp = async (
     if (response.ok && response.payload) {
       // Success - Update optimistic message with server data
       const serverMessage = normalizeMessage(response.payload);
-      
-      // Update only the specific message, preserve all others
-      const updates = {
-        pending: false, 
-        failed: false,
-        messageId: serverMessage.messageId, // Update with server ID
-        createdAt: serverMessage.createdAt,
-      };
-      
-      state.updateMessage(conversationId, clientMessageId, updates);
-      
+      const currentMessages = state.messagesByConversation[conversationId] || [];
+      const alreadyDelivered = currentMessages.some(m => m.messageId === serverMessage.messageId);
+
+      if (alreadyDelivered) {
+        // STOMP already added the server message; just remove the optimistic copy
+        state.setMessages(
+          conversationId,
+          currentMessages.filter(m => m.messageId !== clientMessageId)
+        );
+      } else {
+        state.updateMessage(conversationId, clientMessageId, {
+          pending: false,
+          failed: false,
+          messageId: serverMessage.messageId,
+          createdAt: serverMessage.createdAt,
+        });
+      }
+
       // Update conversation list with last message info
       const conversation = state.listConversation.find(c => c.id === conversationId);
       if (conversation) {
@@ -722,6 +717,14 @@ export const pinMessage = async (conversationId: string, messageId: string, crea
         isPinned: true,
       };
       state.setPinnedMessages(conversationId, [...pinned, pinnedMsg]);
+
+      const socket = getSocket();
+      if (socket?.connected) {
+        sendSocketMessage("/app/chat/pin", {
+          conversation_id: conversationId,
+          message_id: messageId,
+        });
+      }
     }
     return res;
   } catch (error: any) {
@@ -747,6 +750,14 @@ export const unpinMessage = async (conversationId: string, messageId: string, cr
       });
       console.log("[unpinMessage] Filtered pinned:", filtered.length);
       state.setPinnedMessages(conversationId, filtered);
+
+      const socket = getSocket();
+      if (socket?.connected) {
+        sendSocketMessage("/app/chat/unpin", {
+          conversation_id: conversationId,
+          message_id: messageId,
+        });
+      }
     } else {
       console.warn("[unpinMessage] Failed:", res?.payload);
     }
@@ -792,58 +803,6 @@ export const editMessage = async (conversationId: string, messageId: string, new
   }
 };
 
-async function handleConversationMemberAdded(payload: any) {
-  console.log("[conversation:member:added]", payload);
-
-  const conversationId =
-    payload?.conversation_id ?? payload?.conversationId;
-
-  const members = Array.isArray(payload?.members) ? payload.members : [];
-  const current = useChatStore.getState();
-  const currentUserId = current.currentUserId;
-
-  if (!conversationId || !currentUserId) return;
-
-  const isCurrentUserAdded = members.some(
-    (member: any) => member?.user_id === currentUserId || member?.userId === currentUserId
-  );
-
-  if (!isCurrentUserAdded) return;
-
-  await fetchListConversation({ page: 1, limit: 10 });
-  await current.fetchConversationDetail(conversationId, true);
-};
-
-function handleConversationMemberRemoved(payload: any) {
-  const conversationId =
-    payload?.conversation_id ?? payload?.conversationId;
-
-  const current = useChatStore.getState();
-  const currentUserId = current.currentUserId;
-
-  if (!conversationId || !currentUserId) return;
-
-  const removedUserId =
-    payload?.removed_user_id ??
-    payload?.removedUserId ??
-    payload?.user_id ??
-    payload?.userId;
-
-  const members = Array.isArray(payload?.members) ? payload.members : [];
-
-  const isCurrentUserRemoved =
-    removedUserId === currentUserId ||
-    (members.length > 0 &&
-      !members.some(
-        (member: any) =>
-          member?.user_id === currentUserId || member?.userId === currentUserId
-      ));
-
-  if (!isCurrentUserRemoved) return;
-
-  current.removeConversationLocally(conversationId);
-};
-
 let typingTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const sendTyping = (conversationId: string) => {
@@ -869,11 +828,8 @@ export const sendStopTyping = (conversationId: string) => {
 export const cleanupChat = () => {
   const state = useChatStore.getState();
   const socket = getSocket();
-  const heartbeatId = state.heartbeatId;
 
-  if (heartbeatId) clearInterval(heartbeatId);
-
-  if (socket?.connected) (socket as any).disconnect();
+  disconnectSocket();
 
   state.resetChatState();
 };
@@ -883,7 +839,6 @@ const handleWindowIncomingMessage = (event: any) => {
   console.log('Window event - chat:new:', event.detail);
   const normalized = normalizeMessage(event.detail);
   
-  // Handle incoming message logic (copied from original handleIncomingMessage)
   if (!normalized.conversationId || !normalized.messageId) return;
 
   useChatStore.setState((state) => {
@@ -920,13 +875,23 @@ const handleWindowIncomingMessage = (event: any) => {
     if (existingIndex >= 0) {
       nextMessages[existingIndex] = msg;
     } else {
-      nextMessages.push(msg);
+      // STOMP broadcast may arrive before HTTP response — replace pending
+      const pendingIndex = nextMessages.findIndex(
+        (item) => item.pending &&
+          item.senderId === msg.senderId &&
+          item.body === (msg.body ?? "") &&
+          Math.abs(item.createdAt - msg.createdAt) < 10000
+      );
+      if (pendingIndex >= 0) {
+        nextMessages[pendingIndex] = msg;
+      } else {
+        nextMessages.push(msg);
+      }
     }
 
     const conversationExists = state.listConversation.some((cvs) => cvs.id === normalized.conversationId);
     
     if (!conversationExists) {
-      // If conversation is new, fetch the updated list
       setTimeout(() => fetchListConversation({ page: 1, limit: 20 }), 0);
     }
 
@@ -949,8 +914,20 @@ const handleWindowIncomingMessage = (event: any) => {
 };
 
 const handlePresenceUpdate = (event: any) => {
-  console.log('Window event - presence:update:', event.detail);
-  // Handle presence updates
+  const detail = event.detail;
+  const userId = detail?.userId ?? detail?.user_id ?? detail?.userId;
+  const rawEvent = detail?.event ?? detail?.status;
+  if (!userId || !rawEvent) return;
+
+  const status = rawEvent === 'USER_ONLINE' || rawEvent === 'online'
+    ? 'online' as const
+    : 'offline' as const;
+
+  usePresenceStore.getState().updatePresence(userId, {
+    user_id: userId,
+    status,
+    last_seen_at: Date.now(),
+  });
 };
 
 const handleSocketError = (event: any) => {
@@ -963,6 +940,36 @@ const handleSocketError = (event: any) => {
 const handleSocketDisconnect = (event: any) => {
   console.log('Window event - socket:disconnect:', event.detail);
   useChatStore.getState().setSocketConnected(false);
+};
+
+const handleWindowDeletedMessage = (event: any) => {
+  console.log('Window event - chat:deleted:', event.detail);
+  const raw = event.detail;
+  const messageId = raw?.message_id ?? raw?.messageId;
+  const conversationId = raw?.conversation_id ?? raw?.conversationId;
+  const deletedAt = raw?.deleted_at ?? raw?.deletedAt ?? Date.now();
+
+  if (!messageId || !conversationId) return;
+
+  useChatStore.setState((prev) => {
+    const messages = prev.messagesByConversation[conversationId] || [];
+    return {
+      messagesByConversation: {
+        ...prev.messagesByConversation,
+        [conversationId]: applyDeletedMessage(messages, messageId, deletedAt),
+      },
+      listConversation: patchConversationPreviewWhenDeleted(
+        prev.listConversation,
+        conversationId,
+        messageId,
+      ),
+    };
+  });
+
+  const state = useChatStore.getState();
+  if (state.isMessagePinned(conversationId, messageId)) {
+    state.removePinnedMessage(conversationId, messageId);
+  }
 };
 
 const detectPreviewTypeFromMessage = (message: UiMessage) => {

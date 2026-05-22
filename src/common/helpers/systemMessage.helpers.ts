@@ -1,4 +1,5 @@
 import {
+    ConversationUpdatedMetadata,
     GroupDisbandedMetadata,
     MemberAddedMetadata,
     MemberLeftMetadata,
@@ -67,6 +68,21 @@ export const buildSystemMessageText = (message: UiMessage) => {
             const actor = data?.disbanded_by_name || "Ai đó";
 
             return `${actor} đã giải tán nhóm`;
+        }
+
+        case SystemEventType.CONVERSATION_UPDATED: {
+            const data = message.metadata as ConversationUpdatedMetadata;
+            const actor = data?.updated_by_name || "Ai đó";
+
+            if (data?.field === "name") {
+                return `${actor} đã đổi tên nhóm thành "${data.new_value}"`;
+            }
+
+            if (data?.field === "avatar") {
+                return `${actor} đã thay đổi ảnh đại diện nhóm`;
+            }
+
+            return `${actor} đã cập nhật thông tin nhóm`;
         }
 
         default:

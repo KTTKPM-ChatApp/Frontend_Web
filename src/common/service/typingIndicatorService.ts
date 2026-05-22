@@ -1,4 +1,4 @@
-import { getSocket, sendSocketMessage } from "../socket/socket";
+import { sendSocketMessage } from "../socket/socket";
 import {
   ChatTypingEmitPayload,
   ChatTypingUpdatePayload,
@@ -66,14 +66,19 @@ export const createTypingIndicatorService = ({
   const subscribe = (
     handler: (payload: ChatTypingUpdatePayload) => void,
   ) => {
-    const handleTypingUpdate = (payload: ChatTypingUpdatePayload) => {
-      handler(payload);
+    const onTyping = (e: Event) => {
+      handler((e as CustomEvent).detail as ChatTypingUpdatePayload);
     };
-    
-    // STOMP client doesn't have .on() method - handled via window events
+    const onStopTyping = (e: Event) => {
+      handler((e as CustomEvent).detail as ChatTypingUpdatePayload);
+    };
+
+    window.addEventListener("chat:typing", onTyping);
+    window.addEventListener("chat:stop_typing", onStopTyping);
+
     return () => {
-      // STOMP client doesn't have .off() method
-      // Cleanup handled by component unmount
+      window.removeEventListener("chat:typing", onTyping);
+      window.removeEventListener("chat:stop_typing", onStopTyping);
     };
   };
 

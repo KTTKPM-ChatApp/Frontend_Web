@@ -46,7 +46,6 @@ export interface ChatState {
   typingUsersByConversation: Record<string, TypingUser[]>;
   onlineUserIds: string[];
 
-  heartbeatId: ReturnType<typeof setInterval> | null;
   mediaByConversation: AttachmentMap;
   filesByConversation: AttachmentMap;
   linksByConversation: LinkMap;
@@ -64,7 +63,6 @@ export interface ChatSetters {
   setConversationDetail: (conversationId: string, detail: ConversationDto) => void;
   setConversationLoading: (value: boolean) => void;
   setConversationFetched: (value: boolean) => void;
-  setHeartbeatId: (value: ReturnType<typeof setInterval> | null) => void;
 
   setPinnedMessages: (conversationId: string, messages: any[]) => void;
   setMessages: (conversationId: string, messages: UiMessage[]) => void;
@@ -131,7 +129,6 @@ export const initialChatState: ChatState = {
   typingUsersByConversation: {},
   onlineUserIds: [],
 
-  heartbeatId: null,
   mediaByConversation: {},
   filesByConversation: {},
   linksByConversation: {},
@@ -170,7 +167,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     })),
   setConversationLoading: (value) => set({ conversationLoading: value }),
   setConversationFetched: (value) => set({ conversationFetched: value }),
-  setHeartbeatId: (value) => set({ heartbeatId: value }),
 
   setMessages: (conversationId: string, messages: UiMessage[]) =>
     set((state) => ({
