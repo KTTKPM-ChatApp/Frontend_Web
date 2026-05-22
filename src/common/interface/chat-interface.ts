@@ -85,6 +85,7 @@ export enum SystemEventType {
   ROLE_CHANGED = "ROLE_CHANGED",
   OWNER_TRANSFERRED = "OWNER_TRANSFERRED",
   GROUP_DISBANDED = "GROUP_DISBANDED",
+  CONVERSATION_UPDATED = "CONVERSATION_UPDATED",
 }
 
 export interface SystemMemberMetadata {
@@ -98,16 +99,21 @@ export interface SystemMemberMetadata {
   role?: string;
   full_name?: string;
   user_name?: string;
+  user_id?: string;
   added_by_name?: string;
   added_members?: SystemMemberMetadata[];
   removed_by_name?: string;
   removed_user_name?: string;
+  removed_user_id?: string;
   previous_owner_name?: string;
   new_owner_name?: string;
   updated_by_name?: string;
+  updated_by_id?: string;
   target_user_name?: string;
   new_role?: string;
   disbanded_by_name?: string;
+  field?: string;
+  new_value?: string;
 }
 
 export type MemberAddedMetadata = SystemMemberMetadata;
@@ -116,6 +122,7 @@ export type MemberLeftMetadata = SystemMemberMetadata;
 export type RoleChangedMetadata = SystemMemberMetadata;
 export type OwnerTransferredMetadata = SystemMemberMetadata;
 export type GroupDisbandedMetadata = SystemMemberMetadata;
+export type ConversationUpdatedMetadata = SystemMemberMetadata;
 export interface UiMessage {
   messageId: string;
   conversationId: string;
@@ -170,8 +177,7 @@ export interface IChat {
   conversationMeta: ConversationListMeta | null;
   conversationLoading: boolean;
 
-  heartbeatId: ReturnType<typeof setInterval> | null;
-  mediaByConversation: Record<string, AttachmentDto[]>;
+    mediaByConversation: Record<string, AttachmentDto[]>;
   filesByConversation: Record<string, AttachmentDto[]>;
   linksByConversation: Record<string, string[]>;
 

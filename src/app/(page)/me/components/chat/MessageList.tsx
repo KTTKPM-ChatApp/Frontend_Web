@@ -7,6 +7,7 @@ import { PaginationState, UiMessage, AttachmentDto } from "@/src/common/interfac
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { pinMessage, unpinMessage } from "@/src/common/action/chat.action";
 import MessageItem from "./MessageItem";
+import SystemMessageBanner from "./message-system/SystemMessageBanner";
 
 interface MessageListProps {
   listRef: React.RefObject<HTMLDivElement | null>;
@@ -179,6 +180,21 @@ export default function MessageList({
       ) : (
         <MessagesContent>
           {messages.map((msg, index) => {
+            const isSystem = msg.type === "system" || msg.message_type === "system";
+
+            if (isSystem) {
+              return (
+                <Box key={msg.messageId} id={`msg-${msg.messageId}`}>
+                  {shouldShowDateSeparator(msg, index) && (
+                    <DateSeparator>
+                      <DateLabel>{formatDateLabel(msg.createdAt)}</DateLabel>
+                    </DateSeparator>
+                  )}
+                  <SystemMessageBanner message={msg} />
+                </Box>
+              );
+            }
+
             const mine = msg.senderId === currentUserId;
             const grouped = shouldGroupWithPrev(msg, index);
 

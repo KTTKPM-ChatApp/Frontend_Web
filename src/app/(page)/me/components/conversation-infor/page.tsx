@@ -230,6 +230,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
           members={members.map((m: any) => ({
             id: m.userId,
             name: m.displayName || m.username || m.userId,
+            avatar: m.avatarUrl || undefined,
             isOwner: m.role === "OWNER",
             isAdmin: m.role === "OWNER" || m.role === "ADMIN",
           }))}
