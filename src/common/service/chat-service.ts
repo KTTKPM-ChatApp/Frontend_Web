@@ -332,9 +332,12 @@ export const chatService = {
         participantId: data.participantId,
       })
       .then((res) => {
-        // Backend trả về JSON trực tiếp, không có wrapper { success, data }
-        // Nên payload chính là conversation object
-        const raw = res?.payload || {};
+        if (!res.ok) {
+          console.error("[chat-service] createDirectConversation failed:", res.payload);
+          return res;
+        }
+
+        const raw = res?.payload?.data || res?.payload || {};
         const normalized = normalizeConversation(raw);
         return {
           ...res,
@@ -372,6 +375,10 @@ export const chatService = {
 
   fetchConversationById(conversationId: string) {
     return http.get(API.API_CONVERSATIONS_DETAIL(conversationId));
+  },
+
+  markConversationAsRead(conversationId: string) {
+    return http.post(API.API_CONVERSATIONS_READ(conversationId));
   },
 
   pinConversation(conversationId: string) {
