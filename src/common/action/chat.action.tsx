@@ -357,28 +357,36 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     handleSystemMessage(event.detail);
   };
 
+  const handleConversationCreated = () => {
+    fetchListConversation({ page: 1, limit: 20 });
+  };
+
   // Removed legacy socket.on calls because stompClient does not support them.
   // Window event listeners below (chat:new, presence:update, etc.) should handle events now.
 
   // Remove existing listeners to prevent duplicates
   window.removeEventListener('chat:new', handleWindowIncomingMessage);
   window.removeEventListener('presence:update', handlePresenceUpdate);
+  window.removeEventListener('socket:connect', handleSocketConnect);
   window.removeEventListener('socket:error', handleSocketError);
   window.removeEventListener('socket:disconnect', handleSocketDisconnect);
   window.removeEventListener('chat:deleted', handleWindowDeletedMessage);
   window.removeEventListener('chat:pinned', handlePinnedMessage);
   window.removeEventListener('chat:unpinned', handleUnpinnedMessage);
   window.removeEventListener('chat:system-message', handleWindowSystemMessage);
+  window.removeEventListener('conversation:created', handleConversationCreated);
 
   // Add event listeners for STOMP events dispatched from socket.ts
   window.addEventListener('chat:new', handleWindowIncomingMessage);
   window.addEventListener('presence:update', handlePresenceUpdate);
+  window.addEventListener('socket:connect', handleSocketConnect);
   window.addEventListener('socket:error', handleSocketError);
   window.addEventListener('socket:disconnect', handleSocketDisconnect);
   window.addEventListener('chat:deleted', handleWindowDeletedMessage);
   window.addEventListener('chat:pinned', handlePinnedMessage);
   window.addEventListener('chat:unpinned', handleUnpinnedMessage);
   window.addEventListener('chat:system-message', handleWindowSystemMessage);
+  window.addEventListener('conversation:created', handleConversationCreated);
 
   // Load initial online users
   http.get<{ success: boolean; data: string[] }>("/api/presence/online").then((res) => {
@@ -397,6 +405,13 @@ export const openConversation = async (conversationId: string) => {
 
   state.setActiveConversationId(conversationId);
   state.setError(null);
+  useChatStore.setState((prev) => ({
+    listConversation: prev.listConversation.map((item) =>
+      item.id === conversationId ? { ...item, unreadCount: 0 } : item
+    ),
+  }));
+
+  chatService.markConversationAsRead(conversationId).catch(() => {});
 
   if (socket?.connected) {
     sendSocketMessage("/app/chat/join", { conversation_id: conversationId });
@@ -890,18 +905,40 @@ const handleWindowIncomingMessage = (event: any) => {
     }
 
     const conversationExists = state.listConversation.some((cvs) => cvs.id === normalized.conversationId);
+    const isActiveConversation = state.activeConversationId === normalized.conversationId;
+    const isOwnMessage = normalized.senderId === state.currentUserId;
     
     if (!conversationExists) {
       setTimeout(() => fetchListConversation({ page: 1, limit: 20 }), 0);
     }
 
-    const nextConversations = conversationExists
+    let nextConversations = conversationExists
       ? moveConversationToTopWithLastMessage(
           state.listConversation,
           normalized.conversationId,
           msg
         )
       : state.listConversation;
+
+    if (conversationExists) {
+      nextConversations = nextConversations.map((conversation) => {
+        if (conversation.id !== normalized.conversationId) return conversation;
+
+        const unreadCount =
+          isActiveConversation || isOwnMessage
+            ? 0
+            : (conversation.unreadCount ?? 0) + 1;
+
+        return {
+          ...conversation,
+          unreadCount,
+        };
+      });
+    }
+
+    if (isActiveConversation && !isOwnMessage) {
+      chatService.markConversationAsRead(normalized.conversationId).catch(() => {});
+    }
 
     return {
       messagesByConversation: {
@@ -935,6 +972,10 @@ const handleSocketError = (event: any) => {
   const state = useChatStore.getState();
   state.setSocketConnected(false);
   state.setError(event.detail?.message || "Socket connection failed");
+};
+
+const handleSocketConnect = () => {
+  useChatStore.getState().setSocketConnected(true);
 };
 
 const handleSocketDisconnect = (event: any) => {

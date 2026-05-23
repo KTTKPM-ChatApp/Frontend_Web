@@ -263,6 +263,7 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
             </WarningText>
           </WarningBox>
           <Typography sx={{ mt: 1 }}>
+            {/* eslint-disable-next-line react/no-unescaped-entities */}
             <strong>Cách chuyển quyền:</strong> Vào danh sách thành viên → Nhấn icon mũi tên bên cạnh thành viên muốn chuyển quyền → Chọn "Chuyển quyền trưởng nhóm".
           </Typography>
         </DialogContentStyled>

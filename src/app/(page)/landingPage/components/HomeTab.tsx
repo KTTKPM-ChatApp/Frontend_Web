@@ -8,8 +8,10 @@ import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import Image from "next/image";
 import StatCard from "@/src/shared/component/StatCard";
-import IconAppCard, { BoxIcon } from "@/src/shared/component/IconAppCard";
+import IconAppCard from "@/src/shared/component/IconAppCard";
 import { useRouter } from 'next/navigation';
+
+export const FILL_IMAGE_SIZES = "(max-width: 900px) 100vw, 33vw";
 
 export const ContentSection = styled(Stack)({
     alignItems: 'center',
@@ -88,7 +90,7 @@ const BoxMediaNoRadius = styled(BoxMedia)({
 export const CardMediaStyled = styled(CardMedia)({
     borderRadius: "8px",
 })
-const RegisButton = styled(Button)(({ theme }) => ({
+const RegisButton = styled(Button)(() => ({
     minWidth: "270px",
     borderRadius: "32px",
     backgroundColor: "#2563eb",
@@ -158,6 +160,7 @@ const HomeTab = () => {
                                     src="/images/pic1.webp"
                                     alt="pic1"
                                     fill
+                                    sizes={FILL_IMAGE_SIZES}
                                     style={{ objectFit: "cover" }}
                                 />
                             </BoxMedia>
@@ -184,6 +187,7 @@ const HomeTab = () => {
                                 src="/images/pic2.webp"
                                 alt="pic2"
                                 fill
+                                sizes={FILL_IMAGE_SIZES}
                                 style={{ objectFit: "cover" }}
                             />
                         </BoxMedia>
@@ -211,6 +215,7 @@ const HomeTab = () => {
                                     src="/images/pic3.webp"
                                     alt="pic3"
                                     fill
+                                    sizes={FILL_IMAGE_SIZES}
                                     style={{ objectFit: "cover" }}
                                 />
                             </BoxMedia>
@@ -247,8 +252,9 @@ const HomeTab = () => {
                             <BoxMediaNoRadius height={350}>
                                 <Image
 
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fpeople.3932e46d.png&w=3840&q=75"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/people.3932e46d.png"
                                     fill
+                                    sizes="(max-width: 900px) 100vw, 50vw"
                                     alt=""
                                 />
                             </BoxMediaNoRadius>
@@ -268,7 +274,8 @@ const HomeTab = () => {
                         <BoxMediaNoRadius sx={{ height: "100%" }}>
                             <Image
                                 fill
-                                src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fkiki.d715d09c.webp&w=3840&q=75"
+                                sizes="(max-width: 900px) 100vw, 25vw"
+                                src="https://zalo-site.zadn.vn/_next/static/media/kiki.d715d09c.webp"
                                 alt=""
                             />
                         </BoxMediaNoRadius>
@@ -310,13 +317,13 @@ const HomeTab = () => {
                     <Grid size={4}>
 
                         <IconAppCard
-                            path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-zalo.d8547d8a.png&w=640&q=75"
+                            path="https://zalo-site.zadn.vn/_next/static/media/logo-zalo.d8547d8a.png"
                             title="Zalo"
                             subTitle="Ứng dụng liên lạc số 1 Việt Nam" />
                     </Grid>
                     <Grid size={4}>
                         <IconAppCard
-                            path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-zing-mp3.f64af3c6.png&w=640&q=75"
+                            path="https://zalo-site.zadn.vn/_next/static/media/logo-zing-mp3.f64af3c6.png"
                             title="Zing MP3"
                             subTitle="Nền tảng âm nhạc trực truyến hàng đầu" />
                     </Grid>
@@ -325,17 +332,17 @@ const HomeTab = () => {
                 <Grid container size={12} spacing={5} textAlign="left">
                     <Grid size={4}>
                         <IconAppCard
-                            path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-bao-moi.a8318a04.png&w=640&q=75"
+                            path="https://zalo-site.zadn.vn/_next/static/media/logo-bao-moi.a8318a04.png"
                             title="Báo Mới"
                             subTitle="Nền tảng tin tức dẫn đầu" />
                     </Grid><Grid size={4}>
                         <IconAppCard
-                            path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-kiki.d528c587.png&w=640&q=75"
+                            path="https://zalo-site.zadn.vn/_next/static/media/logo-kiki.d528c587.png"
                             title="Kiki Auto"
                             subTitle="Trợ lý trên xe phổ biến nhất" />
                     </Grid><Grid size={4}>
                         <IconAppCard
-                            path="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo-zalo-video.5d7c7b34.png&w=640&q=75"
+                            path="https://zalo-site.zadn.vn/_next/static/media/logo-zalo-video.5d7c7b34.png"
                             title="Zalo Video"
                             subTitle="Top nền tảng video ngắn" />
                     </Grid>
@@ -355,7 +362,8 @@ const HomeTab = () => {
                         <BoxMediaNoRadius height={550}>
                             <Image
                                 fill
-                                src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fzalo-sos.1f373bf5.png&w=3840&q=75"
+                                sizes="(max-width: 900px) 100vw, 70vw"
+                                src="https://zalo-site.zadn.vn/_next/static/media/zalo-sos.1f373bf5.png"
                                 alt=""
                             />
                         </BoxMediaNoRadius>
@@ -375,7 +383,8 @@ const HomeTab = () => {
                             <BoxMediaNoRadius height={200}>
                                 <Image
                                     fill
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fzalo-ai-llm-vietnam.e3fee334.png&w=1920&q=75"
+                                    sizes="(max-width: 900px) 100vw, 30vw"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/zalo-ai-llm-vietnam.e3fee334.png"
                                     alt=""
                                 />
                             </BoxMediaNoRadius>
@@ -391,7 +400,8 @@ const HomeTab = () => {
                             <BoxMediaNoRadius height={200}>
                                 <Image
                                     fill
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fzalo-ai-assistant.f438edbe.png&w=3840&q=75"
+                                    sizes="(max-width: 900px) 100vw, 30vw"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/zalo-ai-assistant.f438edbe.png"
                                     alt=""
                                 />
                             </BoxMediaNoRadius>

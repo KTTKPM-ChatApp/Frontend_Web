@@ -102,7 +102,7 @@ const MemberItem = styled(ListItem)({
   },
 });
 
-const MemberName = styled(Typography)({
+const MemberName = styled(Box)({
   fontSize: 15,
   fontWeight: 600,
   color: "#081B3A",
@@ -111,7 +111,7 @@ const MemberName = styled(Typography)({
   whiteSpace: "nowrap",
 });
 
-const MemberPhone = styled(Typography)({
+const MemberPhone = styled(Box)({
   fontSize: 13,
   color: "#86909C",
   marginTop: 2,
@@ -280,6 +280,7 @@ const AddMemberGroupDialog: React.FC<AddMemberGroupDialogProps> = ({
 
                     <ListItemText
                       sx={{ mr: 1 }}
+                      disableTypography
                       primary={
                         <MemberName>
                           {friend.name}

@@ -1,7 +1,7 @@
 "use client";
 
 import {  CardContent, CardMedia, Container, Grid, Stack, styled } from "@mui/material";
-import { BoxMedia, CardContentStyled, CardImageSection, CardMediaStyled, ContentSection, HeadingSection, ImageSubTitle, ImageTextSection, ImageTitle, SubHeadingSection } from "./HomeTab";
+import { BoxMedia, CardContentStyled, CardImageSection, CardMediaStyled, ContentSection, FILL_IMAGE_SIZES, HeadingSection, ImageSubTitle, ImageTextSection, ImageTitle, SubHeadingSection } from "./HomeTab";
 import Image from "next/image";
 const GridMedia = styled(Grid)({
     border: "1px solid #F4F4F5",
@@ -57,9 +57,10 @@ const ProductTab = () => {
                     <CardImageSection ><CardMediaStyled>
                         <BoxMedia >
                             <Image
-                                src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fthumb-zing-mp3.8c320140.png&w=1920&q=75"
+                                src="https://zalo-site.zadn.vn/_next/static/media/thumb-zing-mp3.8c320140.png"
                                 alt="pic2"
                                 fill
+                                sizes={FILL_IMAGE_SIZES}
                                 style={{ objectFit: "cover" }}
                             />
                         </BoxMedia>
@@ -105,9 +106,10 @@ const ProductTab = () => {
                         <CardMediaStyled>
                             <BoxMedia >
                                 <Image
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fthumb-baomoi.f3bc3350.png&w=3840&q=75"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/thumb-baomoi.f3bc3350.png"
                                     alt="pic2"
                                     fill
+                                    sizes={FILL_IMAGE_SIZES}
                                     style={{ objectFit: "cover" }}
                                 />
                             </BoxMedia>
@@ -153,9 +155,10 @@ const ProductTab = () => {
                         <CardMediaStyled>
                             <BoxMedia >
                                 <Image
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fthumb-laban-key.7c9f5332.png&w=1920&q=75"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/thumb-laban-key.7c9f5332.png"
                                     alt="pic2"
                                     fill
+                                    sizes={FILL_IMAGE_SIZES}
                                     style={{ objectFit: "cover" }}
                                 />
                             </BoxMedia>
@@ -184,9 +187,10 @@ const ProductTab = () => {
                         <CardMediaStyled>
                             <BoxMedia >
                                 <Image
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fthumb-zalo-bussiness.538799e3.png&w=3840&q=75"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/thumb-zalo-bussiness.538799e3.png"
                                     alt="pic2"
                                     fill
+                                    sizes="(max-width: 900px) 100vw, 50vw"
                                     style={{ objectFit: "cover" }}
                                 />
                             </BoxMedia>
@@ -207,9 +211,10 @@ const ProductTab = () => {
                         <CardMediaStyled>
                             <BoxMedia >
                                 <Image
-                                    src="https://zalo-site.zadn.vn/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fthumb-zalo-bussiness.538799e3.png&w=3840&q=75"
+                                    src="https://zalo-site.zadn.vn/_next/static/media/thumb-zalo-bussiness.538799e3.png"
                                     alt="pic2"
                                     fill
+                                    sizes="(max-width: 900px) 100vw, 50vw"
                                     style={{ objectFit: "cover" }}
                                 />
                             </BoxMedia>
