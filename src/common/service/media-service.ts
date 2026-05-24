@@ -31,6 +31,7 @@ export async function uploadMedia({
   }
 
   const resourceType = getCloudinaryResourceType(file.type);
+  const needsAttachmentTransform = resourceType === "raw";
 
   // 1) Lấy signature từ backend
   const signRes = await fetch("/api/media/cloudinary-sign", {
@@ -39,7 +40,10 @@ export async function uploadMedia({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ resourceType }),
+    body: JSON.stringify({
+      resourceType,
+      transformation: needsAttachmentTransform ? "fl_attachment" : undefined,
+    }),
   });
 
   if (!signRes.ok) {
@@ -63,9 +67,9 @@ export async function uploadMedia({
   if (signData.folder) {
     formData.append("folder", signData.folder);
   }
-  // Add fl_attachment transformation for raw files (PDF, DOC, etc.)
-  if (resourceType === "raw") {
-    formData.append("transformation", "fl_attachment");
+  // Include transformation in FormData for proper download behavior
+  if (signData.transformation) {
+    formData.append("transformation", signData.transformation);
   }
 
   const uploadRes = await fetch(signData.uploadUrl, {
@@ -89,11 +93,7 @@ export async function uploadMedia({
   console.log("[uploadMedia] Uploaded URL:", uploadedUrl);
   console.log("[uploadMedia] Resource type:", resourceType, "Public ID:", result.public_id);
 
-  // For raw files, Cloudinary returns URL without transformation in the response
-  // We need to construct the URL with fl_attachment manually
-  const finalUrl = resourceType === "raw"
-    ? uploadedUrl.replace("/upload/", "/upload/fl_attachment/")
-    : uploadedUrl;
+  const finalUrl = uploadedUrl;
 
   console.log("[uploadMedia] Final URL:", finalUrl);
 

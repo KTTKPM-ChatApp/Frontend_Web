@@ -977,14 +977,21 @@ const handlePresenceUpdate = (event: any) => {
   const rawEvent = detail?.event ?? detail?.status;
   if (!userId || !rawEvent) return;
 
-  const status = rawEvent === 'USER_ONLINE' || rawEvent === 'online'
-    ? 'online' as const
-    : 'offline' as const;
+  const isOnline = rawEvent === 'USER_ONLINE' || rawEvent === 'online';
 
   usePresenceStore.getState().updatePresence(userId, {
     user_id: userId,
-    status,
+    status: isOnline ? 'online' : 'offline',
     last_seen_at: Date.now(),
+  });
+
+  useChatStore.setState((state) => {
+    if (isOnline && !state.onlineUserIds.includes(userId)) {
+      return { onlineUserIds: [...state.onlineUserIds, userId] };
+    } else if (!isOnline && state.onlineUserIds.includes(userId)) {
+      return { onlineUserIds: state.onlineUserIds.filter(id => id !== userId) };
+    }
+    return state;
   });
 };
 
