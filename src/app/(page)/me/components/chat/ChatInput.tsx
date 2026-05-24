@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import { Box, IconButton, CircularProgress, Divider, Tooltip } from "@mui/material";
+import { Box, IconButton, CircularProgress, Tooltip } from "@mui/material";
 import { sendTyping, sendStopTyping } from "@/src/common/action/chat.action";
 import { styled } from "@mui/material/styles";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
@@ -41,12 +41,12 @@ const ChatInputContainer = styled(Box)({
 
 const InputWrapper = styled(Box)({
   display: "flex",
-  alignItems: "flex-end",
+  alignItems: "center",
   background: "#F0F2F5",
   borderRadius: 16,
   border: "1px solid #E5E7EB",
-  padding: "4px 4px 4px 8px",
-  gap: 2,
+  padding: "2px 8px",
+  gap: 1,
   transition: "border-color 0.2s ease, box-shadow 0.2s ease",
   "&:focus-within": {
     borderColor: "#005AE0",
@@ -58,10 +58,10 @@ const InputWrapper = styled(Box)({
 const InputField = styled("input")({
   flex: 1,
   minHeight: 36,
-  maxHeight: 120,
+  maxHeight: 100,
   border: "none",
   background: "transparent",
-  padding: "8px 8px",
+  padding: "6px 4px",
   fontSize: 14,
   color: "#0F172A",
   outline: "none",
@@ -74,9 +74,9 @@ const InputField = styled("input")({
 });
 
 const IconBtn = styled(IconButton)({
-  width: 36,
-  height: 36,
-  minWidth: 36,
+  width: 34,
+  height: 34,
+  minWidth: 34,
   color: "#64748B",
   borderRadius: 10,
   flexShrink: 0,
@@ -87,9 +87,9 @@ const IconBtn = styled(IconButton)({
 });
 
 const SendBtn = styled(IconButton)({
-  width: 36,
-  height: 36,
-  minWidth: 36,
+  width: 34,
+  height: 34,
+  minWidth: 34,
   borderRadius: 10,
   backgroundColor: "#005AE0",
   color: "#FFFFFF",
