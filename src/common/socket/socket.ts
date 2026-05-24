@@ -7,6 +7,16 @@ let stompClient: Client | null = null;
 let currentUserId: string | null = null;
 const conversationSubscriptions = new Map<string, any[]>();
 
+const dispatchChatEvent = (eventName: string, body: string) => {
+  try {
+    const data = JSON.parse(body);
+    const event = new CustomEvent(eventName, { detail: data });
+    window.dispatchEvent(event);
+  } catch (err) {
+    console.error(`Failed to parse ${eventName} event:`, err);
+  }
+};
+
 export const connectSocket = (accessToken?: string, userId?: string) => {
   currentUserId = userId || null;
 
@@ -30,18 +40,27 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
     heartbeatOutgoing: 10000,
     onConnect: () => {
       console.log("STOMP connected");
+      window.dispatchEvent(new CustomEvent("socket:connect"));
 
       if (currentUserId) {
         stompClient?.subscribe(
+          "/user/queue/messages",
+          (message: IMessage) => {
+            dispatchChatEvent("chat:new", message.body);
+          },
+        );
+
+        stompClient?.subscribe(
           `/user/${currentUserId}/queue/messages`,
           (message: IMessage) => {
-            try {
-              const data = JSON.parse(message.body);
-              const event = new CustomEvent("chat:new", { detail: data });
-              window.dispatchEvent(event);
-            } catch (err) {
-              console.error("Failed to parse user message:", err);
-            }
+            dispatchChatEvent("chat:new", message.body);
+          },
+        );
+
+        stompClient?.subscribe(
+          "/user/queue/conversations",
+          (message: IMessage) => {
+            dispatchChatEvent("conversation:created", message.body);
           },
         );
 
@@ -102,6 +121,10 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
           },
         );
       }
+
+      const previousConversationIds = Array.from(conversationSubscriptions.keys());
+      conversationSubscriptions.clear();
+      previousConversationIds.forEach((conversationId) => subscribeToConversation(conversationId));
     },
     onStompError: (frame) => {
       console.error("STOMP error:", frame.headers["message"]);

@@ -285,7 +285,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                 participantId: result.id
             });
             
-            if (response.ok && response.payload?.data) {
+            if (response.ok && response.payload?.data?.id) {
                 const newConversation = response.payload.data;
                 
                 let finalConversation = newConversation;
@@ -318,6 +318,10 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                 await openConversation(finalConversation.id);
             } else {
                 console.error("Failed to create direct conversation:", response);
+                const message =
+                    response.payload?.message ||
+                    "Khong the tao cuoc tro chuyen. Vui long kiem tra backend da duoc rebuild voi route /api/conversations/direct.";
+                alert(`Loi: ${message}`);
             }
         } catch (error: any) {
             console.error("Failed to create direct conversation:", error?.payload || error);

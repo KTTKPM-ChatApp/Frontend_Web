@@ -196,7 +196,7 @@ export default function WelcomeSite({ slides }: WelcomeSiteProps) {
                                             alt={s.title}
                                             fill
                                             sizes="(max-width: 900px) 70vw, 520px"
-                                            priority={idx === 0}
+                                            loading={idx < 2 ? "eager" : "lazy"}
                                         />
                                     </ImageWrap>
 
