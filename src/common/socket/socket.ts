@@ -65,6 +65,48 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
         );
 
         stompClient?.subscribe(
+          "/topic/new-conversations",
+          (message: IMessage) => {
+            try {
+              const data = JSON.parse(message.body);
+              console.log("[new-conversations raw]", JSON.stringify(data));
+              const event = new CustomEvent("conversation:created", { detail: data });
+              window.dispatchEvent(event);
+            } catch (err) {
+              console.error("Failed to parse conversation notification:", err);
+            }
+          },
+        );
+
+        stompClient?.subscribe(
+          `/topic/user-messages/${currentUserId}`,
+          (message: IMessage) => {
+            try {
+              const data = JSON.parse(message.body);
+              const event = new CustomEvent("chat:new", { detail: data });
+              window.dispatchEvent(event);
+            } catch (err) {
+              console.error("Failed to parse user message notification:", err);
+            }
+          },
+        );
+
+        stompClient?.subscribe(
+          `/topic/user-conversations/${currentUserId}`,
+          (message: IMessage) => {
+            try {
+              const data = JSON.parse(message.body);
+              if (data.type === "MEMBER_REMOVED") {
+                const event = new CustomEvent("conversation:removed", { detail: data });
+                window.dispatchEvent(event);
+              }
+            } catch (err) {
+              console.error("Failed to parse user conversation event:", err);
+            }
+          },
+        );
+
+        stompClient?.subscribe(
           "/topic/presence-updates",
           (message: IMessage) => {
             try {

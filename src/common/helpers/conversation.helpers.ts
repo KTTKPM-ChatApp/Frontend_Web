@@ -17,5 +17,10 @@ export const getConversationLastMessageText = (
       : "Tin nhắn đã bị thu hồi";
   }
 
+  const isGroup = conversation.type === "GROUP" || conversation.type === "group";
+  if (!isMine && isGroup && lastMessage.senderName) {
+    return `${lastMessage.senderName}: ${content}`;
+  }
+
   return `${isMine ? "Bạn: " : ""}${content}`;
 };
