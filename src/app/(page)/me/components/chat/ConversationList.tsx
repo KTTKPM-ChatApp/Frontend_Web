@@ -223,7 +223,14 @@ export default function ConversationList() {
 
                   <LastMessage>
                     {item?.lastMessage?.content
-                      ? `${item?.lastMessage?.senderId === authData?.data?.user?.id ? "Bạn: " : ""}${item.lastMessage.content}`
+                      ? (() => {
+                          const isMine = item.lastMessage!.senderId === authData?.data?.user?.id;
+                          const isGroup = item.type === "GROUP" || item.type === "group";
+                          if (!isMine && isGroup && item.lastMessage!.senderName) {
+                            return `${item.lastMessage!.senderName}: ${item.lastMessage!.content}`;
+                          }
+                          return `${isMine ? "Bạn: " : ""}${item.lastMessage!.content}`;
+                        })()
                       : "Chưa có tin nhắn"}
                   </LastMessage>
                 </Content>

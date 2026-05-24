@@ -5,7 +5,7 @@ import { sortConversations } from "../helpers/sortConservation";
 import { ConversationDto, ConversationLastMessageDto, UiMessage } from "../interface/chat-interface";
 import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interface";
 import { chatService } from "../service/chat-service";
-import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscribeToConversation } from "../socket/socket";
+import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscribeToConversation, unsubscribeFromConversation } from "../socket/socket";
 import { useChatStore } from "../store/useChatStore";
 import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
@@ -313,6 +313,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
         st.removeConversationLocally(conversationId);
         break;
     }
+
+    fetchListConversation({ page: 1, limit: 20 });
   };
 
   const handlePinnedMessage = (raw: any) => {
@@ -357,6 +359,27 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     handleSystemMessage(event.detail);
   };
 
+  const handleConversationCreated = (event: any) => {
+    const data = event.detail;
+    const conversationId = data?.conversation_id ?? data?.conversationId;
+    const memberIds = data?.member_ids ?? data?.memberIds;
+    const currentUserId = useChatStore.getState().currentUserId;
+    console.log("[conversation:created CALLED]", { conversationId, memberIds, currentUserId, data });
+    if (!conversationId) return;
+    if (memberIds && Array.isArray(memberIds) && !memberIds.includes(currentUserId)) return;
+    console.log("[conversation:created] New conversation notification:", conversationId);
+    fetchListConversation({ page: 1, limit: 20 });
+  };
+
+  const handleConversationRemoved = (event: any) => {
+    const data = event.detail;
+    const conversationId = data?.conversation_id ?? data?.conversationId;
+    if (!conversationId) return;
+    console.log("[conversation:removed] Conversation removed notification:", conversationId, data);
+    unsubscribeFromConversation(conversationId);
+    useChatStore.getState().removeConversationLocally(conversationId);
+  };
+
   // Removed legacy socket.on calls because stompClient does not support them.
   // Window event listeners below (chat:new, presence:update, etc.) should handle events now.
 
@@ -369,6 +392,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.removeEventListener('chat:pinned', handlePinnedMessage);
   window.removeEventListener('chat:unpinned', handleUnpinnedMessage);
   window.removeEventListener('chat:system-message', handleWindowSystemMessage);
+  window.removeEventListener('conversation:created', handleConversationCreated);
+  window.removeEventListener('conversation:removed', handleConversationRemoved);
 
   // Add event listeners for STOMP events dispatched from socket.ts
   window.addEventListener('chat:new', handleWindowIncomingMessage);
@@ -379,6 +404,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.addEventListener('chat:pinned', handlePinnedMessage);
   window.addEventListener('chat:unpinned', handleUnpinnedMessage);
   window.addEventListener('chat:system-message', handleWindowSystemMessage);
+  window.addEventListener('conversation:created', handleConversationCreated);
+  window.addEventListener('conversation:removed', handleConversationRemoved);
 
   // Load initial online users
   http.get<{ success: boolean; data: string[] }>("/api/presence/online").then((res) => {
