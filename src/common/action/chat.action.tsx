@@ -6,6 +6,7 @@ import { ConversationDto, ConversationLastMessageDto, UiMessage } from "../inter
 import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interface";
 import { chatService } from "../service/chat-service";
 import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscribeToConversation, unsubscribeFromConversation } from "../socket/socket";
+import { connectPresenceSocket, disconnectPresenceSocket } from "../socket/presence-socket";
 import { useChatStore } from "../store/useChatStore";
 import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
@@ -185,6 +186,7 @@ export const initChat = (accessToken: string, currentUserId: string) => {
 
   const state = useChatStore.getState();
   const socket = connectSocket(accessToken, currentUserId);
+  connectPresenceSocket(accessToken);
 
   // Event cleanup is handled by window.removeEventListener in cleanupChat
 
@@ -866,6 +868,7 @@ export const cleanupChat = () => {
   const socket = getSocket();
 
   disconnectSocket();
+  disconnectPresenceSocket();
 
   state.resetChatState();
 };
@@ -973,11 +976,16 @@ const handleWindowIncomingMessage = (event: any) => {
 
 const handlePresenceUpdate = (event: any) => {
   const detail = event.detail;
+  console.log('[presence:update] raw event detail:', JSON.stringify(detail));
   const userId = detail?.userId ?? detail?.user_id ?? detail?.userId;
   const rawEvent = detail?.event ?? detail?.status;
-  if (!userId || !rawEvent) return;
+  if (!userId || !rawEvent) {
+    console.warn('[presence:update] missing userId or event', { userId, rawEvent, detail });
+    return;
+  }
 
   const isOnline = rawEvent === 'USER_ONLINE' || rawEvent === 'online';
+  console.log('[presence:update]', userId, isOnline ? 'ONLINE' : 'OFFLINE', 'current onlineUserIds:', useChatStore.getState().onlineUserIds);
 
   usePresenceStore.getState().updatePresence(userId, {
     user_id: userId,
@@ -987,8 +995,10 @@ const handlePresenceUpdate = (event: any) => {
 
   useChatStore.setState((state) => {
     if (isOnline && !state.onlineUserIds.includes(userId)) {
+      console.log('[presence:update] adding to onlineUserIds:', userId);
       return { onlineUserIds: [...state.onlineUserIds, userId] };
     } else if (!isOnline && state.onlineUserIds.includes(userId)) {
+      console.log('[presence:update] removing from onlineUserIds:', userId);
       return { onlineUserIds: state.onlineUserIds.filter(id => id !== userId) };
     }
     return state;

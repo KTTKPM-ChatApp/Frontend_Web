@@ -39,7 +39,8 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     onConnect: () => {
-      console.log("STOMP connected");
+      console.log("[STOMP] CONNECTED successfully!");
+      console.log("[STOMP] currentUserId:", currentUserId);
       window.dispatchEvent(new CustomEvent("socket:connect"));
 
       if (currentUserId) {
@@ -109,8 +110,10 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
         stompClient?.subscribe(
           "/topic/presence-updates",
           (message: IMessage) => {
+            console.log('[STOMP presence-updates] raw message.body:', message.body);
             try {
               const data = JSON.parse(message.body);
+              console.log('[STOMP presence-updates] parsed:', JSON.stringify(data));
               const event = new CustomEvent("presence:update", {
                 detail: data,
               });

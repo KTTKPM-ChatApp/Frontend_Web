@@ -113,12 +113,23 @@ export default function ChatHeader({
   const currentUserId = useChatStore((s) => s.currentUserId);
   const conversation = listConversation.find((item) => item.id === conversationId);
 
-  const isDirect = conversation?.type !== "group" && conversation?.type !== "GROUP";
+  const isDirect = conversation?.type !== "group" && conversation?.type !== "GROUP" && conversation?.type !== undefined;
   const otherMember = isDirect
     ? conversation?.members?.find((m: any) => m.userId !== currentUserId)
     : null;
   const isOtherOnline = otherMember ? onlineUserIds.includes(otherMember.userId) : false;
   const statusOnline = isDirect ? isOtherOnline : socketConnected;
+
+  console.log('[ChatHeader]', {
+    conversationId,
+    type: conversation?.type,
+    isDirect,
+    currentUserId,
+    otherMemberUserId: otherMember?.userId,
+    onlineUserIds,
+    isOtherOnline,
+    statusOnline,
+  });
 
   const statusText = isDirect
     ? isOtherOnline ? "Đang hoạt động" : "Không hoạt động"
