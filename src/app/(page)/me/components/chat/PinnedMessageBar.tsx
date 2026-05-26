@@ -1,11 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { Box, Typography, IconButton, Paper, List, ListItem, ListItemText, ListItemIcon } from "@mui/material";
+import { Box, Typography, IconButton, Paper, List, ListItem, ListItemText, ListItemIcon, Avatar } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import ImageIcon from "@mui/icons-material/Image";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
+import VideocamIcon from "@mui/icons-material/Videocam";
 
 const PinnedBar = styled(Box)({
   display: "flex",
@@ -78,12 +82,25 @@ const DropdownItem = styled(ListItem)({
   },
 });
 
+const FileIcon = styled(InsertDriveFileOutlinedIcon)({
+  fontSize: 18,
+  color: "#1565C0",
+  flexShrink: 0,
+});
+
 const UnpinButton = styled(IconButton)({
   padding: 4,
   "&:hover": {
     backgroundColor: "rgba(25, 118, 210, 0.1)",
   },
 });
+
+interface Attachment {
+  type?: string;
+  name?: string;
+  url?: string;
+  thumbnailUrl?: string;
+}
 
 interface PinnedMessage {
   messageId: string;
@@ -93,14 +110,14 @@ interface PinnedMessage {
   senderId?: string;
   timestamp?: string;
   createdAt?: number;
-  attachments?: any[];
+  attachments?: Attachment[];
   pinnedBy?: string;
   pinnedAt?: number;
   message?: {
     body?: string;
     senderId?: string;
     createdAt?: number;
-    attachments?: any[];
+    attachments?: Attachment[];
   };
 }
 
@@ -111,18 +128,70 @@ interface PinnedMessageBarProps {
   currentUserId?: string;
 }
 
-const getMessagePreview = (msg: PinnedMessage): string => {
-  const text = msg.content || msg.body || msg.message?.body || "";
-  if (text) return text;
-  
-  const attachments = msg.attachments || msg.message?.attachments;
-  if (attachments && attachments.length > 0) {
-    const type = attachments[0]?.type || attachments[0]?.mimeType || "";
-    if (type.startsWith("image/")) return "[Hình ảnh]";
-    return `[Tệp]`;
+function getAttachments(msg: PinnedMessage): Attachment[] {
+  return msg.attachments || msg.message?.attachments || [];
+}
+
+function getFirstImageAttachment(attachments: Attachment[]): Attachment | null {
+  return attachments.find(a => a.type?.startsWith?.("image") || a.type === "image") || null;
+}
+
+function hasOnlyImages(attachments: Attachment[]): boolean {
+  return attachments.length > 0 && attachments.every(a => a.type?.startsWith?.("image") || a.type === "image");
+}
+
+function getAttachmentTypeIcon(type?: string) {
+  if (type?.startsWith?.("image")) return <ImageIcon sx={{ fontSize: 18, color: "#1565C0", flexShrink: 0 }} />;
+  if (type?.startsWith?.("video")) return <VideocamIcon sx={{ fontSize: 18, color: "#1565C0", flexShrink: 0 }} />;
+  if (type?.startsWith?.("audio")) return <AudiotrackIcon sx={{ fontSize: 18, color: "#1565C0", flexShrink: 0 }} />;
+  return <FileIcon />;
+}
+
+function renderAttachmentPreview(attachments: Attachment[]) {
+  if (attachments.length === 0) return null;
+
+  if (hasOnlyImages(attachments)) {
+    const first = attachments[0];
+    const imgUrl = first?.thumbnailUrl || first?.url;
+    if (imgUrl) {
+      return (
+        <Avatar
+          src={imgUrl}
+          alt=""
+          sx={{ width: 28, height: 28, borderRadius: 1 }}
+          variant="rounded"
+        />
+      );
+    }
+    return getAttachmentTypeIcon("image");
   }
-  return "[Tin nhắn]";
-};
+
+  const first = attachments[0];
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+      {getAttachmentTypeIcon(first?.type)}
+      <Typography
+        sx={{
+          fontSize: 12,
+          color: "#1565C0",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {first?.name || "Tệp"}
+      </Typography>
+    </Box>
+  );
+}
+
+function getSinglePreviewLabel(attachments: Attachment[]): string {
+  if (attachments.length === 0) return "Tin nhắn đã ghim";
+  if (hasOnlyImages(attachments)) {
+    return attachments.length === 1 ? "1 hình ảnh" : `${attachments.length} hình ảnh`;
+  }
+  return attachments.length === 1 ? "1 tệp đính kèm" : `${attachments.length} tệp`;
+}
 
 export default function PinnedMessageBar({
   messages,
@@ -144,7 +213,6 @@ export default function PinnedMessageBar({
 
   const handleUnpin = (e: React.MouseEvent, msg: PinnedMessage) => {
     e.stopPropagation();
-    console.log("[PinnedBar] Unpin:", msg.messageId, "createdAt:", msg.createdAt);
     if (onUnpin) {
       onUnpin(msg.messageId, msg.createdAt);
     }
@@ -160,6 +228,21 @@ export default function PinnedMessageBar({
     setIsOpen(false);
   };
 
+  const renderSinglePreview = (msg: PinnedMessage) => {
+    const text = msg.content || msg.body || msg.message?.body || "";
+    const attachments = getAttachments(msg);
+
+    if (text) {
+      return <PinnedText>{text}</PinnedText>;
+    }
+
+    if (attachments.length > 0) {
+      return renderAttachmentPreview(attachments);
+    }
+
+    return <PinnedText>Tin nhắn đã ghim</PinnedText>;
+  };
+
   const firstMsg = messages[0];
 
   return (
@@ -168,9 +251,9 @@ export default function PinnedMessageBar({
         <PinIcon />
         <PinnedContent>
           {messages.length === 1 ? (
-            <PinnedText>{getMessagePreview(firstMsg)}</PinnedText>
+            renderSinglePreview(firstMsg)
           ) : (
-            <PinnedCount>{messages.length} tin nhắn đã ghim</PinnedCount>
+            <PinnedCount>{getSinglePreviewLabel(getAttachments(firstMsg))}</PinnedCount>
           )}
         </PinnedContent>
         {messages.length > 1 && (
@@ -215,9 +298,13 @@ export default function PinnedMessageBar({
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography sx={{ fontSize: 13, color: "#212121", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {getMessagePreview(msg)}
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+                      {renderAttachmentPreview(getAttachments(msg)) || (
+                        <Typography sx={{ fontSize: 13, color: "#212121", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {msg.content || msg.body || msg.message?.body || "Tin nhắn đã ghim"}
+                        </Typography>
+                      )}
+                    </Box>
                   }
                 />
               </DropdownItem>

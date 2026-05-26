@@ -308,6 +308,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
         const leftUserId = systemMessage.metadata?.user_id as string | undefined;
         if (leftUserId && leftUserId === currentUserId) {
           st.removeConversationLocally(conversationId);
+        } else {
+          st.fetchConversationDetail(conversationId, true);
         }
         break;
       }
@@ -319,7 +321,7 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     fetchListConversation({ page: 1, limit: 20 });
   };
 
-  const handlePinnedMessage = (raw: any) => {
+  const handlePinnedMessage = async (raw: any) => {
     const conversationId = raw?.conversation_id ?? raw?.conversationId;
     const messageId = raw?.message_id ?? raw?.messageId;
     const pinnedAt = raw?.pinned_at ?? raw?.pinnedAt ?? Date.now();
@@ -327,34 +329,51 @@ export const initChat = (accessToken: string, currentUserId: string) => {
     if (!conversationId || !messageId) return;
 
     const state = useChatStore.getState();
-    
-    // Add to pinned set
-    state.addPinnedMessage(conversationId, messageId);
-    
-    // Update message if it exists in local state
+
+    // Update message in local state if loaded
     const messages = state.messagesByConversation[conversationId] || [];
     const messageExists = messages.some((msg) => msg.messageId === messageId);
     
     if (messageExists) {
+      state.addPinnedMessage(conversationId, messageId);
       state.updateMessage(conversationId, messageId, {
         isPinned: true,
         pinnedAt,
       });
+    } else {
+      // Message not in local cache — refresh pinned list from server
+      await fetchPinnedMessages(conversationId);
     }
   };
 
-  const handleUnpinnedMessage = (raw: any) => {
+  const handleUnpinnedMessage = async (raw: any) => {
     const conversationId = raw?.conversation_id ?? raw?.conversationId;
     const messageId = raw?.message_id ?? raw?.messageId;
 
     if (!conversationId || !messageId) return;
 
     const state = useChatStore.getState();
+    const messages = state.messagesByConversation[conversationId] || [];
+    const messageExists = messages.some((msg) => msg.messageId === messageId);
+
     state.removePinnedMessage(conversationId, messageId);
-    state.updateMessage(conversationId, messageId, {
-      isPinned: false,
-      pinnedAt: undefined,
-    });
+    
+    if (messageExists) {
+      state.updateMessage(conversationId, messageId, {
+        isPinned: false,
+        pinnedAt: undefined,
+      });
+    } else {
+      await fetchPinnedMessages(conversationId);
+    }
+  };
+
+  const handleWindowPinnedMessage = (event: any) => {
+    handlePinnedMessage(event.detail);
+  };
+
+  const handleWindowUnpinnedMessage = (event: any) => {
+    handleUnpinnedMessage(event.detail);
   };
 
   const handleWindowSystemMessage = (event: any) => {
@@ -392,8 +411,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.removeEventListener('socket:error', handleSocketError);
   window.removeEventListener('socket:disconnect', handleSocketDisconnect);
   window.removeEventListener('chat:deleted', handleWindowDeletedMessage);
-  window.removeEventListener('chat:pinned', handlePinnedMessage);
-  window.removeEventListener('chat:unpinned', handleUnpinnedMessage);
+  window.removeEventListener('chat:pinned', handleWindowPinnedMessage);
+  window.removeEventListener('chat:unpinned', handleWindowUnpinnedMessage);
   window.removeEventListener('chat:system-message', handleWindowSystemMessage);
   window.removeEventListener('conversation:created', handleConversationCreated);
   window.removeEventListener('conversation:removed', handleConversationRemoved);
@@ -405,8 +424,8 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.addEventListener('socket:error', handleSocketError);
   window.addEventListener('socket:disconnect', handleSocketDisconnect);
   window.addEventListener('chat:deleted', handleWindowDeletedMessage);
-  window.addEventListener('chat:pinned', handlePinnedMessage);
-  window.addEventListener('chat:unpinned', handleUnpinnedMessage);
+  window.addEventListener('chat:pinned', handleWindowPinnedMessage);
+  window.addEventListener('chat:unpinned', handleWindowUnpinnedMessage);
   window.addEventListener('chat:system-message', handleWindowSystemMessage);
   window.addEventListener('conversation:created', handleConversationCreated);
   window.addEventListener('conversation:removed', handleConversationRemoved);
@@ -752,6 +771,7 @@ export const pinMessage = async (conversationId: string, messageId: string, crea
         content: data?.message?.content || data?.content || "",
         senderId: data?.message?.senderId || data?.senderId || "",
         createdAt: data?.message?.createdAt || data?.createdAt || createdAt,
+        attachments: data?.message?.attachments || data?.attachments || [],
         isPinned: true,
       };
       state.setPinnedMessages(conversationId, [...pinned, pinnedMsg]);

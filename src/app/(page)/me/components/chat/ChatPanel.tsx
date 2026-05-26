@@ -282,6 +282,7 @@ export default function ChatPanel({
               senderId: nestedMsg?.senderId || m.senderId,
               senderName: m.senderName || "",
               createdAt: nestedMsg?.createdAt || m.createdAt,
+              attachments: nestedMsg?.attachments || m.attachments || [],
               pinnedBy: m.pinnedBy,
               pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : undefined,
               timestamp: (nestedMsg?.createdAt || m.createdAt)

@@ -278,6 +278,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const detail = "data" in payload && payload.data ? payload.data : (payload as ConversationDto);
     if (detail?.id) {
       get().setConversationDetail(conversationId, detail);
+      // Also update listConversation entry so the info page gets fresh members/count
+      set((state) => ({
+        listConversation: state.listConversation.map((c) =>
+          c.id === conversationId ? { ...c, ...detail, members: detail.members ?? c.members } : c
+        ),
+      }));
       return detail;
     }
     return null;
