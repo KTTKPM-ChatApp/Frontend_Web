@@ -24,6 +24,7 @@ import ForwardMessageDialog from "./ForwardMessageDialog";
 import MediaPreviewModal from "@/src/common/components/MediaPreviewModal";
 import { MediaPreviewItem } from "@/src/common/components/MediaPreviewModal";
 import TypingIndicator from "./TypingIndicator";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface ChatPanelProps {
   accessToken: string;
@@ -73,6 +74,7 @@ export default function ChatPanel({
   onToggleSearch,
   onToggleInfo,
 }: ChatPanelProps) {
+  const t = useTrans();
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const isAutoScrollingRef = useRef(false);
@@ -335,7 +337,7 @@ export default function ChatPanel({
           onImageClick={(url, mediaList, index) => {
             const items: MediaPreviewItem[] = (mediaList || []).map((att) => ({
               key: att.url || att.thumbnailUrl || att.key || "",
-              name: att.name || "media",
+              name: att.name || t("CHAT.FILE"),
               type: att.type || "image",
             }));
             if (items.length > 0) {
@@ -343,7 +345,7 @@ export default function ChatPanel({
             } else if (url) {
               setMediaPreview({
                 open: true,
-                mediaList: [{ key: url, name: "media", type: "image" }],
+                mediaList: [{ key: url, name: t("CHAT.FILE"), type: "image" }],
                 initialIndex: 0,
               });
             }
@@ -355,7 +357,7 @@ export default function ChatPanel({
         <TypingIndicator
           names={typingUsersByConversation[conversationId]
             .slice(0, 2)
-            .map((u) => u.displayName || "Ai đó")}
+            .map((u) => u.displayName || t("CHAT.SOMEONE"))}
           count={typingUsersByConversation[conversationId].length}
         />
       )}

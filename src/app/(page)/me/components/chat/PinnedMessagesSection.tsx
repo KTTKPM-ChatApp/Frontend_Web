@@ -159,14 +159,14 @@ export default function PinnedMessagesSection({
                       variant="rounded"
                     />
                     <Typography variant="caption" noWrap sx={{ flex: 1 }}>
-                      {attachments.length === 1 ? "Hình ảnh" : `${attachments.length} hình ảnh`}
+                      {attachments.length === 1 ? t("CHAT.PINNED_IMAGE") : t("CHAT.PINNED_IMAGES", { count: attachments.length })}
                     </Typography>
                   </Box>
                 ) : hasAttachments ? (
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1, minWidth: 0 }}>
                     {getTypeIcon(attachments[0]?.type)}
                     <Typography variant="caption" noWrap sx={{ flex: 1 }}>
-                      {attachments[0]?.name || (messageText || "Tệp đính kèm")}
+                      {attachments[0]?.name || (messageText || t("CHAT.FILE_ATTACHMENT"))}
                     </Typography>
                   </Box>
                 ) : (

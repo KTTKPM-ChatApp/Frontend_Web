@@ -14,6 +14,7 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import ImageIcon from "@mui/icons-material/Image";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import VideocamIcon from "@mui/icons-material/Videocam";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const PinnedContainer = styled(Box)({
   height: 48,
@@ -96,6 +97,7 @@ const PinnedBar: React.FC<PinnedBarProps> = ({
   onExpand = () => {},
   onClose = () => {},
 }) => {
+  const t = useTrans();
   if (!pinnedMessage) return null;
 
   const text = pinnedMessage.content || pinnedMessage.body || "";
@@ -137,14 +139,14 @@ const PinnedBar: React.FC<PinnedBarProps> = ({
                 variant="rounded"
               />
               <Typography sx={{ fontSize: 13, color: "#92400E", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {attachments.length === 1 ? "Hình ảnh" : `${attachments.length} hình ảnh`}
+                {attachments.length === 1 ? t("CHAT.PINNED_IMAGE") : t("CHAT.PINNED_IMAGES", { count: attachments.length })}
               </Typography>
             </>
           ) : (
             <>
               {getTypeIcon(attachments[0]?.type)}
               <Typography sx={{ fontSize: 13, color: "#92400E", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {attachments[0]?.name || "Tệp đính kèm"}
+                {attachments[0]?.name || t("CHAT.FILE_ATTACHMENT")}
                 {attachments.length > 1 ? ` (+${attachments.length - 1})` : ""}
               </Typography>
             </>
@@ -162,7 +164,7 @@ const PinnedBar: React.FC<PinnedBarProps> = ({
             whiteSpace: "nowrap",
           }}
         >
-          Tin nhắn đã ghim
+          {t("CHAT.PINNED_MESSAGE")}
         </Typography>
       )}
 

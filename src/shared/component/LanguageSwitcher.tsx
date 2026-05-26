@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { useLanguageContext } from "@/src/common/context/LanguageContext";
 import i18n from "@/src/common/i18n/i18n";
 
 const LanguageItem = styled(Button)(({ theme }) => ({
@@ -38,6 +39,7 @@ interface LanguageSwitcherProps {
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ open, onClose }) => {
   const { t } = useTranslation();
+  const { changeLanguage: contextChangeLanguage } = useLanguageContext();
   const [selectedLanguage, setSelectedLanguage] = React.useState(i18n.language);
 
   const languages = [
@@ -55,11 +57,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ open, onClose }) =>
 
   const handleConfirm = () => {
     if (selectedLanguage !== i18n.language) {
-      i18n.changeLanguage(selectedLanguage);
-      // Save to localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("language", selectedLanguage);
-      }
+      contextChangeLanguage(selectedLanguage);
     }
     onClose();
   };

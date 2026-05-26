@@ -545,10 +545,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   <ReplyPreviewBox mine={isOwn} onClick={handleScrollToMessage}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <ReplySenderName>
-                        {replyTo.senderName || "Người dùng"}
+                        {replyTo.senderName || t("CHAT.USER")}
                       </ReplySenderName>
                       <ReplyContent>
-                        {replyTo.isDeleted ? "Tin nhắn đã được thu hồi" : replyText}
+                        {replyTo.isDeleted ? t("CHAT.MESSAGE_DELETED") : replyText}
                       </ReplyContent>
                     </Box>
                     {!replyTo.isDeleted && imageAttachment && (
@@ -767,7 +767,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
           {isEdited && (
             <MetaText>
-              • {t("CHAT.EDITED")}
+              • {t("CHAT.MESSAGE_EDITED")}
             </MetaText>
           )}
 
