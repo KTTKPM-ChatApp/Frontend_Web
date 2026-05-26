@@ -158,6 +158,11 @@
   "CHAT.SEND_FILE": "Gửi tệp",
   "CHAT.SEND_VOICE": "Gửi tin nhắn thoại",
   "CHAT.SOMEONE": "Ai đó",
+  "CHAT.IMAGE": "Ảnh",
+  "CHAT.VIDEO": "Video",
+  "CHAT.IMAGES_COUNT": "{{count}} ảnh",
+  "CHAT.FILES_COUNT": "{{count}} tệp",
+  "CHAT.MESSAGE": "Tin nhắn",
 
   "// ============================== GROUP ==============================": "",
   "GROUP.CREATE_TITLE": "Tạo nhóm",

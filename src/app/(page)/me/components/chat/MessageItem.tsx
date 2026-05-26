@@ -19,6 +19,7 @@ import {
 import { styled, alpha, keyframes } from "@mui/material/styles";
 import { getReplyPreview } from "@/src/common/helpers/displayPreviewReply";
 
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import ReplyOutlinedIcon from "@mui/icons-material/ReplyOutlined";
 import ForwardOutlinedIcon from "@mui/icons-material/ForwardOutlined";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
@@ -540,7 +541,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
           ) : (
             <>
               {replyTo && (() => {
-                const { text: replyText, imageAttachment, videoAttachment } = getReplyPreview(replyTo as any);
+                const {
+                  text: replyText,
+                  imageAttachment,
+                  videoAttachment,
+                  imageCount,
+                  fileAttachments,
+                  fileCount,
+                } = getReplyPreview(replyTo as any);
                 return (
                   <ReplyPreviewBox mine={isOwn} onClick={handleScrollToMessage}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -548,39 +556,79 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         {replyTo.senderName || t("CHAT.USER")}
                       </ReplySenderName>
                       <ReplyContent>
-                        {replyTo.isDeleted ? t("CHAT.MESSAGE_DELETED") : replyText}
+                        {replyTo.isDeleted
+                          ? t("CHAT.MESSAGE_DELETED")
+                          : replyText || (imageAttachment
+                              ? imageCount > 1
+                                ? t("CHAT.IMAGES_COUNT", { count: imageCount })
+                                : t("CHAT.IMAGE")
+                              : videoAttachment
+                              ? t("CHAT.VIDEO")
+                              : fileCount > 1
+                              ? t("CHAT.FILES_COUNT", { count: fileCount })
+                              : fileCount === 1
+                              ? t("CHAT.FILE_ATTACHMENT")
+                              : t("CHAT.MESSAGE")
+                            )
+                        }
                       </ReplyContent>
                     </Box>
-                    {!replyTo.isDeleted && imageAttachment && (
-                      <Box
-                        component="img"
-                        src={imageAttachment.url || imageAttachment.key}
-                        alt="replied-media"
-                        sx={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 1,
-                          objectFit: "cover",
-                          marginLeft: 1.5,
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
-                    {!replyTo.isDeleted && videoAttachment && (
-                      <Box
-                        component="video"
-                        src={videoAttachment.url || videoAttachment.key}
-                        sx={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 1,
-                          objectFit: "cover",
-                          marginLeft: 1.5,
-                          flexShrink: 0,
-                          backgroundColor: "#000",
-                        }}
-                      />
-                    )}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0, ml: 1.5 }}>
+                      {!replyTo.isDeleted && imageAttachment && (
+                        <Box sx={{ position: "relative" }}>
+                          <Box
+                            component="img"
+                            src={imageAttachment.thumbnailUrl || imageAttachment.url || imageAttachment.key}
+                            alt="replied-media"
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 1,
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                          />
+                          {imageCount > 1 && (
+                            <Box sx={{
+                              position: "absolute",
+                              bottom: 0,
+                              right: 0,
+                              bgcolor: "rgba(0,0,0,0.6)",
+                              color: "#fff",
+                              fontSize: 9,
+                              px: 0.4,
+                              borderRadius: "0 1px 0 1px",
+                              lineHeight: "14px",
+                            }}>
+                              +{imageCount - 1}
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+                      {!replyTo.isDeleted && !imageAttachment && videoAttachment && (
+                        <Box
+                          component="img"
+                          src={videoAttachment.thumbnailUrl || videoAttachment.url || videoAttachment.key}
+                          alt="replied-video"
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 1,
+                            objectFit: "cover",
+                            display: "block",
+                            backgroundColor: "#000",
+                          }}
+                        />
+                      )}
+                      {!replyTo.isDeleted && !imageAttachment && !videoAttachment && fileAttachments.length > 0 && (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <InsertDriveFileOutlinedIcon sx={{ fontSize: 18, color: "#64748B" }} />
+                          <ReplyContent>
+                            {fileCount === 1 ? fileAttachments[0].name : `${fileCount} files`}
+                          </ReplyContent>
+                        </Box>
+                      )}
+                    </Box>
                   </ReplyPreviewBox>
                 );
               })()}
@@ -644,7 +692,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
                           const isVideo = att.type?.toLowerCase() === 'video' || (att.contentType || att.content_type || '').toLowerCase().startsWith('video/');
                           if (isVideo) {
                             return (
-                              <>
+                              <Box
+                                sx={{
+                                  position: "relative",
+                                  width: "100%",
+                                  height: 150,
+                                }}
+                              >
                                 <Box
                                   component="video"
                                   src={
@@ -686,7 +740,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                                     }}
                                   />
                                 </Box>
-                              </>
+                              </Box>
                             );
                           }
                           return (

@@ -132,6 +132,7 @@ export const normalizeMessage = (raw: any): UiMessage & {
       raw?.replyToMessageId ??
       raw?.reply_to_message_id ??
       raw?.reply_to_id ??
+      raw?.replyToId ??
       rawReply?.messageId ??
       rawReply?.id ??
       null,

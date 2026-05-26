@@ -113,6 +113,11 @@
   "CHAT.SEND_FILE": "Send file",
   "CHAT.SEND_VOICE": "Send voice message",
   "CHAT.SOMEONE": "Someone",
+  "CHAT.IMAGE": "Image",
+  "CHAT.VIDEO": "Video",
+  "CHAT.IMAGES_COUNT": "{{count}} images",
+  "CHAT.FILES_COUNT": "{{count}} files",
+  "CHAT.MESSAGE": "Message",
 
   "// ============================== GROUP ==============================": "",
   "GROUP.CREATE_TITLE": "Create group",

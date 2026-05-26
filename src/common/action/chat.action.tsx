@@ -627,10 +627,17 @@ export const sendMessageHttp = async (
       const alreadyDelivered = currentMessages.some(m => m.messageId === serverMessage.messageId);
 
       if (alreadyDelivered) {
-        // STOMP already added the server message; just remove the optimistic copy
+        // STOMP already added the server message (without replyTo).
+        // Preserve replyTo from the optimistic message before removing it.
+        const optimisticMsg = currentMessages.find(m => m.messageId === clientMessageId);
         state.setMessages(
           conversationId,
-          currentMessages.filter(m => m.messageId !== clientMessageId)
+          currentMessages.map(m => {
+            if (m.messageId === serverMessage.messageId && optimisticMsg?.replyTo && !m.replyTo) {
+              return { ...m, replyTo: optimisticMsg.replyTo };
+            }
+            return m;
+          }).filter(m => m.messageId !== clientMessageId)
         );
       } else {
         state.updateMessage(conversationId, clientMessageId, {
@@ -917,6 +924,7 @@ const handleWindowIncomingMessage = (event: any) => {
           replyTo: {
             messageId: repliedMessage.messageId,
             senderId: repliedMessage.senderId,
+            senderName: repliedMessage.senderName || "Người dùng",
             body: repliedMessage.body ?? "",
             attachments: repliedMessage.attachments ?? [],
             isDeleted: Boolean(repliedMessage.isDeleted),
