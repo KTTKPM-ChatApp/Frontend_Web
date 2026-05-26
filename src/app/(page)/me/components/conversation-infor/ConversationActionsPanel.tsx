@@ -167,19 +167,26 @@ export default function ConversationActionsPanel({
     if (!conversationId) return;
     setSaving(true);
     try {
-      if (name.trim() && name.trim() !== conversation?.name) {
+      const nameChanged = name.trim() && name.trim() !== conversation?.name;
+      const mutedChanged = muted !== Boolean(conversation?.isMuted);
+
+      if (nameChanged) {
         await chatService.updateConversation(conversationId, {
           name: name.trim(),
         });
       }
 
-      await chatService.updateConversationSettings(conversationId, {
-        nickname: nickname.trim() || undefined,
-        isMuted: muted,
-      });
+      if (mutedChanged || nickname.trim()) {
+        await chatService.updateConversationSettings(conversationId, {
+          nickname: nickname.trim() || undefined,
+          isMuted: muted,
+        });
+      }
 
-      await refresh();
-      toast.success("Đã cập nhật hội thoại");
+      if (nameChanged || mutedChanged || nickname.trim()) {
+        await refresh();
+        toast.success("Đã cập nhật hội thoại");
+      }
     } catch (error) {
       toast.error("Không thể cập nhật hội thoại");
     } finally {
