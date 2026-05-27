@@ -17,7 +17,6 @@ export function connectPresenceSocket(accessToken: string) {
   socket = io(apiBaseUrl, {
     path: "/socket.io",
     auth: { token: `Bearer ${accessToken}` },
-    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 5000,
   });
