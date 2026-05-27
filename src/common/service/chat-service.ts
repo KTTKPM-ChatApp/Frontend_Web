@@ -364,12 +364,13 @@ export const chatService = {
     );
   },
 
-  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: any[] = [], replyToId?: string | null) {
+  sendMessage(conversationId: string, content: string, contentType = 'TEXT', attachments: any[] = [], replyToId?: string | null, clientMessageId?: string) {
     return http.post(API.API_CONVERSATIONS_SEND_MESSAGE(conversationId), {
       content,
       contentType,
       attachments,
-      reply_to_id: replyToId || undefined
+      reply_to_id: replyToId || undefined,
+      client_message_id: clientMessageId || undefined,
     });
   },
 

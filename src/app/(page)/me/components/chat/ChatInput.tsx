@@ -16,6 +16,7 @@ import PendingAttachmentsList from "./PendingAttachmentsList";
 import { ChatAttachmentPayload } from "@/src/common/interface/media-interface";
 import { uploadMedia } from "@/src/common/service/media-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
@@ -140,6 +141,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
   const hasAttachments = pendingAttachments.length > 0;
   const lastTypingTime = useRef<number>(0);
   const currentUserId = useChatStore((state) => state.currentUserId);
+  const t = useTrans();
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     if (!files.length || !currentUserId) return;
@@ -158,7 +160,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
             size: result.size,
             content_type: result.contentType,
             thumbnail_key: result.thumbnailKey || undefined,
-            thumbnailUrl: result.type === "video" ? result.url : null,
+            thumbnailUrl: result.thumbnailKey || result.url,
             visibility: result.visibility,
           } as ChatAttachmentPayload;
         })
@@ -278,7 +280,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
 
       <DropZone isDragging={isDragging}>
         <InputWrapper>
-          <Tooltip title="Gửi ảnh/Video" placement="top">
+          <Tooltip title={t("CHAT.SEND_IMAGE")} placement="top">
             <IconBtn
               onClick={() => imageInputRef.current?.click()}
               disabled={disabled || uploading}
@@ -288,7 +290,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
             </IconBtn>
           </Tooltip>
 
-          <Tooltip title="Gửi tệp" placement="top">
+          <Tooltip title={t("CHAT.SEND_FILE")} placement="top">
             <IconBtn
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || uploading}
@@ -320,7 +322,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
 
           <InputField
             ref={inputRef}
-            placeholder="Nhập tin nhắn..."
+            placeholder={t("CHAT.PLACEHOLDER")}
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
@@ -352,7 +354,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
               <SendRoundedIcon fontSize="small" />
             </SendBtn>
           ) : (
-            <Tooltip title="Gửi tin nhắn thoại" placement="top">
+            <Tooltip title={t("CHAT.SEND_VOICE")} placement="top">
               <IconBtn disabled={disabled}>
                 <MicRoundedIcon fontSize="small" />
               </IconBtn>

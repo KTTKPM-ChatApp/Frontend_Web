@@ -101,7 +101,7 @@ export async function uploadMedia({
     key: result.public_id,
     url: finalUrl,
     visibility: "public",
-    thumbnailKey: resourceType === "video" ? result.secure_url : null,
+    thumbnailKey: resourceType === "video" ? (result.secure_url || result.url) : null,
     contentType: file.type,
     fileName: file.name,
     size: result.bytes || file.size,

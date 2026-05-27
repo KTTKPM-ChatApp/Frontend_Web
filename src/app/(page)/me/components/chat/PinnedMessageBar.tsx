@@ -10,6 +10,7 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import ImageIcon from "@mui/icons-material/Image";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import VideocamIcon from "@mui/icons-material/Videocam";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const PinnedBar = styled(Box)({
   display: "flex",
@@ -147,7 +148,7 @@ function getAttachmentTypeIcon(type?: string) {
   return <FileIcon />;
 }
 
-function renderAttachmentPreview(attachments: Attachment[]) {
+function renderAttachmentPreview(attachments: Attachment[], t: (key: string, opts?: any) => string) {
   if (attachments.length === 0) return null;
 
   if (hasOnlyImages(attachments)) {
@@ -179,18 +180,18 @@ function renderAttachmentPreview(attachments: Attachment[]) {
           whiteSpace: "nowrap",
         }}
       >
-        {first?.name || "Tệp"}
+        {first?.name || t("CHAT.FILE")}
       </Typography>
     </Box>
   );
 }
 
-function getSinglePreviewLabel(attachments: Attachment[]): string {
-  if (attachments.length === 0) return "Tin nhắn đã ghim";
+function getSinglePreviewLabel(attachments: Attachment[], t: (key: string, opts?: any) => string): string {
+  if (attachments.length === 0) return t("CHAT.PINNED_MESSAGE");
   if (hasOnlyImages(attachments)) {
-    return attachments.length === 1 ? "1 hình ảnh" : `${attachments.length} hình ảnh`;
+    return attachments.length === 1 ? t("CHAT.PINNED_IMAGE") : t("CHAT.PINNED_IMAGES", { count: attachments.length });
   }
-  return attachments.length === 1 ? "1 tệp đính kèm" : `${attachments.length} tệp`;
+  return attachments.length === 1 ? t("CHAT.PINNED_FILE") : t("CHAT.PINNED_FILES", { count: attachments.length });
 }
 
 export default function PinnedMessageBar({
@@ -200,6 +201,7 @@ export default function PinnedMessageBar({
   currentUserId,
 }: PinnedMessageBarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const t = useTrans();
 
   if (messages.length === 0) return null;
 
@@ -237,10 +239,10 @@ export default function PinnedMessageBar({
     }
 
     if (attachments.length > 0) {
-      return renderAttachmentPreview(attachments);
+      return renderAttachmentPreview(attachments, t);
     }
 
-    return <PinnedText>Tin nhắn đã ghim</PinnedText>;
+    return <PinnedText>{t("CHAT.PINNED_MESSAGE")}</PinnedText>;
   };
 
   const firstMsg = messages[0];
@@ -253,7 +255,7 @@ export default function PinnedMessageBar({
           {messages.length === 1 ? (
             renderSinglePreview(firstMsg)
           ) : (
-            <PinnedCount>{getSinglePreviewLabel(getAttachments(firstMsg))}</PinnedCount>
+            <PinnedCount>{getSinglePreviewLabel(getAttachments(firstMsg), t)}</PinnedCount>
           )}
         </PinnedContent>
         {messages.length > 1 && (
@@ -274,7 +276,7 @@ export default function PinnedMessageBar({
         <DropdownContainer>
           <Box sx={{ padding: "6px 12px", borderBottom: "1px solid #E3F2FD", background: "#F5F9FF" }}>
             <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1565C0" }}>
-              Tin nhắn đã ghim ({messages.length})
+              {t("CHAT.PINNED_HEADER", { count: messages.length })}
             </Typography>
           </Box>
           <List dense disablePadding>
@@ -299,9 +301,9 @@ export default function PinnedMessageBar({
                 <ListItemText
                   primary={
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-                      {renderAttachmentPreview(getAttachments(msg)) || (
+                      {renderAttachmentPreview(getAttachments(msg), t) || (
                         <Typography sx={{ fontSize: 13, color: "#212121", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {msg.content || msg.body || msg.message?.body || "Tin nhắn đã ghim"}
+                          {msg.content || msg.body || msg.message?.body || t("CHAT.PINNED_MESSAGE")}
                         </Typography>
                       )}
                     </Box>

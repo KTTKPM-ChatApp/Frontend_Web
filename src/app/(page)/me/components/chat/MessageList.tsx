@@ -8,6 +8,8 @@ import { useChatStore } from "@/src/common/store/useChatStore";
 import { pinMessage, unpinMessage } from "@/src/common/action/chat.action";
 import MessageItem from "./MessageItem";
 import SystemMessageBanner from "./message-system/SystemMessageBanner";
+import { useTrans } from "@/src/common/utilities/hook/trans";
+import i18n from "@/src/common/i18n/i18n";
 
 interface MessageListProps {
   listRef: React.RefObject<HTMLDivElement | null>;
@@ -91,12 +93,12 @@ const formatDateLabel = (timestamp: number): string => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 86400000);
   const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
-  if (msgDate.getTime() === today.getTime()) return "Hôm nay";
-  if (msgDate.getTime() === yesterday.getTime()) return "Hôm qua";
+  if (msgDate.getTime() === today.getTime()) return i18n.t("CHAT.TODAY");
+  if (msgDate.getTime() === yesterday.getTime()) return i18n.t("CHAT.YESTERDAY");
 
-  const dayNames = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-  const dayName = dayNames[date.getDay()];
+  const dayName = date.toLocaleDateString(locale, { weekday: "long" });
   const dd = String(date.getDate()).padStart(2, "0");
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const yyyy = date.getFullYear();
@@ -121,6 +123,7 @@ export default function MessageList({
   onEditMessage,
   onImageClick,
 }: MessageListProps) {
+  const t = useTrans();
   const paginationByConversation = useChatStore((s) => s.paginationByConversation);
   const pinnedMessagesMap = useChatStore((s) => s.pinnedMessagesByConversation);
   const listConversation = useChatStore((s) => s.listConversation);
@@ -140,9 +143,9 @@ export default function MessageList({
   const members = convDetail?.members || convFromList?.members || [];
 
   const resolveSenderName = (msg: UiMessage): string => {
-    if (msg.senderName && msg.senderName !== "Người dùng") return msg.senderName;
+    if (msg.senderName && msg.senderName !== t("CHAT.USER")) return msg.senderName;
     const member = members?.find((m) => m.userId === msg.senderId);
-    return member?.displayName || member?.username || msg.senderName || "User";
+    return member?.displayName || member?.username || msg.senderName || t("CHAT.USER");
   };
 
   const shouldShowDateSeparator = (msg: UiMessage, index: number): boolean => {
@@ -170,12 +173,12 @@ export default function MessageList({
       {paginationByConversation[conversationId]?.loading ? (
         <EmptyState>
           <CircularProgress size={28} />
-          <EmptyDesc>Đang tải tin nhắn...</EmptyDesc>
+          <EmptyDesc>{t("CHAT.LOADING_MESSAGES")}</EmptyDesc>
         </EmptyState>
       ) : messages.length === 0 ? (
         <EmptyState>
-          <EmptyTitle>Chưa có tin nhắn</EmptyTitle>
-          <EmptyDesc>Hãy bắt đầu cuộc trò chuyện bằng một tin nhắn đầu tiên.</EmptyDesc>
+          <EmptyTitle>{t("CHAT.NO_MESSAGES")}</EmptyTitle>
+          <EmptyDesc>{t("CHAT.START_CONVERSATION")}</EmptyDesc>
         </EmptyState>
       ) : (
         <MessagesContent>
@@ -207,7 +210,7 @@ export default function MessageList({
                 )}
                 <MessageItem
                   id={msg.messageId}
-                  content={msg.isDeleted ? "Tin nhắn đã được thu hồi" : msg.body}
+                  content={msg.isDeleted ? t("CHAT.MESSAGE_DELETED") : msg.body}
                   sender={
                     mine ? undefined : {
                       id: msg.senderId,

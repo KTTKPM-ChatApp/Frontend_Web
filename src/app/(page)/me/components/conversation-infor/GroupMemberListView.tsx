@@ -333,12 +333,13 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
 }) => {
   const [open, setOpen] = useState(true);
   const [confirmAction, setConfirmAction] = useState<ConfirmActionType>(null);
+  const [showAllMembers, setShowAllMembers] = useState(false);
 
   const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchValue.toLowerCase())
   );
 
-  const showAll = searchValue || filteredMembers.length <= 5;
+  const showAll = searchValue || showAllMembers || filteredMembers.length <= 5;
   const displayedMembers = showAll ? filteredMembers : filteredMembers.slice(0, 5);
 
   const handleConfirmAction = () => {
@@ -507,7 +508,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
             </MemberList>
 
             {!showAll && (
-              <ViewAllBtn fullWidth>
+              <ViewAllBtn fullWidth onClick={() => setShowAllMembers(true)}>
                 Xem tất cả ({filteredMembers.length})
               </ViewAllBtn>
             )}
