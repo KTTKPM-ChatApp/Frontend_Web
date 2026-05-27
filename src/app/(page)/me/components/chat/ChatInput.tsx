@@ -160,7 +160,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
             size: result.size,
             content_type: result.contentType,
             thumbnail_key: result.thumbnailKey || undefined,
-            thumbnailUrl: result.type === "video" ? result.url : null,
+            thumbnailUrl: result.thumbnailKey || result.url,
             visibility: result.visibility,
           } as ChatAttachmentPayload;
         })

@@ -701,10 +701,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                               >
                                 <Box
                                   component="video"
-                                  src={
-                                    att.thumbnailUrl ||
-                                    att.url
-                                  }
+                                  src={att.url || att.thumbnailUrl}
                                   sx={{
                                     width: "100%",
                                     height: 150,

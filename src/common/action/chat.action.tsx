@@ -618,7 +618,7 @@ export const sendMessageHttp = async (
   
   // Send via HTTP API
   try {
-    const response = await chatService.sendMessage(conversationId, displayBody, 'TEXT', attachments, replyMessage?.messageId ?? null);
+    const response = await chatService.sendMessage(conversationId, displayBody, 'TEXT', attachments, replyMessage?.messageId ?? null, clientMessageId);
     
     if (response.ok && response.payload) {
       // Success - Update optimistic message with server data
