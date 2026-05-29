@@ -15,6 +15,8 @@ import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 
 import { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -254,6 +256,13 @@ const AppSidebarContent: React.FC<AppSidebarProps> = ({
                 selected={selectedIcon === "contact"}
                 onClick={() => onSelect("contact")}
               />
+
+              <BoxIcon
+                outlined={SmartToyOutlinedIcon}
+                filled={SmartToyIcon}
+                selected={selectedIcon === "chatbot"}
+                onClick={() => onSelect("chatbot")}
+              />
             </Stack>
 
             <Stack mb={2} spacing={1.25} alignItems="center">
@@ -262,13 +271,6 @@ const AppSidebarContent: React.FC<AppSidebarProps> = ({
                 filled={CloudIcon}
                 selected={selectedIcon === "cloud"}
                 onClick={() => onSelect("cloud")}
-              />
-
-              <BoxIcon
-                outlined={FolderCopyOutlinedIcon}
-                filled={FolderCopyIcon}
-                selected={selectedIcon === "folder"}
-                onClick={() => onSelect("folder")}
               />
             </Stack>
 

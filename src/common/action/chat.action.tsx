@@ -11,6 +11,21 @@ import { useChatStore } from "../store/useChatStore";
 import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
 
+// Registry for window event listeners so cleanupChat can remove them
+const _windowListeners: Array<{ event: string; handler: any }> = [];
+
+const _registerWindowListener = (event: string, handler: any) => {
+  _windowListeners.push({ event, handler });
+  window.addEventListener(event, handler);
+};
+
+const _removeAllWindowListeners = () => {
+  for (const { event, handler } of _windowListeners) {
+    window.removeEventListener(event, handler);
+  }
+  _windowListeners.length = 0;
+};
+
 export const rebuildConversationDerivedData = (conversationId: string) => {
   const state = useChatStore.getState();
   const messages = state.messagesByConversation[conversationId] || [];
@@ -897,6 +912,7 @@ export const cleanupChat = () => {
   disconnectSocket();
   disconnectPresenceSocket();
 
+  _removeAllWindowListeners();
   state.resetChatState();
 };
 

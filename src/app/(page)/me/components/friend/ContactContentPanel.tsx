@@ -302,6 +302,16 @@ const ContactContentPanel: React.FC<
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchData();
+    };
+    window.addEventListener("app:refresh_friends", handleRefresh);
+    return () => {
+      window.removeEventListener("app:refresh_friends", handleRefresh);
+    };
+  }, [fetchData]);
+
   const handleRemoveFriend = async (
     friendId: string
   ) => {

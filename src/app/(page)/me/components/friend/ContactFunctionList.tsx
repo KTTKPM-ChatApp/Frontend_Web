@@ -71,9 +71,8 @@ const ContactFunctionList: React.FC<ContactFunctionListProps> = ({ value, onChan
   return (
     <Box
       sx={{
-        width: 220,
+        width: "100%",
         background: "#FFFFFF",
-        borderRight: "1px solid #E5E7EB",
         height: "100%",
         overflowY: "auto",
       }}

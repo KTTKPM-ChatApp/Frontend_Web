@@ -148,4 +148,19 @@ export const API = {
       `/api/messages/${conversationId}/pins`,
     API_MESSAGE_LOOKUP: (messageId: string) =>
       `/api/v1/messages/lookup/${messageId}`,
+
+    /* ================= CLOUD ================= */
+    API_CLOUD_FOLDERS: "/api/cloud/folders",
+    API_CLOUD_FOLDER: (folderId: string) =>
+        `/api/cloud/folders/${folderId}`,
+    API_CLOUD_FILES: "/api/cloud/files",
+    API_CLOUD_FILE: (fileId: string) =>
+        `/api/cloud/files/${fileId}`,
+
+    /* ================= AI CHATBOT ================= */
+    API_CHATBOT_CONVERSATIONS: "/api/chatbot/conversations",
+    API_CHATBOT_CONVERSATION: (conversationId: string) =>
+        `/api/chatbot/conversations/${conversationId}`,
+    API_CHATBOT_MESSAGES: (conversationId: string) =>
+        `/api/chatbot/conversations/${conversationId}/messages`,
 } as const;
