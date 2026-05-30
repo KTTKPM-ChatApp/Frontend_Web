@@ -107,17 +107,6 @@ export const API = {
     API_CONVERSATIONS_POLLS_REMOVE_OPTION: (conversationId: string, pollId: string, optionId: string) =>
         `/api/conversations/${conversationId}/polls/${pollId}/options/${optionId}`,
     
-    // Call Management
-    API_CONVERSATIONS_ICE_SERVERS: "/api/conversations/ice-servers",
-    API_CONVERSATIONS_CALLS_HISTORY: (conversationId: string) =>
-        `/api/conversations/${conversationId}/calls`,
-    API_CONVERSATIONS_CALLS_STATE: (conversationId: string) =>
-        `/api/conversations/${conversationId}/call-state`,
-    API_CONVERSATIONS_CALLS_END: (conversationId: string, callId: string) =>
-        `/api/conversations/${conversationId}/calls/${callId}/end`,
-    API_CONVERSATION_CALL_END: (conversationId: string, callId: string) =>
-        `/api/conversations/${conversationId}/calls/${callId}/end`,
-
     /* ================= MESSAGES ================= */
 
 
@@ -136,6 +125,12 @@ export const API = {
 
     API_MESSAGE_REACTIONS: (messageId: string) =>
       `/api/messages/${messageId}/reactions`,
+    API_CONVERSATION_REACTIONS: (conversationId: string) =>
+      `/api/messages/conversation/${conversationId}/reactions`,
+    API_MESSAGE_REACTION_ADD: (conversationId: string, createdAt: number | string, messageId: string) =>
+      `/api/messages/${conversationId}/${createdAt}/${messageId}/reactions`,
+    API_MESSAGE_REACTION_DELETE: (conversationId: string, createdAt: number | string, messageId: string) =>
+      `/api/messages/${conversationId}/${createdAt}/${messageId}/reactions`,
 
     API_MESSAGES_LIST: (conversationId: string) =>
       `/api/messages/${conversationId}`,

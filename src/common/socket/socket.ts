@@ -266,7 +266,20 @@ export const subscribeToConversation = (conversationId: string) => {
     },
   );
 
-  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub]);
+  const reactionSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/reaction`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const event = new CustomEvent("chat:reaction", { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse reaction event:", err);
+      }
+    },
+  );
+
+  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub, reactionSub]);
 };
 
 export const unsubscribeFromConversation = (conversationId: string) => {

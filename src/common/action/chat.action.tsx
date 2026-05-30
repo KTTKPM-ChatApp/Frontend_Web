@@ -2,11 +2,10 @@ import { buildDerivedDataFromMessages, dedupeByMessageId, extractFilesFromMessag
 import { buildChatAttachmentsPayload } from "../helpers/chatAttachment.helpers";
 import { cleanMessageBody, HIDDEN_BODY } from "../helpers/cleanBodyMedia";
 import { sortConversations } from "../helpers/sortConservation";
-import { ConversationDto, ConversationLastMessageDto, UiMessage } from "../interface/chat-interface";
+import { ConversationDto, ConversationLastMessageDto, ReactionDto, UiMessage } from "../interface/chat-interface";
 import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interface";
 import { chatService } from "../service/chat-service";
 import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscribeToConversation, unsubscribeFromConversation } from "../socket/socket";
-import { connectPresenceSocket, disconnectPresenceSocket } from "../socket/presence-socket";
 import { useChatStore } from "../store/useChatStore";
 import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
@@ -201,7 +200,6 @@ export const initChat = (accessToken: string, currentUserId: string) => {
 
   const state = useChatStore.getState();
   const socket = connectSocket(accessToken, currentUserId);
-  connectPresenceSocket(accessToken);
 
   // Event cleanup is handled by window.removeEventListener in cleanupChat
 
@@ -429,6 +427,7 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.removeEventListener('chat:pinned', handleWindowPinnedMessage);
   window.removeEventListener('chat:unpinned', handleWindowUnpinnedMessage);
   window.removeEventListener('chat:system-message', handleWindowSystemMessage);
+  window.removeEventListener('chat:reaction', handleWindowReactionEvent);
   window.removeEventListener('conversation:created', handleConversationCreated);
   window.removeEventListener('conversation:removed', handleConversationRemoved);
 
@@ -442,6 +441,7 @@ export const initChat = (accessToken: string, currentUserId: string) => {
   window.addEventListener('chat:pinned', handleWindowPinnedMessage);
   window.addEventListener('chat:unpinned', handleWindowUnpinnedMessage);
   window.addEventListener('chat:system-message', handleWindowSystemMessage);
+  window.addEventListener('chat:reaction', handleWindowReactionEvent);
   window.addEventListener('conversation:created', handleConversationCreated);
   window.addEventListener('conversation:removed', handleConversationRemoved);
 
@@ -493,6 +493,12 @@ export const openConversation = async (conversationId: string) => {
     const merged = dedupeByMessageId([...oldItems, ...hydratedItems]);
 
     state.setMessages(conversationId, merged);
+    useChatStore.setState((state) => ({
+      reactionsByConversation: {
+        ...state.reactionsByConversation,
+        [conversationId]: {},
+      },
+    }));
 
     const hasNext = payloadData?.hasMore ?? false;
     const nextCursor = payloadData?.nextCursor ?? (messages.length > 0 ? messages[messages.length - 1].createdAt : null);
@@ -506,6 +512,7 @@ export const openConversation = async (conversationId: string) => {
 
     rebuildConversationDerivedData(conversationId);
     fetchPinnedMessages(conversationId);
+    fetchConversationReactions(conversationId);
   } catch (err: any) {
     state.setError(err?.message || "Không lấy được tin nhắn");
     state.setMessages(conversationId, []);
@@ -861,6 +868,21 @@ export const fetchPinnedMessages = async (conversationId: string) => {
   }
 };
 
+export const fetchConversationReactions = async (conversationId: string) => {
+  try {
+    const res = await chatService.getConversationReactions(conversationId);
+    if (res?.ok) {
+      const data = (res?.payload as any)?.data ?? res?.payload ?? {};
+      const state = useChatStore.getState();
+      Object.entries(data).forEach(([messageId, reactions]: [string, any]) => {
+        state.setMessageReactions(conversationId, messageId, reactions as ReactionDto[]);
+      });
+    }
+  } catch (error: any) {
+    console.error("[fetchConversationReactions] error:", error);
+  }
+};
+
 export const editMessage = async (conversationId: string, messageId: string, newBody: string, createdAt: number) => {
   const trimmed = newBody.trim();
   if (!trimmed) return;
@@ -905,19 +927,153 @@ export const sendStopTyping = (conversationId: string) => {
   }
 };
 
+export const toggleReaction = async (
+  conversationId: string,
+  messageId: string,
+  createdAt: number,
+  emoji: string
+) => {
+  const state = useChatStore.getState();
+  const reactions = state.reactionsByConversation[conversationId]?.[messageId] || [];
+  const existing = reactions.find((r) => r.emoji === emoji);
+  const currentUserId = state.currentUserId;
+  const alreadyReacted = existing?.userIds.includes(currentUserId || '') ?? false;
+
+  if (alreadyReacted) {
+    await removeReaction(conversationId, messageId, createdAt, emoji);
+  } else {
+    await addReaction(conversationId, messageId, createdAt, emoji);
+  }
+};
+
+export const addReaction = async (
+  conversationId: string,
+  messageId: string,
+  createdAt: number,
+  emoji: string
+) => {
+  try {
+    const res = await chatService.addReaction(conversationId, createdAt, messageId, emoji);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const uid = state.currentUserId;
+      // Skip local update if currentUserId not ready — STOMP broadcast will handle it
+      if (!uid) return res;
+
+      const current = state.reactionsByConversation[conversationId]?.[messageId] || [];
+      const existing = current.find((r) => r.emoji === emoji);
+      if (existing) {
+        if (existing.userIds.includes(uid)) return res;
+        const updated = current.map((r) =>
+          r.emoji === emoji
+            ? { ...r, count: r.count + 1, userIds: [...r.userIds, uid] }
+            : r
+        );
+        state.setMessageReactions(conversationId, messageId, updated);
+      } else {
+        state.setMessageReactions(conversationId, messageId, [
+          ...current,
+          { emoji, count: 1, userIds: [uid] },
+        ]);
+      }
+
+    }
+    return res;
+  } catch (error: any) {
+    console.error("[addReaction] error:", error);
+    return null;
+  }
+};
+
+export const removeReaction = async (
+  conversationId: string,
+  messageId: string,
+  createdAt: number,
+  emoji: string
+) => {
+  try {
+    const res = await chatService.removeReaction(conversationId, createdAt, messageId, emoji);
+    if (res?.ok) {
+      const state = useChatStore.getState();
+      const uid = state.currentUserId;
+      if (!uid) return res;
+
+      const current = state.reactionsByConversation[conversationId]?.[messageId] || [];
+      const updated = current
+        .map((r) =>
+          r.emoji === emoji
+            ? { ...r, count: r.count - 1, userIds: r.userIds.filter((id) => id !== uid) }
+            : r
+        )
+        .filter((r) => r.count > 0);
+      state.setMessageReactions(conversationId, messageId, updated);
+    }
+    return res;
+  } catch (error: any) {
+    console.error("[removeReaction] error:", error);
+    return null;
+  }
+};
+
+const handleReactionEvent = (raw: any) => {
+  const conversationId = raw?.conversation_id ?? raw?.conversationId;
+  const messageId = raw?.message_id ?? raw?.messageId;
+  const userId = raw?.user_id ?? raw?.userId;
+  const emoji = raw?.emoji;
+  const action = raw?.action;
+
+  if (!conversationId || !messageId || !userId || !emoji || !action) return;
+
+  const state = useChatStore.getState();
+  // Skip own events — already handled by HTTP response callback
+  if (userId === state.currentUserId) return;
+  const current = state.reactionsByConversation[conversationId]?.[messageId] || [];
+
+  if (action === "added") {
+    const existing = current.find((r) => r.emoji === emoji);
+    if (existing) {
+      if (!existing.userIds.includes(userId)) {
+        const updated = current.map((r) =>
+          r.emoji === emoji
+            ? { ...r, count: r.count + 1, userIds: [...r.userIds, userId] }
+            : r
+        );
+        state.setMessageReactions(conversationId, messageId, updated);
+      }
+    } else {
+      state.setMessageReactions(conversationId, messageId, [
+        ...current,
+        { emoji, count: 1, userIds: [userId] },
+      ]);
+    }
+  } else if (action === "removed") {
+    const updated = current
+      .map((r) =>
+        r.emoji === emoji
+          ? { ...r, count: r.count - 1, userIds: r.userIds.filter((id) => id !== userId) }
+          : r
+      )
+      .filter((r) => r.count > 0);
+    state.setMessageReactions(conversationId, messageId, updated);
+  }
+};
+
 export const cleanupChat = () => {
   const state = useChatStore.getState();
   const socket = getSocket();
 
   disconnectSocket();
-  disconnectPresenceSocket();
 
   _removeAllWindowListeners();
   state.resetChatState();
 };
 
 // Event handlers for window events
-const handleWindowIncomingMessage = (event: any) => {
+  const handleWindowReactionEvent = (event: any) => {
+    handleReactionEvent(event.detail);
+  };
+
+  const handleWindowIncomingMessage = (event: any) => {
   console.log('Window event - chat:new:', event.detail);
   const normalized = normalizeMessage(event.detail);
   
@@ -1021,7 +1177,7 @@ const handleWindowIncomingMessage = (event: any) => {
 const handlePresenceUpdate = (event: any) => {
   const detail = event.detail;
   console.log('[presence:update] raw event detail:', JSON.stringify(detail));
-  const userId = detail?.userId ?? detail?.user_id ?? detail?.userId;
+  const userId = detail?.user_id ?? detail?.userId;
   const rawEvent = detail?.event ?? detail?.status;
   if (!userId || !rawEvent) {
     console.warn('[presence:update] missing userId or event', { userId, rawEvent, detail });
