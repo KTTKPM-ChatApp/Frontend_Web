@@ -5,7 +5,7 @@ import { styled } from "@mui/material/styles";
 import { useMemo } from "react";
 import { PaginationState, UiMessage, AttachmentDto } from "@/src/common/interface/chat-interface";
 import { useChatStore } from "@/src/common/store/useChatStore";
-import { pinMessage, unpinMessage } from "@/src/common/action/chat.action";
+import { pinMessage, toggleReaction, unpinMessage } from "@/src/common/action/chat.action";
 import MessageItem from "./MessageItem";
 import SystemMessageBanner from "./message-system/SystemMessageBanner";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -126,9 +126,11 @@ export default function MessageList({
   const t = useTrans();
   const paginationByConversation = useChatStore((s) => s.paginationByConversation);
   const pinnedMessagesMap = useChatStore((s) => s.pinnedMessagesByConversation);
+  const reactionsMap = useChatStore((s) => s.reactionsByConversation);
   const listConversation = useChatStore((s) => s.listConversation);
   const conversationDetailById = useChatStore((s) => s.conversationDetailById);
   const pinnedMessages = pinnedMessagesMap[conversationId] || [];
+  const reactionsForConv = reactionsMap[conversationId] || {};
   
   const pinnedMessageIds = useMemo(() => {
     return new Set(pinnedMessages.map((p: any) => p.messageId));
@@ -230,13 +232,13 @@ export default function MessageList({
                   deliveryStatus="read"
                   replyTo={msg.replyTo || null}
                   attachments={msg.attachments}
-                  reactions={[]}
+                  reactions={reactionsForConv[msg.messageId] || []}
                   onReply={() => onReplyMessage(msg)}
                   onForward={() => onForwardMessage?.(msg.messageId, conversationId)}
                   onPin={() => pinMessage(conversationId, msg.messageId, msg.createdAt)}
                   onUnpin={() => unpinMessage(conversationId, msg.messageId, msg.createdAt)}
                   onEdit={(newContent) => onEditMessage?.(conversationId, msg.messageId, newContent, msg.createdAt)}
-                  onReact={(reaction) => console.log("React to message:", msg.messageId, reaction)}
+                  onReact={(emoji) => toggleReaction(conversationId, msg.messageId, msg.createdAt, emoji)}
                   onImageClick={(url, mediaList, index) => onImageClick?.(url, (mediaList || msg.attachments) as AttachmentDto[], index || 0)}
                   onDelete={() => onDeleteMessage(conversationId, msg.messageId)}
                 />

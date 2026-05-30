@@ -3,6 +3,7 @@ import type {
   AttachmentDto,
   ConversationDto,
   ConversationListMeta,
+  ReactionDto,
   UiMessage,
 } from "@/src/common/interface/chat-interface";
 // import { patchConversationLastMessage, updateConversationLastMessage } from "../helpers/chat.helpers";
@@ -43,6 +44,8 @@ export interface ChatState {
   conversationFetched: boolean;
   pinnedMessagesByConversation: Record<string, UiMessage[]>;
 
+  reactionsByConversation: Record<string, Record<string, ReactionDto[]>>;
+
   typingUsersByConversation: Record<string, TypingUser[]>;
   onlineUserIds: string[];
 
@@ -65,6 +68,7 @@ export interface ChatSetters {
   setConversationFetched: (value: boolean) => void;
 
   setPinnedMessages: (conversationId: string, messages: any[]) => void;
+  setMessageReactions: (conversationId: string, messageId: string, reactions: ReactionDto[]) => void;
   setMessages: (conversationId: string, messages: UiMessage[]) => void;
   appendMessages: (
     conversationId: string,
@@ -125,6 +129,7 @@ export const initialChatState: ChatState = {
   conversationLoading: false,
   conversationFetched: false,
   pinnedMessagesByConversation: {},
+  reactionsByConversation: {},
 
   typingUsersByConversation: {},
   onlineUserIds: [],
@@ -150,6 +155,18 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         [conversationId]: messages,
       },
     })),
+
+  setMessageReactions: (conversationId, messageId, reactions) =>
+    set((state) => {
+      const convReactions = { ...(state.reactionsByConversation[conversationId] || {}) };
+      convReactions[messageId] = reactions;
+      return {
+        reactionsByConversation: {
+          ...state.reactionsByConversation,
+          [conversationId]: convReactions,
+        },
+      };
+    }),
 
   setListConversation: (items) =>
     set({

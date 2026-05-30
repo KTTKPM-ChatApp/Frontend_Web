@@ -40,6 +40,7 @@ import ChatbotPanel from "./components/chatbot/ChatbotPanel";
 import CloudPanel from "./components/cloud/CloudPanel";
 
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
+import { usePresenceHeartbeat } from "@/src/common/hooks/usePresenceHeartbeat";
 import { fetchAuthData } from "@/src/common/helpers/fetchDataHelpers";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 /* ===================== styled ===================== */
@@ -294,6 +295,13 @@ const Me = () => {
       window.removeEventListener('app:switch_tab', handleSwitchTab);
     };
   }, []);
+
+  usePresenceHeartbeat({
+    onPresenceUpdate: () => {},
+    onUnauthorized: () => {
+      window.location.href = "/auth/login";
+    },
+  });
 
   if (!mounted) {
     return null;

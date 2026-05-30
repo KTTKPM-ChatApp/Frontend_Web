@@ -1,5 +1,10 @@
 export type AttachmentType = "image" | "document" | "audio" | "video";
-export type ReactionType = "like" | "love" | "haha" | "sad" | "angry";
+
+export interface ReactionDto {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
 
 type MessageMap = Record<string, UiMessage[]>;
 type PaginationMap = Record<string, PaginationState>;
@@ -142,6 +147,7 @@ export interface UiMessage {
   isDeleted: boolean;
   isPinned?: boolean;
   pinnedAt?: string | number | null;
+  reactions?: ReactionDto[];
 
   pending?: boolean;
   failed?: boolean;
