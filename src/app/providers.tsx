@@ -5,6 +5,8 @@ import "@/src/common/i18n/i18n";
 import LanguageProvider from "@/src/common/context/LanguageContext";
 import EmotionRegistry from "./EmotionRegistry";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -25,6 +27,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <EmotionRegistry>
       <LanguageProvider>
         {children}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnFocusLoss={false}
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
       </LanguageProvider>
     </EmotionRegistry>
   );

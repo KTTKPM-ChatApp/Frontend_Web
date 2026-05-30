@@ -9,6 +9,7 @@ import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscrib
 import { useChatStore } from "../store/useChatStore";
 import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
+import { toast } from "react-toastify";
 
 // Registry for window event listeners so cleanupChat can remove them
 const _windowListeners: Array<{ event: string; handler: any }> = [];
@@ -32,6 +33,24 @@ const _scheduleListSync = () => {
     _syncListTimer = null;
     fetchListConversation({ page: 1, limit: 20 });
   }, 500);
+};
+
+const MESSAGE_SEND_WINDOW_MS = 5 * 1000;
+const MESSAGE_SEND_MAX = 3;
+const messageSendTimestamps: number[] = [];
+
+const canSendMessageNow = () => {
+  const now = Date.now();
+  while (messageSendTimestamps.length > 0 && now - messageSendTimestamps[0] > MESSAGE_SEND_WINDOW_MS) {
+    messageSendTimestamps.shift();
+  }
+
+  if (messageSendTimestamps.length >= MESSAGE_SEND_MAX) {
+    return false;
+  }
+
+  messageSendTimestamps.push(now);
+  return true;
 };
 
 export const rebuildConversationDerivedData = (conversationId: string) => {
@@ -619,6 +638,13 @@ export const sendMessageHttp = async (
     return;
   }
 
+  if (!canSendMessageNow()) {
+    const message = "Bạn đang gửi tin nhắn quá nhanh. Vui lòng thử lại sau.";
+    toast.warning(message, { toastId: "message-rate-limit" });
+    state.setError(message);
+    return;
+  }
+
   const clientMessageId = crypto.randomUUID();
   const now = Date.now();
 
@@ -699,17 +725,30 @@ export const sendMessageHttp = async (
       
       return serverMessage;
     } else {
-            // Mark as failed
+      const errorMessage =
+        response.statusCode === 429
+          ? "Bạn đang gửi tin nhắn quá nhanh. Vui lòng thử lại sau."
+          : (response.payload as any)?.message || "Gửi tin nhắn thất bại";
+
+      if (response.statusCode === 429) {
+        toast.warning(errorMessage, { toastId: "message-rate-limit" });
+      }
+
+      // Mark as failed
       state.setMessages(
         conversationId,
         (state.messagesByConversation[conversationId] || []).map((msg) =>
           msg.messageId === clientMessageId ? { ...msg, pending: false, failed: true } : msg
         )
       );
-      state.setError((response.payload as any)?.message || "Gửi tin nhắn thất bại");
+      state.setError(errorMessage);
     }
   } catch (error) {
-        // Mark as failed
+    toast.error("Không thể gửi tin nhắn. Vui lòng thử lại sau.", {
+      toastId: "message-send-error",
+    });
+
+    // Mark as failed
     state.setMessages(
       conversationId,
       (state.messagesByConversation[conversationId] || []).map((msg) =>
