@@ -186,14 +186,6 @@ function renderAttachmentPreview(attachments: Attachment[], t: (key: string, opt
   );
 }
 
-function getSinglePreviewLabel(attachments: Attachment[], t: (key: string, opts?: any) => string): string {
-  if (attachments.length === 0) return t("CHAT.PINNED_MESSAGE");
-  if (hasOnlyImages(attachments)) {
-    return attachments.length === 1 ? t("CHAT.PINNED_IMAGE") : t("CHAT.PINNED_IMAGES", { count: attachments.length });
-  }
-  return attachments.length === 1 ? t("CHAT.PINNED_FILE") : t("CHAT.PINNED_FILES", { count: attachments.length });
-}
-
 export default function PinnedMessageBar({
   messages,
   onUnpin,
@@ -255,7 +247,12 @@ export default function PinnedMessageBar({
           {messages.length === 1 ? (
             renderSinglePreview(firstMsg)
           ) : (
-            <PinnedCount>{getSinglePreviewLabel(getAttachments(firstMsg), t)}</PinnedCount>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+              {renderSinglePreview(firstMsg)}
+              <PinnedCount>
+                {" "}+{messages.length - 1}
+              </PinnedCount>
+            </Box>
           )}
         </PinnedContent>
         {messages.length > 1 && (

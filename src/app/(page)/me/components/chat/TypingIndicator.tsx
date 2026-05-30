@@ -2,6 +2,7 @@
 
 import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const Root = styled(Box)({
   display: "flex",
@@ -35,12 +36,13 @@ interface TypingIndicatorProps {
 }
 
 export default function TypingIndicator({ names, count }: TypingIndicatorProps) {
+  const t = useTrans();
   const text =
     count === 1
-      ? `${names[0]} đang nhập...`
+      ? `${names[0]} ${t("CHAT.TYPING_SINGLE")}`
       : count === 2
-        ? `${names[0]} và ${names[1]} đang nhập...`
-        : `${names[0]} và ${count - 1} người khác đang nhập...`;
+        ? `${names[0]} ${t("CHAT.TYPING_DUAL", { name: names[1] })}`
+        : t("CHAT.TYPING_MULTIPLE", { name: names[0], count: count - 1 });
 
   return (
     <Root>

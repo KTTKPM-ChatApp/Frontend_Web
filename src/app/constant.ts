@@ -65,6 +65,7 @@ export const SIDEBAR_KEYS = [
     "contact",
     "cloud",
     "folder",
+    "chatbot",
     "business",
     "settings",
 ] as const;

@@ -4,7 +4,7 @@
 // TODO: Re-enable after fixing dynamic values causing hydration mismatch
 
 import React, { useState, useEffect } from "react";
-import { Box, Button, Grid, Tab } from "@mui/material";
+import { Box, Button, Grid, Tab, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 import ClickAwayListener from "@mui/material/ClickAwayListener";
@@ -15,6 +15,7 @@ import TabPanel from "@mui/lab/TabPanel";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CancelIcon from "@mui/icons-material/Cancel";
+import ForumIcon from "@mui/icons-material/Forum";
 
 import SearchBar from "./components/SearchBar";
 import AppSidebar from "./components/AppSideBar";
@@ -35,28 +36,31 @@ import ModalAddFriend from "./components/friend/ModalAddFriend";
 import CreateGroupModal from "./components/chat/CreateGroupModal";
 
 import SettingsPanel from "./components/settings/SettingsPanel";
+import ChatbotPanel from "./components/chatbot/ChatbotPanel";
+import CloudPanel from "./components/cloud/CloudPanel";
 
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
+import { usePresenceHeartbeat } from "@/src/common/hooks/usePresenceHeartbeat";
 import { fetchAuthData } from "@/src/common/helpers/fetchDataHelpers";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 /* ===================== styled ===================== */
 
 const Root = styled(Grid)(() => ({
-    height: "100vh",
-    width: "100vw",
+  height: "100vh",
+  width: "100vw",
 }));
 
 const ConversationColumn = styled(Grid)(() => ({
-    minWidth: 345,
-    height: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    borderRight: "1px solid #E5E7EB",
+  minWidth: 345,
+  height: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  borderRight: "1px solid #E5E7EB",
 }));
 
 const ChatColumn = styled(Grid)(() => ({
-    // minWidth: 0,
-    height: "100vh",
+  // minWidth: 0,
+  height: "100vh",
 }));
 
 // const InfConvColumn = styled(Grid)(() => ({
@@ -65,286 +69,346 @@ const ChatColumn = styled(Grid)(() => ({
 // }))
 
 const Panel = styled(Box)(() => ({
-    overflow: "hidden",
-    height: "100%",
+  overflow: "hidden",
+  height: "100%",
 }));
 
 const WelcomeWrap = styled(Box)(() => ({
-    padding: 16,
-    color: "#6B7280",
-    height: "100%",
+  padding: 16,
+  color: "#6B7280",
+  height: "100%",
 }));
 
 export const ChatTabsWrapper = styled(Box)(() => ({
-    borderBottom: "1px solid #E5E7EB",
-    padding: "0 16px",
-    display: "flex",
-    justifyContent: "space-between",
+  borderBottom: "1px solid #E5E7EB",
+  padding: "0 16px",
+  display: "flex",
+  justifyContent: "space-between",
 }));
 
 const TabsRight = styled(Box)(() => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
 }));
 
 export const TabListStyled = styled(TabList)(() => ({
-    minHeight: 24,
+  minHeight: 24,
 
-    "& .MuiTabs-flexContainer": {
-        minHeight: 24,
-        gap: "12px",
-    },
-    "& .MuiTabs-indicator": {
-        height: 2,
-        backgroundColor: "#005AE0",
-    },
+  "& .MuiTabs-flexContainer": {
+    minHeight: 24,
+    gap: "12px",
+  },
+  "& .MuiTabs-indicator": {
+    height: 2,
+    backgroundColor: "#005AE0",
+  },
 }));
 
 export const TabStyled = styled(Tab)(() => ({
-    minHeight: 32,
-    height: 32,
-    padding: "0",
-    textTransform: "none",
-    fontSize: 14,
-    fontWeight: 600,
-    minWidth: "unset",
-    width: "auto",
+  minHeight: 32,
+  height: 32,
+  padding: "0",
+  textTransform: "none",
+  fontSize: 14,
+  fontWeight: 600,
+  minWidth: "unset",
+  width: "auto",
 
-    "&:hover": {
-        backgroundColor: "transparent",
-        color: "#005AE0",
-    },
-    "&.Mui-focusVisible": {
-        backgroundColor: "transparent",
-    },
-    "& .MuiTouchRipple-root": {
-        display: "none",
-    },
-    "&.Mui-selected": {
-        color: "#005AE0",
-    },
+  "&:hover": {
+    backgroundColor: "transparent",
+    color: "#005AE0",
+  },
+  "&.Mui-focusVisible": {
+    backgroundColor: "transparent",
+  },
+  "& .MuiTouchRipple-root": {
+    display: "none",
+  },
+  "&.Mui-selected": {
+    color: "#005AE0",
+  },
 }));
 
 const TabPanelStyled = styled(TabPanel)(() => ({
-    padding: 8,
-    flex: 1,
-    minHeight: 0,
-    overflowY: "auto",
-    // margin:"0px",
-    borderRadius: "8px",
+  padding: 8,
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  // margin:"0px",
+  borderRadius: "8px",
 }));
 
 const CategoryFilterButton = styled(Button)(({ theme }) => ({
-    textTransform: "none",
-    fontSize: 13,
-    minHeight: 24,
-    height: 24,
-    borderRadius: 12,
-    padding: "0 12px",
-    color: theme.palette.text.primary,
+  textTransform: "none",
+  fontSize: 13,
+  minHeight: 24,
+  height: 24,
+  borderRadius: 12,
+  padding: "0 12px",
+  color: theme.palette.text.primary,
 
-    "&:hover": {
-        backgroundColor: "#EBECF0",
-    },
-    "&.active": {
-        backgroundColor: "#E5F1FF",
-        color: "#005ae0",
-    },
+  "&:hover": {
+    backgroundColor: "#EBECF0",
+  },
+  "&.active": {
+    backgroundColor: "#E5F1FF",
+    color: "#005ae0",
+  },
 }));
 
 export const DropdownWrapper = styled(Box)(() => ({
-    position: "relative",
-    display: "inline-block",
+  position: "relative",
+  display: "inline-block",
 }));
 
 export const StyledMoreIcon = styled(MoreHorizIcon)(() => ({
-    fontSize: 20,
-    borderRadius: "50%",
-    padding: 4,
-    cursor: "pointer",
-    transition: "background-color 0.2s ease",
+  fontSize: 20,
+  borderRadius: "50%",
+  padding: 4,
+  cursor: "pointer",
+  transition: "background-color 0.2s ease",
 
-    "&:hover": {
-        backgroundColor: "#EBECF0",
-    },
+  "&:hover": {
+    backgroundColor: "#EBECF0",
+  },
 }));
 
 const CancelIconStyled = styled(CancelIcon)(() => ({
-    "&&": {
-        fontSize: 16,
-    },
-    color: "#005AE0",
+  "&&": {
+    fontSize: 16,
+  },
+  color: "#005AE0",
 }));
 
 /* ===================== types ===================== */
 
-type SidebarKey = "chat" | "contact" | "cloud" | "folder" | "business" | "settings";
+type SidebarKey = "chat" | "contact" | "cloud" | "folder" | "chatbot" | "business" | "settings";
 
 export type FilterCategoryKey =
-    | "Customer"
-    | "Family"
-    | "Work"
-    | "Friends"
-    | "Reply later"
-    | "Colleague"
-    | "Other";
+  | "Customer"
+  | "Family"
+  | "Work"
+  | "Friends"
+  | "Reply later"
+  | "Colleague"
+  | "Other";
 
 /* ===================== component ===================== */
 
 const Me = () => {
-    const t = useTrans();
-    // type ContactView = "friends" | "groups" | "friendRequests" | "sentRequests";
-    const [selectedIcon, setSelectedIcon] = useState<SidebarKey>("chat");
-    const [contactView, setContactView] = useState<ContactView>("friends");
-    const [chatTab, setChatTab] = useState<string>("allChats");
-    const [isSelectedCategory, setSelectedCategory] = useState(false);
-    const [selectedCategories, setSelectedCategories] = useState<FilterCategoryKey[]>([]);
-    const [showSearchSidebar, setShowSearchSidebar] = useState(false);
-    const [rightPanelMode, setRightPanelMode] = useState<"info" | "search">("info");
-    const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-    const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-    const [showFriendRequestModal, setShowFriendRequestModal] = useState(false);
-    const [selectedFriendRequest, setSelectedFriendRequest] = useState<any>(null);
+  const t = useTrans();
+  // type ContactView = "friends" | "groups" | "friendRequests" | "sentRequests";
+  const [selectedIcon, setSelectedIcon] = useState<SidebarKey>("chat");
+  const [contactView, setContactView] = useState<ContactView>("friends");
+  const [chatTab, setChatTab] = useState<string>("allChats");
+  const [isSelectedCategory, setSelectedCategory] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<FilterCategoryKey[]>([]);
+  const [showSearchSidebar, setShowSearchSidebar] = useState(false);
+  const [rightPanelMode, setRightPanelMode] = useState<"info" | "search">("info");
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [showFriendRequestModal, setShowFriendRequestModal] = useState(false);
+  const [selectedFriendRequest, setSelectedFriendRequest] = useState<any>(null);
 
-    const authData = useAuthStore((s) => s.authData);
-    // console.log("SenderId", authData?.data?.user?.id)
-    const setActiveConversationId = useChatStore((s)=> s.setActiveConversationId)
-    const activeConversationId = useChatStore((s) => s.activeConversationId);
+  const authData = useAuthStore((s) => s.authData);
+  // console.log("SenderId", authData?.data?.user?.id)
+  const setActiveConversationId = useChatStore((s) => s.setActiveConversationId)
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
 
-    // Close search sidebar when conversation changes
-    useEffect(() => {
-        setShowSearchSidebar(false);
-    }, [activeConversationId]);
+  // Close search sidebar when conversation changes
+  useEffect(() => {
+    setShowSearchSidebar(false);
+  }, [activeConversationId]);
 
-    // Switch to chat tab when a conversation is opened from Contact tab
-    useEffect(() => {
-        if (activeConversationId && selectedIcon !== "chat") {
-            setSelectedIcon("chat");
-        }
-    }, [activeConversationId]);
-
-    const handleSelectedIcon = (iconName: SidebarKey) => {
-        setSelectedIcon(iconName);
-        if (iconName === "contact") {
-            setContactView("friends");
-        }
-        if (iconName !== "chat") {
-            setActiveConversationId(null);
-        }
-    };
-
-    const handleOpenSettings = () => setSelectedIcon("settings");
-    const handleOpenProfile = () => setSelectedIcon("settings");
-
-    const handleChangeChatTab = (_event: React.SyntheticEvent, newTab: string) => {
-        setChatTab(newTab);
-    };
-
-    const getCategoryLabel = () => {
-        if (selectedCategories.length === 0) return t("ME.CATEGORY");
-        if (selectedCategories.length === 1) return selectedCategories[0];
-        return t("ME.CATEGORY_COUNT", { count: selectedCategories.length });
-    };
-
-    useEffect(() => {
-        const accessToken = getSessionToken() || "";
-        const refreshToken = getRefreshToken() || "";
-        const currentUserId = getcurrentUserId() || "";
-        if (accessToken && currentUserId) {
-            initChat(accessToken, currentUserId);
-        }
-
-        return () => {
-            cleanupChat();
-        };
-    }, []);
-    useEffect(() => {
-        fetchAuthData()
-    }, [])
-
-    const accessToken = getSessionToken() ?? ""
-
-    const currentUserId =
-        authData?.data?.user?.id ||
-        getcurrentUserId() ||
-        "";
-
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) {
-        return null;
+  // Switch to chat tab when a conversation is opened from Contact tab
+  useEffect(() => {
+    if (activeConversationId && selectedIcon !== "chat") {
+      setSelectedIcon("chat");
     }
+  }, [activeConversationId]);
+
+  const handleSelectedIcon = (iconName: SidebarKey) => {
+    setSelectedIcon(iconName);
+    if (iconName === "contact") {
+      setContactView("friends");
+    }
+    if (iconName !== "chat") {
+      setActiveConversationId(null);
+    }
+  };
+
+  const handleOpenSettings = () => setSelectedIcon("settings");
+  const handleOpenProfile = () => setSelectedIcon("settings");
+
+  const handleChangeChatTab = (_event: React.SyntheticEvent, newTab: string) => {
+    setChatTab(newTab);
+  };
+
+  const getCategoryLabel = () => {
+    if (selectedCategories.length === 0) return t("ME.CATEGORY");
+    if (selectedCategories.length === 1) return selectedCategories[0];
+    return t("ME.CATEGORY_COUNT", { count: selectedCategories.length });
+  };
+
+  useEffect(() => {
+    const accessToken = getSessionToken() || "";
+    const refreshToken = getRefreshToken() || "";
+    const currentUserId = getcurrentUserId() || "";
+    if (accessToken && currentUserId) {
+      initChat(accessToken, currentUserId);
+    }
+
+    return () => {
+      cleanupChat();
+    };
+  }, []);
+  useEffect(() => {
+    fetchAuthData()
+  }, [])
+
+  const accessToken = getSessionToken() ?? ""
+
+  const currentUserId =
+    authData?.data?.user?.id ||
+    getcurrentUserId() ||
+    "";
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // AI Agent Event Listener for tab switching
+  useEffect(() => {
+    const handleSwitchTab = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const targetTab = customEvent.detail?.tab as SidebarKey;
+      if (targetTab) {
+        console.log("[AI Agent UI] Switching active tab to:", targetTab);
+        handleSelectedIcon(targetTab);
+      }
+    };
+
+    window.addEventListener('app:switch_tab', handleSwitchTab);
+    return () => {
+      window.removeEventListener('app:switch_tab', handleSwitchTab);
+    };
+  }, []);
+
+  usePresenceHeartbeat({
+    onPresenceUpdate: () => {},
+    onUnauthorized: () => {
+      window.location.href = "/auth/login";
+    },
+  });
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <Root container>
       <AppSidebar selectedIcon={selectedIcon} onSelect={handleSelectedIcon} onOpenProfile={handleOpenProfile} onOpenSettings={handleOpenSettings} />
 
-      <ConversationColumn>
-        {selectedIcon === "chat" ? (
-          <>
-            <SearchBar
-              onAddFriend={() => setShowAddFriendModal(true)}
-              onCreateGroup={() => setShowCreateGroupModal(true)}
-            />
+      {(selectedIcon === "chat" || selectedIcon === "contact") && (
+        <ConversationColumn>
+          {selectedIcon === "chat" ? (
+            <>
+              <SearchBar
+                onAddFriend={() => setShowAddFriendModal(true)}
+                onCreateGroup={() => setShowCreateGroupModal(true)}
+              />
 
-            <TabContext value={chatTab}>
-              <ChatTabsWrapper data-testid="chat-tabs">
-                <TabListStyled onChange={handleChangeChatTab} aria-label="chat tabs">
-                  <TabStyled label={t("ME.ALL_CHATS")} value="allChats" />
-                  <TabStyled label={t("ME.UNREAD")} value="unRead" />
-                </TabListStyled>
+              <TabContext value={chatTab}>
+                <ChatTabsWrapper data-testid="chat-tabs">
+                  <TabListStyled onChange={handleChangeChatTab} aria-label="chat tabs">
+                    <TabStyled label={t("ME.ALL_CHATS")} value="allChats" />
+                    <TabStyled label={t("ME.UNREAD")} value="unRead" />
+                  </TabListStyled>
 
-                <TabsRight>
-                  <ClickAwayListener onClickAway={() => setSelectedCategory(false)}>
-                    <DropdownWrapper>
-                      <CategoryFilterButton
-                        className={selectedCategories.length > 0 ? "active" : ""}
-                        sx={isSelectedCategory ? { backgroundColor: "#E5F1FF", color: "#005AE0" } : null}
-                        endIcon={
-                          selectedCategories.length > 0 ? (
-                            <CancelIconStyled
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCategories([]);
-                              }}
-                            />
-                          ) : (
-                            <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
-                          )
-                        }
-                        onClick={() => setSelectedCategory((prev) => !prev)}
-                      >
-                        {getCategoryLabel()}
-                      </CategoryFilterButton>
+                  <TabsRight>
+                    <ClickAwayListener onClickAway={() => setSelectedCategory(false)}>
+                      <DropdownWrapper>
+                        <CategoryFilterButton
+                          className={selectedCategories.length > 0 ? "active" : ""}
+                          sx={isSelectedCategory ? { backgroundColor: "#E5F1FF", color: "#005AE0" } : null}
+                          endIcon={
+                            selectedCategories.length > 0 ? (
+                              <CancelIconStyled
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCategories([]);
+                                }}
+                              />
+                            ) : (
+                              <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+                            )
+                          }
+                          onClick={() => setSelectedCategory((prev) => !prev)}
+                        >
+                          {getCategoryLabel()}
+                        </CategoryFilterButton>
 
-                      {isSelectedCategory && (
-                        <FilterCategoryDropdown selected={selectedCategories} onChange={setSelectedCategories} />
-                      )}
-                    </DropdownWrapper>
-                  </ClickAwayListener>
-                  <StyledMoreIcon />
-                </TabsRight>
-              </ChatTabsWrapper>
+                        {isSelectedCategory && (
+                          <FilterCategoryDropdown selected={selectedCategories} onChange={setSelectedCategories} />
+                        )}
+                      </DropdownWrapper>
+                    </ClickAwayListener>
+                    <StyledMoreIcon />
+                  </TabsRight>
+                </ChatTabsWrapper>
 
-              <TabPanelStyled value="allChats">
-                <ConversationList />
-              </TabPanelStyled>
-              <TabPanelStyled value="unRead">{t("ME.UNREAD")}</TabPanelStyled>
-            </TabContext>
-          </>
-        ) : selectedIcon === "contact" ? (
-          <>
-            <SearchBar />
-            <Box sx={{ flex: 1, overflowY: "auto", pt: 1 }}>
-              <ContactFunctionList value={contactView} onChange={setContactView} />
-            </Box>
-          </>
-        ) : null}
-      </ConversationColumn>
+                <TabPanelStyled value="allChats">
+                  <ConversationList />
+                </TabPanelStyled>
+                <TabPanelStyled value="unRead">
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      height: "300px",
+                      textAlign: "center",
+                      p: 3,
+                      color: "#86909C",
+                      gap: 1.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: "50%",
+                        backgroundColor: "#F3F4F6",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ForumIcon sx={{ fontSize: 28, color: "#9CA3AF" }} />
+                    </Box>
+                    <Typography variant="body2" fontWeight={600} color="#374151">
+                      {t("ME.NO_UNREAD")}
+                    </Typography>
+                    <Typography variant="caption" sx={{ maxWidth: 220, color: "#86909C" }}>
+                      {t("ME.NO_UNREAD_SUB")}
+                    </Typography>
+                  </Box>
+                </TabPanelStyled>
+              </TabContext>
+            </>
+          ) : selectedIcon === "contact" ? (
+            <>
+              <SearchBar />
+              <Box sx={{ flex: 1, overflowY: "auto", pt: 1 }}>
+                <ContactFunctionList value={contactView} onChange={setContactView} />
+              </Box>
+            </>
+          ) : null}
+        </ConversationColumn>
+      )}
 
       <ChatColumn size="grow">
         <Panel>
@@ -356,15 +420,15 @@ const Me = () => {
                     {
                       imageSrc:
                         "https://chat.zalo.me/assets/inapp-welcome-screen-06-darkmode.336078e876ae12bf42474586745397f0.png",
-                      title: "Giao diện Dark Mode",
-                      description: "Thư giãn và bảo vệ mắt với chế độ giao diện tối trên Zalo PC",
+                      title: t("ME.WELCOME_SLIDE1_TITLE"),
+                      description: t("ME.WELCOME_SLIDE1_DESC"),
                     },
                     {
                       imageSrc:
                         "https://chat.zalo.me/assets/zbiz_onboard_vi_3x.62514921c8505730d07aff3fa8c4e9c3.png",
-                      title: "Kinh doanh hiệu quả với Business Pro",
+                      title: t("ME.WELCOME_SLIDE2_TITLE"),
                       description:
-                        "Trải nghiệm giao diện sáng trên Zalo PC, mang đến sự tươi mới và dễ nhìn cho mọi cuộc trò chuyện.",
+                        t("ME.WELCOME_SLIDE2_DESC"),
                     },
                   ]}
                 />
@@ -416,17 +480,13 @@ const Me = () => {
             <ContactContentPanel view={contactView} />
           ) : selectedIcon === "settings" ? (
             <SettingsPanel />
+          ) : selectedIcon === "chatbot" ? (
+            <ChatbotPanel />
           ) : selectedIcon === "cloud" ? (
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
-              Cloud - Tính năng đang phát triển
-            </Box>
-          ) : selectedIcon === "folder" ? (
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
-              Folder - Tính năng đang phát triển
-            </Box>
+            <CloudPanel />
           ) : selectedIcon === "business" ? (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
-              Business - Tính năng đang phát triển
+              {t("ME.BUSINESS_DEVELOPING")}
             </Box>
           ) : null}
         </Panel>

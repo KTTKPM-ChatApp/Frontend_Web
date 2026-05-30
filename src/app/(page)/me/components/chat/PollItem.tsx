@@ -3,6 +3,7 @@
 import { ConversationPoll } from "@/src/common/interface/conversation-interface";
 import { chatService } from "@/src/common/service/chat-service";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import {
   Box,
   Typography,
@@ -166,6 +167,7 @@ export default function PollItem({
   onClose,
   onEdit,
 }: PollItemProps) {
+  const t = useTrans();
   const authData = useAuthStore((s) => s.authData);
   const [isVoting, setIsVoting] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -177,12 +179,12 @@ export default function PollItem({
 
   const handleVote = async () => {
     if (selectedOptions.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một lựa chọn");
+      toast.error(t("POLL.VOTE_REQUIRED"));
       return;
     }
 
     if (poll.status !== "OPEN" || isExpired) {
-      toast.error("Cuộc bình chọn đã đóng hoặc hết hạn");
+      toast.error(t("POLL.POLL_CLOSED"));
       return;
     }
 
@@ -191,10 +193,10 @@ export default function PollItem({
       await chatService.votePoll(conversationId, poll.id, {
         option_ids: selectedOptions,
       });
-      toast.success("Bình chọn thành công!");
+      toast.success(t("POLL.VOTE_SUCCESS"));
       onVote?.();
     } catch (error) {
-      toast.error("Không thể bình chọn");
+      toast.error(t("POLL.VOTE_FAILED"));
     } finally {
       setIsVoting(false);
     }
@@ -203,17 +205,17 @@ export default function PollItem({
   const handleWithdraw = async () => {
     try {
       await chatService.withdrawVote(conversationId, poll.id);
-      toast.success("Đã thu hồi bình chọn");
+      toast.success(t("POLL.WITHDRAW_SUCCESS"));
       onWithdraw?.();
     } catch (error) {
-      toast.error("Không thể thu hồi bình chọn");
+      toast.error(t("POLL.WITHDRAW_FAILED"));
     }
   };
 
   const handleClose = async () => {
     try {
       await chatService.closePoll(conversationId, poll.id);
-      toast.success("Đã đóng cuộc bình chọn");
+      toast.success(t("POLL.CLOSE_SUCCESS"));
       onClose?.();
     } catch (error) {
       toast.error("Không thể đóng cuộc bình chọn");

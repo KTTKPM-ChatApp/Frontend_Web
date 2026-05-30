@@ -4,6 +4,7 @@ import type { IApiResponse } from "../interface/auth-interface";
 import type {
   ConversationListResponse,
   MessagePageDto,
+  ReactionDto,
   UiMessage,
   ConversationDto,
   ConversationMemberDto,
@@ -245,6 +246,26 @@ export const chatService = {
     );
   },
 
+  addReaction(conversationId: string, createdAt: number, messageId: string, emoji: string) {
+    return http.post<IApiResponse<any>>(
+      API.API_MESSAGE_REACTION_ADD(conversationId, createdAt, messageId),
+      { emoji }
+    );
+  },
+
+  removeReaction(conversationId: string, createdAt: number, messageId: string, emoji: string) {
+    return http.deleteBody<IApiResponse<any>>(
+      API.API_MESSAGE_REACTION_DELETE(conversationId, createdAt, messageId),
+      { emoji }
+    );
+  },
+
+  getConversationReactions(conversationId: string) {
+    return http.get<IApiResponse<Record<string, ReactionDto[]>>>(
+      API.API_CONVERSATION_REACTIONS(conversationId)
+    );
+  },
+
   searchMessages(conversationId: string, params: MessageSearchParams) {
     const searchParams = new URLSearchParams();
     if (params.q) searchParams.set("q", params.q);
@@ -459,14 +480,6 @@ export const chatService = {
 
   closePoll(conversationId: string, pollId: string) {
     return http.post(API.API_CONVERSATIONS_POLLS_CLOSE(conversationId, pollId));
-  },
-
-  getIceServers() {
-    return http.get(API.API_CONVERSATIONS_ICE_SERVERS);
-  },
-
-  getCallState(conversationId: string) {
-    return http.get(API.API_CONVERSATIONS_CALLS_STATE(conversationId));
   },
 
 deleteMessage(conversationId: string, createdAt: number, messageId: string) {

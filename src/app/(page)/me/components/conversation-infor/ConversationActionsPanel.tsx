@@ -14,7 +14,6 @@ import { styled } from "@mui/material/styles";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
-import SettingsPhoneOutlinedIcon from "@mui/icons-material/SettingsPhoneOutlined";
 import { toast } from "react-toastify";
 
 import { chatService } from "@/src/common/service/chat-service";
@@ -109,19 +108,6 @@ const HelperText = styled(Typography)({
   lineHeight: 1.5,
 });
 
-const ResultBox = styled(Box)({
-  border: "1px solid #E5E7EB",
-  borderRadius: 8,
-  background: "#F7F7F8",
-  padding: 10,
-  maxHeight: 130,
-  overflow: "auto",
-  fontFamily: "monospace",
-  fontSize: 12,
-  color: "#334155",
-  whiteSpace: "pre-wrap",
-});
-
 const SwitchLabel = styled(Typography)({
   fontSize: 14,
   fontWeight: 500,
@@ -151,14 +137,12 @@ export default function ConversationActionsPanel({
   const [inviteMessage, setInviteMessage] = useState("Mời bạn tham gia nhóm.");
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState("Có\nKhông");
-  const [callResult, setCallResult] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setName(conversation?.name ?? "");
     setMuted(Boolean(conversation?.isMuted));
     setNickname("");
-    setCallResult("");
   }, [conversation?.id, conversation?.name, conversation?.isMuted]);
 
   const refresh = () => fetchListConversation({ page: 1, limit: 20 });
@@ -235,27 +219,6 @@ export default function ConversationActionsPanel({
       toast.success("Đã tạo bình chọn");
     } catch (error) {
       toast.error("Không thể tạo bình chọn");
-    }
-  };
-
-  const handleCallDiagnostics = async () => {
-    try {
-      const [ice, state] = await Promise.all([
-        chatService.getIceServers(),
-        chatService.getCallState(conversationId),
-      ]);
-      setCallResult(
-        JSON.stringify(
-          {
-            iceServers: ice.payload,
-            callState: state.payload,
-          },
-          null,
-          2
-        )
-      );
-    } catch (error) {
-      toast.error("Không thể tải trạng thái cuộc gọi");
     }
   };
 
@@ -363,18 +326,6 @@ export default function ConversationActionsPanel({
           </OutlinedButton>
         </FormArea>
 
-        <Divider />
-
-        <FormArea>
-          <OutlinedButton
-            variant="outlined"
-            startIcon={<SettingsPhoneOutlinedIcon sx={{ fontSize: 18 }} />}
-            onClick={handleCallDiagnostics}
-          >
-            Kiểm tra call API
-          </OutlinedButton>
-          {callResult && <ResultBox>{callResult}</ResultBox>}
-        </FormArea>
       </Content>
     </SectionBlock>
   );

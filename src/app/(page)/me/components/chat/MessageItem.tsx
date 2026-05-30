@@ -1,23 +1,33 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Avatar,
   Box,
   Chip,
+  ClickAwayListener,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Fade,
   IconButton,
   ImageList,
   ImageListItem,
   Menu,
   MenuItem,
+  Paper,
+  Popper,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { styled, alpha, keyframes } from "@mui/material/styles";
 import { getReplyPreview } from "@/src/common/helpers/displayPreviewReply";
+import type { ReactionDto } from "@/src/common/interface/chat-interface";
+import { useChatStore } from "@/src/common/store/useChatStore";
 
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import ReplyOutlinedIcon from "@mui/icons-material/ReplyOutlined";
@@ -32,6 +42,7 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
 import FileAttachmentCard from "./FileAttachmentCard";
 import LinkPreviewCard from "./LinkPreviewCard";
+import type { ConversationMemberDto } from "@/src/common/interface/chat-interface";
 
 interface Attachment {
   key?: string;
@@ -68,23 +79,37 @@ interface MessageItemProps {
     isDeleted?: boolean;
   } | null;
   attachments?: Attachment[];
-  reactions?: Array<{
-    userId: string;
-    type: string;
-    user: {
-      fullName: string;
-      avatar?: string;
-    };
-  }>;
+  reactions?: ReactionDto[];
   onReply?: () => void;
   onForward?: () => void;
   onPin?: () => void;
   onUnpin?: () => void;
   onDelete?: () => void;
   onEdit?: (newContent: string) => void;
-  onReact?: (reaction: string) => void;
+  onReact?: (emoji: string) => void;
   onImageClick?: (url: string, mediaList: Attachment[], index: number) => void;
 }
+
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+
+const EmojiPickerBox = styled(Paper)({
+  display: "flex",
+  gap: 4,
+  padding: "6px 10px",
+  borderRadius: 999,
+  boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+});
+
+const EmojiBtn = styled(IconButton)({
+  width: 32,
+  height: 32,
+  fontSize: 18,
+  "&:hover": {
+    backgroundColor: alpha("#0068FF", 0.08),
+    transform: "scale(1.2)",
+  },
+  transition: "transform 0.15s ease",
+});
 
 const MessageRow = styled(Box, {
   shouldForwardProp: (prop) =>
@@ -199,8 +224,9 @@ const ActionBar = styled(Box, {
   shouldForwardProp: (prop) => prop !== "mine",
 })<{ mine?: boolean }>(({ mine }) => ({
   position: "absolute",
-  top: 0,
-  [mine ? "left" : "right"]: "-110px",
+  top: -16,
+  right: mine ? 8 : "auto",
+  left: mine ? "auto" : 8,
 
   display: "flex",
   alignItems: "center",
@@ -234,36 +260,49 @@ const ActionBtn = styled(IconButton)({
 
 const ReactionWrap = styled(Box)({
   position: "absolute",
-  bottom: -12,
-  right: 10,
+  bottom: -10,
+  right: 6,
 
   display: "flex",
   alignItems: "center",
-  gap: 2,
+  gap: 1,
 
   background: "#fff",
   border: "1px solid #E5E7EB",
   borderRadius: 999,
-  padding: "1px 5px",
+  padding: "1px 4px",
 
   boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-});
-
-const ReactionChip = styled(Chip)({
-  height: 22,
-  borderRadius: 999,
-  background: "transparent",
-  fontSize: 12,
-  fontWeight: 500,
-
-  "& .MuiChip-label": {
-    paddingLeft: 4,
-    paddingRight: 4,
-  },
+  cursor: "pointer",
+  zIndex: 5,
 
   "&:hover": {
-    background: alpha("#0068FF", 0.06),
+    boxShadow: "0 2px 6px rgba(0,0,0,0.13)",
   },
+});
+
+const ReactionEmoji = styled(Box)({
+  fontSize: 15,
+  lineHeight: 1,
+  display: "flex",
+  alignItems: "center",
+});
+
+const ReactionCount = styled(Typography)({
+  fontSize: 11,
+  fontWeight: 500,
+  color: "#4B5563",
+  marginLeft: 0.5,
+  lineHeight: 1,
+});
+
+const StyledTab = styled(Tab)({
+  minHeight: 36,
+  minWidth: 50,
+  fontSize: 13,
+  textTransform: "none",
+  fontWeight: 500,
+  padding: "4px 10px",
 });
 
 const ReplyPreviewBox = styled(Box, {
@@ -333,9 +372,36 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const [anchorEl, setAnchorEl] =
     useState<null | HTMLElement>(null);
+  const [emojiAnchorEl, setEmojiAnchorEl] =
+    useState<null | HTMLElement>(null);
+
+  const currentUserId = useChatStore((s) => s.currentUserId);
+  const conversationDetailById = useChatStore((s) => s.conversationDetailById);
+  const listConversation = useChatStore((s) => s.listConversation);
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
+
+  const convDetail = activeConversationId ? conversationDetailById[activeConversationId] : null;
+  const convFromList = activeConversationId ? listConversation.find((c) => c.id === activeConversationId) : null;
+  const members = convDetail?.members || convFromList?.members || [];
+  const memberMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (members as ConversationMemberDto[]).forEach((m) => {
+      const name = m.displayName || m.fullName || m.username || m.nickname || "";
+      if (name) map.set(m.userId, name);
+    });
+    return map;
+  }, [members]);
+
+  const resolveUserName = (uid: string): string => {
+    if (!uid) return "Người dùng";
+    if (uid === currentUserId) return "Bạn";
+    return memberMap.get(uid) || uid.slice(0, 8);
+  };
 
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(content);
+  const [reactionDetailOpen, setReactionDetailOpen] = useState(false);
+  const [reactionTab, setReactionTab] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -469,7 +535,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               <Tooltip title={t("CHAT.ADD_REACTION")}>
                 <ActionBtn
                   size="small"
-                  onClick={() => onReact?.("👍")}
+                  onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
                 >
                   <EmojiEmotionsOutlinedIcon
                     sx={{ fontSize: 17 }}
@@ -477,6 +543,31 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 </ActionBtn>
               </Tooltip>
             )}
+            <Popper
+              open={Boolean(emojiAnchorEl)}
+              anchorEl={emojiAnchorEl}
+              placement="top"
+              disablePortal
+              sx={{ zIndex: 1300 }}
+            >
+              <ClickAwayListener onClickAway={() => setEmojiAnchorEl(null)}>
+                <EmojiPickerBox elevation={4}>
+                  {REACTION_EMOJIS.map((emoji) => (
+                    <Tooltip key={emoji} title={emoji}>
+                      <EmojiBtn
+                        size="small"
+                        onClick={() => {
+                          onReact?.(emoji);
+                          setEmojiAnchorEl(null);
+                        }}
+                      >
+                        {emoji}
+                      </EmojiBtn>
+                    </Tooltip>
+                  ))}
+                </EmojiPickerBox>
+              </ClickAwayListener>
+            </Popper>
 
             <Tooltip title={t("CHAT.MORE_OPTIONS")}>
               <ActionBtn
@@ -791,16 +882,26 @@ const MessageItem: React.FC<MessageItemProps> = ({
           )}
 
           {reactions.length > 0 && (
-            <ReactionWrap>
-              {reactions.map((r, i) => (
-                <ReactionChip
+            <ReactionWrap onClick={() => setReactionDetailOpen(true)}>
+              {reactions.slice(0, 3).map((r, i) => (
+                <Tooltip
                   key={i}
-                  clickable
-                  label={r.type}
-                  onClick={() =>
-                    onReact?.(r.type)
+                  title={
+                    <Box sx={{ fontSize: 12 }}>
+                      {r.userIds.slice(0, 5).map((uid, j) => (
+                        <div key={j}>{resolveUserName(uid)}</div>
+                      ))}
+                      {r.userIds.length > 5 && <div>+{r.userIds.length - 5} khác</div>}
+                    </Box>
                   }
-                />
+                  placement="top"
+                  componentsProps={{ tooltip: { sx: { bgcolor: "#1F2937", fontSize: 12 } } }}
+                >
+                  <ReactionEmoji>
+                    {r.emoji}
+                    {r.count > 1 && <ReactionCount>{r.count}</ReactionCount>}
+                  </ReactionEmoji>
+                </Tooltip>
               ))}
             </ReactionWrap>
           )}
@@ -920,6 +1021,48 @@ const MessageItem: React.FC<MessageItemProps> = ({
             ) : null,
           ]}
         </Menu>
+
+        <Dialog
+          open={reactionDetailOpen}
+          onClose={() => setReactionDetailOpen(false)}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 3, maxHeight: 400 } }}
+        >
+          <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 0 }}>
+            {"Phản ứng"}
+          </DialogTitle>
+          <DialogContent sx={{ px: 2, py: 1.5 }}>
+            <Tabs
+              value={reactionTab}
+              onChange={(_, v) => setReactionTab(v)}
+              variant="scrollable"
+              scrollButtons={false}
+              sx={{ minHeight: 36, mb: 1, "& .MuiTabs-indicator": { height: 2.5 } }}
+            >
+              <StyledTab label={`Tất cả (${reactions.reduce((s, r) => s + r.count, 0)})`} />
+              {reactions.map((r, i) => (
+                <StyledTab key={i} label={`${r.emoji} ${r.count}`} />
+              ))}
+            </Tabs>
+            <Box sx={{ maxHeight: 240, overflowY: "auto" }}>
+              {(reactionTab === 0 ? reactions : [reactions[reactionTab - 1]]).map((r, i) =>
+                r.userIds.map((uid) => {
+                  const name = resolveUserName(uid);
+                  return (
+                    <Box key={`${uid}-${r.emoji}`} sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 0.6 }}>
+                      <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: "#E5E7EB", color: "#4B5563" }}>
+                        {name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Typography sx={{ fontSize: 14, flex: 1 }}>{name}</Typography>
+                      <Typography sx={{ fontSize: 16 }}>{r.emoji}</Typography>
+                    </Box>
+                  );
+                })
+              )}
+            </Box>
+          </DialogContent>
+        </Dialog>
       </BubbleWrap>
     </MessageRow>
   );

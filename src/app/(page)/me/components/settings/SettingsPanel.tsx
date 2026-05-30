@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { toast } from "react-toastify";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import { useAuthStore } from "@/src/common/store/useAuthStore";
 import { authService } from "@/src/common/service/auth-service";
 
@@ -64,6 +65,7 @@ const SectionTitle = styled(Typography)({
 });
 
 export default function SettingsPanel() {
+  const t = useTrans();
   const authData = useAuthStore((s) => s.authData);
   const user = authData?.data?.user;
 
@@ -75,32 +77,32 @@ export default function SettingsPanel() {
 
   const handleChangePassword = async () => {
     if (!oldPw || !newPw || !confirmPw) {
-      toast.warning("Vui lòng điền đầy đủ thông tin");
+      toast.warning(t("SETTINGS.FILL_ALL_INFO"));
       return;
     }
     if (newPw.length < 6) {
-      toast.warning("Mật khẩu mới phải có ít nhất 6 ký tự");
+      toast.warning(t("SETTINGS.NEW_PASSWORD_MIN_LENGTH"));
       return;
     }
     if (newPw !== confirmPw) {
-      toast.warning("Mật khẩu xác nhận không khớp");
+      toast.warning(t("SETTINGS.PASSWORD_MISMATCH"));
       return;
     }
     setSaving(true);
     try {
       const res = await authService.changePassword(oldPw, newPw);
       if (res?.ok) {
-        toast.success("Đổi mật khẩu thành công");
+        toast.success(t("SETTINGS.PASSWORD_CHANGE_SUCCESS"));
         setOpenPassword(false);
         setOldPw("");
         setNewPw("");
         setConfirmPw("");
       } else {
-        const msg = (res?.payload as any)?.message || "Không thể đổi mật khẩu";
+        const msg = (res?.payload as any)?.message || t("SETTINGS.CANNOT_CHANGE_PASSWORD");
         toast.error(msg);
       }
     } catch (err: any) {
-      toast.error(err?.message || "Không thể đổi mật khẩu");
+      toast.error(err?.message || t("SETTINGS.CANNOT_CHANGE_PASSWORD"));
     } finally {
       setSaving(false);
     }
@@ -109,19 +111,19 @@ export default function SettingsPanel() {
   return (
     <Root>
       <Header>
-        <HeaderTitle>Cài đặt</HeaderTitle>
+        <HeaderTitle>{t("SETTINGS.TITLE")}</HeaderTitle>
       </Header>
 
       <Content>
         <Section>
-          <SectionTitle>Thông tin tài khoản</SectionTitle>
+          <SectionTitle>{t("SETTINGS.ACCOUNT_INFO")}</SectionTitle>
           <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 3 }}>
             <Avatar src={user?.avatarUrl || undefined} sx={{ width: 64, height: 64 }}>
               {user?.displayName?.charAt(0) || "U"}
             </Avatar>
             <Box>
               <Typography fontWeight={600} variant="h6">
-                {user?.displayName || "Người dùng"}
+                {user?.displayName || t("SETTINGS.DEFAULT_USER")}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {user?.email}
@@ -131,39 +133,39 @@ export default function SettingsPanel() {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             <Box sx={{ display: "flex", gap: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Tên đăng nhập
+                {t("SETTINGS.USERNAME")}
               </Typography>
               <Typography variant="body2">{user?.username}</Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Số điện thoại
+                {t("SETTINGS.PHONE")}
               </Typography>
-              <Typography variant="body2">{user?.phone || "Chưa cập nhật"}</Typography>
+              <Typography variant="body2">{user?.phone || t("SETTINGS.NOT_UPDATED")}</Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Giới tính
+                {t("SETTINGS.GENDER")}
               </Typography>
-              <Typography variant="body2">{user?.gender || "Chưa cập nhật"}</Typography>
+              <Typography variant="body2">{user?.gender || t("SETTINGS.NOT_UPDATED")}</Typography>
             </Box>
           </Box>
         </Section>
 
         <Section>
-          <SectionTitle>Bảo mật</SectionTitle>
+          <SectionTitle>{t("SETTINGS.SECURITY")}</SectionTitle>
           <Button variant="outlined" onClick={() => setOpenPassword(true)}>
-            Đổi mật khẩu
+            {t("SETTINGS.CHANGE_PASSWORD")}
           </Button>
         </Section>
       </Content>
 
       <Dialog open={openPassword} onClose={() => setOpenPassword(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Đổi mật khẩu</DialogTitle>
+        <DialogTitle>{t("SETTINGS.CHANGE_PASSWORD")}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
-              label="Mật khẩu hiện tại"
+              label={t("SETTINGS.CURRENT_PASSWORD")}
               type="password"
               size="small"
               fullWidth
@@ -171,30 +173,30 @@ export default function SettingsPanel() {
               onChange={(e) => setOldPw(e.target.value)}
             />
             <TextField
-              label="Mật khẩu mới"
+              label={t("SETTINGS.NEW_PASSWORD")}
               type="password"
               size="small"
               fullWidth
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
-              helperText="Ít nhất 6 ký tự"
+              helperText={t("SETTINGS.MIN_LENGTH_6")}
             />
             <TextField
-              label="Xác nhận mật khẩu mới"
+              label={t("SETTINGS.CONFIRM_PASSWORD")}
               type="password"
               size="small"
               fullWidth
               value={confirmPw}
               onChange={(e) => setConfirmPw(e.target.value)}
               error={confirmPw.length > 0 && confirmPw !== newPw}
-              helperText={confirmPw.length > 0 && confirmPw !== newPw ? "Mật khẩu không khớp" : ""}
+              helperText={confirmPw.length > 0 && confirmPw !== newPw ? t("SETTINGS.PASSWORD_NOT_MATCH") : ""}
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPassword(false)}>Hủy</Button>
+          <Button onClick={() => setOpenPassword(false)}>{t("SETTINGS.CANCEL")}</Button>
           <Button variant="contained" onClick={handleChangePassword} disabled={saving}>
-            {saving ? <CircularProgress size={18} /> : "Lưu mật khẩu"}
+            {saving ? <CircularProgress size={18} /> : t("SETTINGS.SAVE_PASSWORD")}
           </Button>
         </DialogActions>
       </Dialog>

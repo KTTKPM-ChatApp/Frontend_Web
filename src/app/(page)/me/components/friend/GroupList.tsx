@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import {
   Avatar,
   Box,
@@ -174,18 +175,19 @@ const GroupList: React.FC<GroupListProps> = ({
   onGroupClick = () => {},
 }) => {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const t = useTrans();
 
   return (
     <>
       <Root>
         <Header>
-          <HeaderTitle>Nhóm của bạn</HeaderTitle>
+          <HeaderTitle>{t("GROUP.YOUR_GROUPS")}</HeaderTitle>
           <CreateButton
             variant="contained"
             startIcon={<GroupIcon sx={{ fontSize: 18 }} />}
             onClick={() => setShowCreateGroupModal(true)}
           >
-            Tạo nhóm
+            {t("GROUP.CREATE_TITLE")}
           </CreateButton>
         </Header>
 
@@ -195,8 +197,8 @@ const GroupList: React.FC<GroupListProps> = ({
               <EmptyIcon>
                 <PeopleAltIcon sx={{ fontSize: 36, color: "#767A7F" }} />
               </EmptyIcon>
-              <EmptyText>Chưa có nhóm nào</EmptyText>
-              <EmptySubtext>Tạo nhóm mới để bắt đầu trò chuyện</EmptySubtext>
+              <EmptyText>{t("GROUP.NO_GROUPS_YET")}</EmptyText>
+              <EmptySubtext>{t("GROUP.CREATE_HINT")}</EmptySubtext>
             </EmptyState>
           ) : (
             <Box
@@ -218,7 +220,7 @@ const GroupList: React.FC<GroupListProps> = ({
                       </GroupAvatar>
                       <Box flex={1} minWidth={0}>
                         <GroupName>{group.name}</GroupName>
-                        <GroupInfo>{group.memberCount} thành viên</GroupInfo>
+                        <GroupInfo>{t("CHAT.MEMBER_COUNT", { count: group.memberCount })}</GroupInfo>
                         {group.description && (
                           <Typography
                             variant="body2"

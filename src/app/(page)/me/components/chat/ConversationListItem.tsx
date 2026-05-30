@@ -11,7 +11,8 @@ import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { chatService } from "@/src/common/service/chat-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
-import MenuPopover from "@/src/shared/component/MenuPopover"; // sửa đúng path của em
+import MenuPopover from "@/src/shared/component/MenuPopover";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface ConversationListItemProps {
   item: ConversationDto;
@@ -108,6 +109,8 @@ function ConversationListItem({
     (s) => s.updateConversationPinStatus
   );
 
+  const t = useTrans();
+
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const openMenu = Boolean(anchorEl);
 
@@ -180,7 +183,7 @@ function ConversationListItem({
                 <Name isGroup={isGroup}>{item.title}</Name>
                 {isGroup && item.memberCount && (
                   <GroupBadge>
-                    {item.memberCount} thành viên
+                    {t("CHAT.MEMBER_COUNT", { count: item.memberCount })}
                   </GroupBadge>
                 )}
               </NameWrap>
@@ -231,7 +234,7 @@ function ConversationListItem({
         items={[
           {
             key: "pin-toggle",
-            label: item.isPinned ? "Bỏ ghim hội thoại" : "Ghim hội thoại",
+            label: item.isPinned ? t("COMMON.UNPIN_CHAT") : t("COMMON.PIN_CHAT"),
             onClick: handleTogglePinConversation,
           },
         ]}

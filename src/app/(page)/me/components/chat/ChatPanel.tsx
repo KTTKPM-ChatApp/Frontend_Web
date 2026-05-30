@@ -327,9 +327,7 @@ export default function ChatPanel({
           conversationId={conversationId}
           pagination={pagination}
           onLoadMore={loadMoreMessages}
-          onDeleteMessage={(conversationId, messageId) =>
-            deleteMessage(conversationId, messageId, Date.now())
-          }
+          onDeleteMessage={(conversationId, messageId) => { const msg = messages.find((m) => m.messageId === messageId); return deleteMessage(conversationId, messageId, msg?.createdAt ?? Date.now()); }}
           onScroll={handleScroll}
           showScrollbar={showScrollbar}
           onForwardMessage={(msgId, convId) => setForwardTarget({ messageId: msgId, conversationId: convId })}

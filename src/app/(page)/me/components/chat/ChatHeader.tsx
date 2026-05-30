@@ -1,6 +1,7 @@
 "use client";
 
 import { useChatStore } from "@/src/common/store/useChatStore";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import { Box, IconButton, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -112,6 +113,7 @@ export default function ChatHeader({
   const onlineUserIds = useChatStore((s) => s.onlineUserIds);
   const currentUserId = useChatStore((s) => s.currentUserId);
   const conversation = listConversation.find((item) => item.id === conversationId);
+  const t = useTrans();
 
   const isDirect = conversation?.type !== "group" && conversation?.type !== "GROUP" && conversation?.type !== undefined;
   const otherMember = isDirect
@@ -132,10 +134,10 @@ export default function ChatHeader({
   });
 
   const statusText = isDirect
-    ? isOtherOnline ? "Đang hoạt động" : "Không hoạt động"
+    ? isOtherOnline ? t("CHAT.STATUS_ONLINE") : t("CHAT.INACTIVE")
     : conversation?.memberCount 
-      ? `${conversation.memberCount} thành viên` 
-      : `${conversation?.members?.length || 0} thành viên`;
+      ? t("CHAT.MEMBER_COUNT", { count: conversation.memberCount })
+      : t("CHAT.MEMBER_COUNT", { count: conversation?.members?.length || 0 });
 
   return (
     <HeaderRoot>
@@ -150,7 +152,7 @@ export default function ChatHeader({
           </StyledAvatar>
         )}
         <ConvInfo>
-          <ConvName>{conversation?.name || "Cuộc trò chuyện"}</ConvName>
+          <ConvName>{conversation?.name || t("CHAT.DEFAULT_NAME")}</ConvName>
           <ConvStatus>
             {!isDirect && <StatusDot online={socketConnected} />}
             {isDirect && <StatusDot online={statusOnline} />}
@@ -160,10 +162,10 @@ export default function ChatHeader({
       </HeaderLeft>
 
       <Actions>
-        <ActionBtn aria-label="Gọi thoại"><PhoneIcon fontSize="small" /></ActionBtn>
-        <ActionBtn aria-label="Gọi video"><VideoCallIcon fontSize="small" /></ActionBtn>
-        <ActionBtn aria-label="Tìm kiếm" onClick={onToggleSearch}><SearchIcon fontSize="small" /></ActionBtn>
-        <ActionBtn aria-label="Thông tin" onClick={onToggleInfo}><InfoOutlinedIcon fontSize="small" /></ActionBtn>
+        <ActionBtn aria-label={t("CHAT.CALL_AUDIO")}><PhoneIcon fontSize="small" /></ActionBtn>
+        <ActionBtn aria-label={t("CHAT.CALL_VIDEO")}><VideoCallIcon fontSize="small" /></ActionBtn>
+        <ActionBtn aria-label={t("CHAT.SEARCH")} onClick={onToggleSearch}><SearchIcon fontSize="small" /></ActionBtn>
+        <ActionBtn aria-label={t("CHAT.INFO")} onClick={onToggleInfo}><InfoOutlinedIcon fontSize="small" /></ActionBtn>
       </Actions>
     </HeaderRoot>
   );

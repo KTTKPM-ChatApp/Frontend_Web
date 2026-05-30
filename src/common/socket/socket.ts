@@ -52,13 +52,6 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
         );
 
         stompClient?.subscribe(
-          `/user/${currentUserId}/queue/messages`,
-          (message: IMessage) => {
-            dispatchChatEvent("chat:new", message.body);
-          },
-        );
-
-        stompClient?.subscribe(
           "/user/queue/conversations",
           (message: IMessage) => {
             dispatchChatEvent("conversation:created", message.body);
@@ -75,19 +68,6 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
               window.dispatchEvent(event);
             } catch (err) {
               console.error("Failed to parse conversation notification:", err);
-            }
-          },
-        );
-
-        stompClient?.subscribe(
-          `/topic/user-messages/${currentUserId}`,
-          (message: IMessage) => {
-            try {
-              const data = JSON.parse(message.body);
-              const event = new CustomEvent("chat:new", { detail: data });
-              window.dispatchEvent(event);
-            } catch (err) {
-              console.error("Failed to parse user message notification:", err);
             }
           },
         );
@@ -266,7 +246,20 @@ export const subscribeToConversation = (conversationId: string) => {
     },
   );
 
-  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub]);
+  const reactionSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/reaction`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        const event = new CustomEvent("chat:reaction", { detail: data });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Failed to parse reaction event:", err);
+      }
+    },
+  );
+
+  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub, reactionSub]);
 };
 
 export const unsubscribeFromConversation = (conversationId: string) => {
