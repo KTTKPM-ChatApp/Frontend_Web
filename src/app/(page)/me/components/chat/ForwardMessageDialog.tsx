@@ -20,6 +20,7 @@ import {
 import { styled } from "@mui/material/styles";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { chatService } from "@/src/common/service/chat-service";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const StyledDialog = styled(Dialog)({
   "& .MuiDialog-paper": {
@@ -52,6 +53,7 @@ export default function ForwardMessageDialog({
   const [search, setSearch] = useState("");
   const [sending, setSending] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const t = useTrans();
 
   const listConversation = useChatStore((s) => s.listConversation);
 
@@ -97,14 +99,14 @@ export default function ForwardMessageDialog({
   return (
     <StyledDialog open={open} onClose={onClose}>
       <DialogTitle sx={{ fontSize: 16, fontWeight: 700, pb: 1 }}>
-        Chuyển tiếp tin nhắn
+        {t("FORWARD.TITLE")}
       </DialogTitle>
 
       <DialogContent sx={{ px: 2, py: 1 }}>
         <SearchField
           fullWidth
           size="small"
-          placeholder="Tìm kiếm hội thoại..."
+          placeholder={t("FORWARD.PLACEHOLDER")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -112,7 +114,7 @@ export default function ForwardMessageDialog({
         {filtered.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 4 }}>
             <Typography variant="body2" color="text.secondary">
-              Không tìm thấy hội thoại
+              {t("FORWARD.NO_RESULTS")}
             </Typography>
           </Box>
         ) : (
@@ -133,8 +135,8 @@ export default function ForwardMessageDialog({
                   primary={c.name}
                   secondary={
                     c.type === "group"
-                      ? `${c.memberCount ?? 0} thành viên`
-                      : "Tin nhắn trực tiếp"
+                      ? t("CHAT.MEMBER_COUNT", { count: c.memberCount ?? 0 })
+                      : t("FORWARD.DIRECT_MESSAGE")
                   }
                   primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
                   secondaryTypographyProps={{ fontSize: 12 }}
@@ -147,7 +149,7 @@ export default function ForwardMessageDialog({
 
       <DialogActions sx={{ px: 2, pb: 2 }}>
         <Button onClick={onClose} size="small" sx={{ textTransform: "none" }}>
-          Hủy
+          {t("FORWARD.CANCEL")}
         </Button>
         <Button
           variant="contained"
@@ -159,7 +161,7 @@ export default function ForwardMessageDialog({
           {sending ? (
             <CircularProgress size={16} sx={{ color: "#fff" }} />
           ) : (
-            `Chuyển tiếp (${selectedIds.length})`
+            t("FORWARD.FORWARD_BUTTON", { count: selectedIds.length })
           )}
         </Button>
       </DialogActions>

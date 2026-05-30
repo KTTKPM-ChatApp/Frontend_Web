@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Grid, Stack, Typography, MenuItem, Select } from "@mui/material";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import HttpsRoundedIcon from "@mui/icons-material/HttpsRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import CakeIcon from '@mui/icons-material/Cake';
@@ -27,6 +28,7 @@ export interface FormRegisProps {
 }
 
 export default function FormRegis(props: FormRegisProps) {
+  const t = useTrans();
   const {
     formik,
     onGoLogin,
@@ -88,7 +90,7 @@ export default function FormRegis(props: FormRegisProps) {
               value={formik.values.password}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              placeholder="Mật khẩu"
+              placeholder={t("LOGIN.PASSWORD_PLACEHOLDER")}
               type="password"
               fullWidth
               error={Boolean(formik.touched.password && formik.errors.password)}
@@ -108,7 +110,7 @@ export default function FormRegis(props: FormRegisProps) {
               value={formik.values.confirmPsw ?? ""}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              placeholder="Nhập lại mật khẩu"
+              placeholder={t("REGIS.CONFIRM_PASSWORD_PLACEHOLDER")}
               type="password"
               fullWidth
               error={Boolean(formik.touched.confirmPsw && formik.errors.confirmPsw)}
@@ -125,7 +127,7 @@ export default function FormRegis(props: FormRegisProps) {
           <Grid size={11}>
             <AuthTextField
               name="displayName"
-              placeholder="Tên Hiển Thị"
+              placeholder={t("REGIS.FULLNAME_PLACEHOLDER")}
               value={formik.values.displayName ?? ""}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}

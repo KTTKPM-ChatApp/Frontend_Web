@@ -5,6 +5,7 @@ import { styled } from "@mui/material/styles";
 import { IMessageReplyPreview } from "@/src/common/interface/chat-interface";
 import { getReplyPreview } from "@/src/common/helpers/displayPreviewReply";
 import { useChatStore } from "@/src/common/store/useChatStore";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface MessageReplyPreviewProps {
   replyTo?: IMessageReplyPreview | null;
@@ -57,6 +58,7 @@ export default function MessageReplyPreview({
   onClick,
   mine,
 }: MessageReplyPreviewProps) {
+  const t = useTrans();
   const conversationId = useChatStore((s) => s.activeConversationId);
   const messagesByConversation = useChatStore((s) =>
     conversationId ? s.messagesByConversation[conversationId] ?? [] : []
@@ -88,7 +90,7 @@ export default function MessageReplyPreview({
     <ReplyBox mine={mine} onClick={onClick}>
       <Box sx={{ alignItems: "stretch", gap: "8px" }}>
         <ReplyText>
-          {isDeleted ? "Tin nhắn đã được thu hồi" : text}
+          {isDeleted ? t("CHAT.MESSAGE_DELETED") : text}
         </ReplyText>
       </Box>
 

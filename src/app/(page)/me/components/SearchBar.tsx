@@ -30,6 +30,7 @@ import AddFriendDialog from "./friend/ModalAddFriend";
 import { friendService } from "@/src/common/service/friend-service";
 import { useFriendStore } from "@/src/common/store/useFriendStore";
 import CreateGroupModal from "./chat/CreateGroupModal";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const BoxSearchBar = styled(Box)({
     height: 32,
@@ -126,6 +127,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
     const sentRequests = useFriendStore((s) => s.sentRequests);
     const [openCreateGroupModal, setOpenCreateGroupModal] = useState(false);
     const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+    const t = useTrans();
     const handleFocusSearchBar = () => {
         setFocusOnSearch(true);
     };
@@ -196,7 +198,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                 setUserResults(Array.isArray(users) ? users : []);
             } catch (error: any) {
                 console.error("search user error:", error);
-                setSearchError(error?.message || "Không thể tìm kiếm người dùng");
+                setSearchError(error?.message || t("COMMON.SEARCH_ERROR"));
                 setUserResults([]);
             } finally {
                 setLoadingSearch(false);
@@ -320,13 +322,13 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                 console.error("Failed to create direct conversation:", response);
                 const message =
                     response.payload?.message ||
-                    "Khong the tao cuoc tro chuyen. Vui long kiem tra backend da duoc rebuild voi route /api/conversations/direct.";
-                alert(`Loi: ${message}`);
+                    t("SEARCH.CREATE_CONVERSATION_FAILED");
+                alert(`${t("SEARCH.ERROR_PREFIX")} ${message}`);
             }
         } catch (error: any) {
             console.error("Failed to create direct conversation:", error?.payload || error);
-            const errMsg = error?.payload?.message || error?.message || "Lỗi tạo cuộc trò chuyện";
-            alert(`Lỗi: ${errMsg}`);
+            const errMsg = error?.payload?.message || error?.message || t("SEARCH.CREATE_CONVERSATION_ERROR");
+            alert(`${t("SEARCH.ERROR_PREFIX")} ${errMsg}`);
         } finally {
             setLoadingSearch(false);
             setIsCreatingConversation(false);
@@ -345,7 +347,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                     <BoxSearchBar onFocus={handleFocusSearchBar}>
                         <SearchIcon sx={{ fontSize: 22, color: "#353535" }} />
                         <SearchInput
-                            placeholder="Tìm kiếm"
+                            placeholder={t("COMMON.SEARCH_PLACEHOLDER")}
                             value={searchValue}
                             onChange={handleSearchChange}
                         />
@@ -405,7 +407,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                             ) : (
                                 <Box sx={{ p: 2, textAlign: "center" }}>
                                     <Typography color="textSecondary">
-                                        Không tìm thấy kết quả
+                                        {t("SEARCH.NO_RESULTS")}
                                     </Typography>
                                 </Box>
                             )}
@@ -422,7 +424,7 @@ const SearchBar = ({ onResultSelect, onAddFriend, onCreateGroup }: SearchBarProp
                             setSearchError(null);
                         }}
                     >
-                        <CloseSearch>Đóng</CloseSearch>
+                        <CloseSearch>{t("COMMON.CLOSE")}</CloseSearch>
                     </ActionBtn>
                 ) : (
                     <>

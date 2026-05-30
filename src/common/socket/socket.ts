@@ -52,13 +52,6 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
         );
 
         stompClient?.subscribe(
-          `/user/${currentUserId}/queue/messages`,
-          (message: IMessage) => {
-            dispatchChatEvent("chat:new", message.body);
-          },
-        );
-
-        stompClient?.subscribe(
           "/user/queue/conversations",
           (message: IMessage) => {
             dispatchChatEvent("conversation:created", message.body);
@@ -75,19 +68,6 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
               window.dispatchEvent(event);
             } catch (err) {
               console.error("Failed to parse conversation notification:", err);
-            }
-          },
-        );
-
-        stompClient?.subscribe(
-          `/topic/user-messages/${currentUserId}`,
-          (message: IMessage) => {
-            try {
-              const data = JSON.parse(message.body);
-              const event = new CustomEvent("chat:new", { detail: data });
-              window.dispatchEvent(event);
-            } catch (err) {
-              console.error("Failed to parse user message notification:", err);
             }
           },
         );

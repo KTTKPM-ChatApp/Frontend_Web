@@ -390,10 +390,10 @@ const Me = () => {
                       <ForumIcon sx={{ fontSize: 28, color: "#9CA3AF" }} />
                     </Box>
                     <Typography variant="body2" fontWeight={600} color="#374151">
-                      {t("ME.NO_UNREAD") !== "ME.NO_UNREAD" ? t("ME.NO_UNREAD") : "Không có tin nhắn chưa đọc"}
+                      {t("ME.NO_UNREAD")}
                     </Typography>
                     <Typography variant="caption" sx={{ maxWidth: 220, color: "#86909C" }}>
-                      {t("ME.NO_UNREAD_SUB") !== "ME.NO_UNREAD_SUB" ? t("ME.NO_UNREAD_SUB") : "Tuyệt vời! Bạn đã đọc hết tất cả tin nhắn mới."}
+                      {t("ME.NO_UNREAD_SUB")}
                     </Typography>
                   </Box>
                 </TabPanelStyled>
@@ -420,15 +420,15 @@ const Me = () => {
                     {
                       imageSrc:
                         "https://chat.zalo.me/assets/inapp-welcome-screen-06-darkmode.336078e876ae12bf42474586745397f0.png",
-                      title: "Giao diện Dark Mode",
-                      description: "Thư giãn và bảo vệ mắt với chế độ giao diện tối trên Zalo PC",
+                      title: t("ME.WELCOME_SLIDE1_TITLE"),
+                      description: t("ME.WELCOME_SLIDE1_DESC"),
                     },
                     {
                       imageSrc:
                         "https://chat.zalo.me/assets/zbiz_onboard_vi_3x.62514921c8505730d07aff3fa8c4e9c3.png",
-                      title: "Kinh doanh hiệu quả với Business Pro",
+                      title: t("ME.WELCOME_SLIDE2_TITLE"),
                       description:
-                        "Trải nghiệm giao diện sáng trên Zalo PC, mang đến sự tươi mới và dễ nhìn cho mọi cuộc trò chuyện.",
+                        t("ME.WELCOME_SLIDE2_DESC"),
                     },
                   ]}
                 />
@@ -486,7 +486,7 @@ const Me = () => {
             <CloudPanel />
           ) : selectedIcon === "business" ? (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
-              Business - Tính năng đang phát triển
+              {t("ME.BUSINESS_DEVELOPING")}
             </Box>
           ) : null}
         </Panel>

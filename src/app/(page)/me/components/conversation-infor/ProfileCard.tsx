@@ -24,6 +24,7 @@ import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { toast } from "react-toastify";
 
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import { chatService } from "@/src/common/service/chat-service";
 import { uploadMedia } from "@/src/common/service/media-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
@@ -197,6 +198,7 @@ interface ProfileCardProps {
 }
 
 export default function ProfileCard({ onAddMember }: ProfileCardProps) {
+  const t = useTrans();
   const listConversation = useChatStore((s) => s.listConversation);
   const activeConversationId = useChatStore((s) => s.activeConversationId);
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
@@ -227,9 +229,9 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
         isMuted: !isMuted,
       });
       await refresh();
-      toast.success(isMuted ? "Đã bật thông báo" : "Đã tắt thông báo");
+      toast.success(isMuted ? t("CHAT.NOTIFICATION_ON") : t("CHAT.NOTIFICATION_OFF"));
     } catch {
-      toast.error("Không thể cập nhật thông báo");
+      toast.error(t("CONVO.NOTIFICATION_UPDATE_FAILED"));
     }
   };
 
@@ -242,9 +244,9 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
         await chatService.pinConversation(activeConversationId);
       }
       await refresh();
-      toast.success(isPinned ? "Đã bỏ ghim hội thoại" : "Đã ghim hội thoại");
+      toast.success(isPinned ? t("CHAT.UNPIN_SUCCESS") : t("CHAT.PIN_SUCCESS"));
     } catch {
-      toast.error("Không thể cập nhật ghim");
+      toast.error(t("CONVO.PIN_UPDATE_FAILED"));
     }
   };
 
@@ -259,7 +261,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
   const handleSaveName = async () => {
     const trimmedName = editNameValue.trim();
     if (!trimmedName) {
-      toast.error("Tên nhóm không được để trống");
+      toast.error(t("CONVO.GROUP_NAME_REQUIRED"));
       return;
     }
     if (!activeConversationId) return;
@@ -267,12 +269,12 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
       await chatService.updateConversation(activeConversationId, {
         name: trimmedName,
       });
-      toast.success(`Đã đổi tên nhóm thành "${trimmedName}"`);
+      toast.success(t("CONVO.RENAME_SUCCESS", { name: trimmedName }));
       await refresh();
       setOpenEditName(false);
     } catch (error: any) {
       const message =
-        error?.message || error?.response?.data?.message || "Không thể đổi tên nhóm";
+        error?.message || error?.response?.data?.message || t("CONVO.RENAME_FAILED");
       toast.error(message);
     }
   };
@@ -292,12 +294,12 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Vui lòng chọn file ảnh");
+      toast.error(t("PROFILE.SELECT_IMAGE"));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Ảnh không được vượt quá 5MB");
+      toast.error(t("CONVO.IMAGE_SIZE_LIMIT"));
       return;
     }
 
@@ -327,13 +329,13 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
         avatarUrl: uploadResult.url || uploadResult.key,
       });
 
-      toast.success("Đã cập nhật ảnh nhóm");
+      toast.success(t("CONVO.UPDATE_AVATAR_SUCCESS"));
       await refresh();
       setOpenCropDialog(false);
       setSelectedImageSrc("");
     } catch (error: any) {
       const message =
-        error?.message || error?.response?.data?.message || "Không thể cập nhật ảnh nhóm";
+        error?.message || error?.response?.data?.message || t("CONVO.UPDATE_AVATAR_FAILED");
       toast.error(message);
     } finally {
       setUploadingAvatar(false);
@@ -367,11 +369,11 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
 
         <NameRow>
           <ConversationName title={currentConversation?.name ?? ""}>
-            {currentConversation?.name ?? "Cuộc trò chuyện"}
+            {currentConversation?.name ?? t("CHAT.DEFAULT_NAME")}
           </ConversationName>
 
           {canEdit && isGroup && (
-            <EditCircleButton aria-label="Đổi tên hội thoại" onClick={handleOpenEditName}>
+            <EditCircleButton aria-label={t("CONVO.EDIT_NAME_ARIA")} onClick={handleOpenEditName}>
               <EditOutlinedIcon sx={{ fontSize: 16 }} />
             </EditCircleButton>
           )}
@@ -379,36 +381,36 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
 
         <ActionsRow>
           <ActionItem>
-            <ActionIcon aria-label="Tắt thông báo" onClick={handleToggleMute}>
+            <ActionIcon aria-label={t("CHAT.TURN_OFF_NOTIFICATION")} onClick={handleToggleMute}>
               {isMuted ? (
                 <NotificationsOffOutlinedIcon sx={{ fontSize: 20 }} />
               ) : (
                 <NotificationsNoneRoundedIcon sx={{ fontSize: 20 }} />
               )}
             </ActionIcon>
-            <ActionText>{isMuted ? "Bật thông báo" : "Tắt thông báo"}</ActionText>
+            <ActionText>{isMuted ? t("CHAT.TURN_ON_NOTIFICATION") : t("CHAT.TURN_OFF_NOTIFICATION")}</ActionText>
           </ActionItem>
 
           <ActionItem>
-            <ActionIcon aria-label="Ghim hội thoại" onClick={handleTogglePin}>
+            <ActionIcon aria-label={t("CHAT.PIN_CONVERSATION")} onClick={handleTogglePin}>
               {isPinned ? (
                 <PushPinRoundedIcon sx={{ fontSize: 20 }} />
               ) : (
                 <PushPinOutlinedIcon sx={{ fontSize: 20 }} />
               )}
             </ActionIcon>
-            <ActionText>{isPinned ? "Bỏ ghim" : "Ghim hội thoại"}</ActionText>
+            <ActionText>{isPinned ? t("CHAT.UNPIN") : t("CHAT.PIN_CONVERSATION")}</ActionText>
           </ActionItem>
 
           <ActionItem>
             <ActionIcon
-              aria-label="Thêm thành viên"
+              aria-label={t("CONVO.ADD_MEMBER")}
               onClick={onAddMember}
               sx={onAddMember ? {} : { opacity: 0.4, cursor: "not-allowed" }}
             >
               <GroupAddOutlinedIcon sx={{ fontSize: 20 }} />
             </ActionIcon>
-            <ActionText>Thêm thành viên</ActionText>
+            <ActionText>{t("CONVO.ADD_MEMBER")}</ActionText>
           </ActionItem>
         </ActionsRow>
       </TopInfo>
@@ -429,7 +431,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
               color: "#081B3A",
             }}
           >
-            Đổi tên nhóm
+            {t("CONVO.RENAME_GROUP")}
           </Typography>
 
           <IconButton
@@ -474,7 +476,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
                 color: "#5B6575",
               }}
             >
-              Tên nhóm
+              {t("CONVO.GROUP_NAME")}
             </Typography>
 
             <TextField
@@ -489,7 +491,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
                   handleSaveName();
                 }
               }}
-              placeholder="Nhập tên nhóm mới"
+              placeholder={t("CONVO.GROUP_NAME_PLACEHOLDER")}
               variant="outlined"
               sx={{
                 "& .MuiOutlinedInput-root": {
@@ -530,7 +532,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
                 lineHeight: 1.5,
               }}
             >
-              Tên nhóm sẽ hiển thị với tất cả thành viên.
+              {t("CONVO.GROUP_NAME_VISIBLE_HINT")}
             </Typography>
           </Box>
         </DialogContentStyled>
@@ -560,7 +562,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
               },
             }}
           >
-            Hủy
+            {t("CONVO.CANCEL")}
           </Button>
 
           <Button
@@ -588,7 +590,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
               },
             }}
           >
-            Lưu thay đổi
+            {t("CONVO.SAVE_CHANGES")}
           </Button>
         </DialogActionsStyled>
       </StyledDialog>
@@ -606,7 +608,7 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
       <Dialog open={uploadingAvatar}>
         <DialogContent sx={{ display: "flex", alignItems: "center", gap: 2, py: 2 }}>
           <CircularProgress size={24} />
-          <Typography>Đang tải ảnh lên...</Typography>
+          <Typography>{t("CONVO.UPLOADING_IMAGE")}</Typography>
         </DialogContent>
       </Dialog>
     </Card>
