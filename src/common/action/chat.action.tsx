@@ -25,6 +25,15 @@ const _removeAllWindowListeners = () => {
   _windowListeners.length = 0;
 };
 
+let _syncListTimer: ReturnType<typeof setTimeout> | null = null;
+const _scheduleListSync = () => {
+  if (_syncListTimer) clearTimeout(_syncListTimer);
+  _syncListTimer = setTimeout(() => {
+    _syncListTimer = null;
+    fetchListConversation({ page: 1, limit: 20 });
+  }, 500);
+};
+
 export const rebuildConversationDerivedData = (conversationId: string) => {
   const state = useChatStore.getState();
   const messages = state.messagesByConversation[conversationId] || [];
@@ -1062,6 +1071,8 @@ export const cleanupChat = () => {
   const state = useChatStore.getState();
   const socket = getSocket();
 
+  if (_syncListTimer) clearTimeout(_syncListTimer);
+
   disconnectSocket();
 
   _removeAllWindowListeners();
@@ -1144,24 +1155,21 @@ export const cleanupChat = () => {
         )
       : state.listConversation;
 
-    if (conversationExists) {
+    if (conversationExists && !isOwnMessage) {
       nextConversations = nextConversations.map((conversation) => {
         if (conversation.id !== normalized.conversationId) return conversation;
-
-        const unreadCount =
-          isActiveConversation || isOwnMessage
-            ? 0
-            : (conversation.unreadCount ?? 0) + 1;
-
         return {
           ...conversation,
-          unreadCount,
+          unreadCount: isActiveConversation ? 0 : (conversation.unreadCount ?? 0) + 1,
         };
       });
     }
 
     if (isActiveConversation && !isOwnMessage) {
       chatService.markConversationAsRead(normalized.conversationId).catch(() => {});
+    }
+    if (!isActiveConversation && !isOwnMessage) {
+      _scheduleListSync();
     }
 
     return {

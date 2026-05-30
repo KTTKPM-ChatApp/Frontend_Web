@@ -5,6 +5,7 @@ import { Badge, Box, CircularProgress, IconButton, Menu, MenuItem, Typography } 
 import { styled } from "@mui/material/styles";
 import { Group, MoreVert, Person, PushPin, PushPinOutlined, VolumeOff, VolumeUp } from "@mui/icons-material";
 import { toast } from "react-toastify";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 import { openConversation } from "@/src/common/action/chat.action";
 import { ConversationDto } from "@/src/common/interface/chat-interface";
@@ -99,6 +100,8 @@ export default function ConversationList() {
   const conversationFetched = useChatStore((s) => s.conversationFetched);
   const fetchListConversation = useChatStore((s) => s.fetchListConversation);
 
+  const t = useTrans();
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
 
@@ -129,10 +132,10 @@ export default function ConversationList() {
   const handleToggleMute = async (conversationId: string, isMuted: boolean) => {
     try {
       await chatService.updateConversationSettings(conversationId, { isMuted: !isMuted });
-      toast.success(isMuted ? "Đã bật thông báo" : "Đã tắt thông báo");
+      toast.success(isMuted ? t("CHAT.NOTIFICATION_ON") : t("CHAT.NOTIFICATION_OFF"));
       await refresh();
     } catch (error) {
-      toast.error("Không thể thay đổi cài đặt thông báo");
+      toast.error(t("CHAT.NOTIFICATION_ERROR"));
     } finally {
       closeMenu();
     }
@@ -142,14 +145,14 @@ export default function ConversationList() {
     try {
       if (isPinned) {
         await chatService.unpinConversation(conversationId);
-        toast.success("Đã bỏ ghim cuộc trò chuyện");
+        toast.success(t("CHAT.UNPIN_SUCCESS"));
       } else {
         await chatService.pinConversation(conversationId);
-        toast.success("Đã ghim cuộc trò chuyện");
+        toast.success(t("CHAT.PIN_SUCCESS"));
       }
       await refresh();
     } catch (error) {
-      toast.error("Không thể thay đổi cài đặt ghim");
+      toast.error(t("CHAT.PIN_ERROR"));
     } finally {
       closeMenu();
     }
@@ -160,7 +163,7 @@ export default function ConversationList() {
       <Root>
         <LoadingWrap>
           <CircularProgress size={20} />
-          <LoadingText>Đang tải danh sách cuộc trò chuyện...</LoadingText>
+          <LoadingText>{t("CHAT.LOADING_CONVERSATIONS")}</LoadingText>
         </LoadingWrap>
       </Root>
     );
@@ -200,7 +203,7 @@ export default function ConversationList() {
                   <Row>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
                       {isPinned && <PushPin sx={{ fontSize: 13, color: "#2563EB" }} />}
-                      <Name>{item.name || "Cuộc trò chuyện"}</Name>
+                      <Name>{item.name || t("CHAT.CONVERSATION")}</Name>
                     </Box>
                     <Meta>
                       {(item.type === "group" || item.type === "GROUP") ? <Group sx={{ fontSize: 12, color: "#64748B" }} /> : <Person sx={{ fontSize: 12, color: "#64748B" }} />}
@@ -229,9 +232,9 @@ export default function ConversationList() {
                           if (!isMine && isGroup && item.lastMessage!.senderName) {
                             return `${item.lastMessage!.senderName}: ${item.lastMessage!.content}`;
                           }
-                          return `${isMine ? "Bạn: " : ""}${item.lastMessage!.content}`;
+                          return `${isMine ? t("CHAT.YOU") + ": " : ""}${item.lastMessage!.content}`;
                         })()
-                      : "Chưa có tin nhắn"}
+                      : t("CHAT.NO_MESSAGES")}
                   </LastMessage>
                 </Content>
               </ItemRow>
@@ -257,12 +260,12 @@ export default function ConversationList() {
                   {isMuted ? (
                     <>
                       <VolumeUp sx={{ mr: 1.5, fontSize: 18 }} />
-                      Bật thông báo
+                      {t("CHAT.TURN_ON_NOTIFICATION")}
                     </>
                   ) : (
                     <>
                       <VolumeOff sx={{ mr: 1.5, fontSize: 18 }} />
-                      Tắt thông báo
+                      {t("CHAT.TURN_OFF_NOTIFICATION")}
                     </>
                   )}
                 </MenuItem>
@@ -270,12 +273,12 @@ export default function ConversationList() {
                   {isPinned ? (
                     <>
                       <PushPinOutlined sx={{ mr: 1.5, fontSize: 18 }} />
-                      Bỏ ghim
+                      {t("CHAT.UNPIN")}
                     </>
                   ) : (
                     <>
                       <PushPin sx={{ mr: 1.5, fontSize: 18 }} />
-                      Ghim cuộc trò chuyện
+                      {t("CHAT.PIN_CONVERSATION")}
                     </>
                   )}
                 </MenuItem>

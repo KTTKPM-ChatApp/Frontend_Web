@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import { styled } from "@mui/material/styles";
 import { toast } from "react-toastify";
 import ReportGmailerrorredRoundedIcon from "@mui/icons-material/ReportGmailerrorredRounded";
@@ -134,7 +134,7 @@ interface DangerZoneProps {
 }
 
 export default function DangerZone({ conversationId }: DangerZoneProps) {
-  const { t } = useTranslation();
+  const t = useTrans();
   const [confirmAction, setConfirmAction] = useState<"leave" | "disband" | "leave-owner" | null>(null);
 
   const listConversation = useChatStore((s) => s.listConversation);
@@ -155,11 +155,11 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
   const handleLeave = async () => {
     try {
       await chatService.leaveConversation(conversationId);
-      toast.success("Đã rời nhóm");
+      toast.success(t("CONVO.LEAVE_SUCCESS"));
       setActiveConversationId(null);
       await refresh();
     } catch (error: any) {
-      const message = error?.message || error?.response?.data?.message || "Không thể rời nhóm";
+      const message = error?.message || error?.response?.data?.message || t("CONVO.LEAVE_FAILED");
       toast.error(message);
     } finally {
       setConfirmAction(null);
@@ -169,11 +169,11 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
   const handleDisband = async () => {
     try {
       await chatService.disbandGroup(conversationId);
-      toast.success("Đã giải tán nhóm");
+      toast.success(t("CONVO.DISBAND_SUCCESS"));
       setActiveConversationId(null);
       await refresh();
     } catch (error: any) {
-      const message = error?.message || error?.response?.data?.message || "Không thể giải tán nhóm";
+      const message = error?.message || error?.response?.data?.message || t("CONVO.DISBAND_FAILED");
       toast.error(message);
     } finally {
       setConfirmAction(null);
@@ -190,14 +190,14 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
 
   const getLeaveTitle = () => {
     if (confirmAction === "leave-owner") {
-      return "Không thể rời nhóm";
+      return t("CONVO.CANNOT_LEAVE");
     }
     return t("DANGER.LEAVE_GROUP");
   };
 
   const getLeaveMessage = () => {
     if (confirmAction === "leave-owner") {
-      return "Là trưởng nhóm, bạn không thể rời nhóm khi còn thành viên khác. Vui lòng chuyển quyền trưởng nhóm cho người khác hoặc giải tán nhóm.";
+      return t("CONVO.LEAVE_OWNER_MESSAGE");
     }
     return t("DANGER.LEAVE_GROUP_CONFIRM");
   };
@@ -244,8 +244,8 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
           <Typography>{t("DANGER.LEAVE_GROUP_CONFIRM")}</Typography>
         </DialogContentStyled>
         <DialogActionsStyled>
-          <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
-          <DangerButton onClick={handleLeave}>Rời nhóm</DangerButton>
+          <CancelButton onClick={() => setConfirmAction(null)}>{t("CONVO.CANCEL")}</CancelButton>
+          <DangerButton onClick={handleLeave}>{t("DANGER.LEAVE_GROUP")}</DangerButton>
         </DialogActionsStyled>
       </StyledDialog>
 
@@ -253,22 +253,19 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
         <DialogTitleStyled>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <SwapHorizIcon sx={{ color: "#FFB800" }} />
-            Chuyển quyền trưởng nhóm
+            {t("CONVO.TRANSFER_OWNERSHIP")}
           </Box>
         </DialogTitleStyled>
         <DialogContentStyled>
           <WarningBox>
             <WarningText>
-              Bạn là trưởng nhóm. Để rời nhóm, hãy chuyển quyền trưởng nhóm cho thành viên khác trong phần quản lý thành viên, hoặc giải tán nhóm nếu không cần thiết.
+              {t("CONVO.LEAVE_OWNER_WARNING")}
             </WarningText>
           </WarningBox>
-          <Typography sx={{ mt: 1 }}>
-            {/* eslint-disable-next-line react/no-unescaped-entities */}
-            <strong>Cách chuyển quyền:</strong> Vào danh sách thành viên → Nhấn icon mũi tên bên cạnh thành viên muốn chuyển quyền → Chọn "Chuyển quyền trưởng nhóm".
-          </Typography>
+          <Typography sx={{ mt: 1 }} dangerouslySetInnerHTML={{ __html: t("CONVO.TRANSFER_INSTRUCTION") }} />
         </DialogContentStyled>
         <DialogActionsStyled>
-          <CancelButton onClick={() => setConfirmAction(null)}>Đóng</CancelButton>
+          <CancelButton onClick={() => setConfirmAction(null)}>{t("COMMON.CLOSE")}</CancelButton>
         </DialogActionsStyled>
       </StyledDialog>
 
@@ -277,14 +274,14 @@ export default function DangerZone({ conversationId }: DangerZoneProps) {
         <DialogContentStyled>
           <WarningBox>
             <WarningText>
-              Hành động này sẽ xóa vĩnh viễn nhóm và toàn bộ tin nhắn. Không thể hoàn tác.
+              {t("CONVO.DISBAND_WARNING")}
             </WarningText>
           </WarningBox>
           <Typography sx={{ mt: 1 }}>{t("DANGER.DISBAND_GROUP_CONFIRM")}</Typography>
         </DialogContentStyled>
         <DialogActionsStyled>
-          <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
-          <DangerButton onClick={handleDisband}>Giải tán</DangerButton>
+          <CancelButton onClick={() => setConfirmAction(null)}>{t("CONVO.CANCEL")}</CancelButton>
+          <DangerButton onClick={handleDisband}>{t("CONVO.DISBAND_BTN")}</DangerButton>
         </DialogActionsStyled>
       </StyledDialog>
     </>

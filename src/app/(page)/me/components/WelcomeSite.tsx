@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
@@ -160,17 +161,15 @@ const SlideDescription = styled(Typography)({
 export default function WelcomeSite({ slides }: WelcomeSiteProps) {
     const showNav = slides.length > 1;
     const showPagination = slides.length > 1;
+    const t = useTrans();
 
     return (
         <Root>
             <Header>
-                <Title>
-                    Chào mừng đến với <b>Zalo PC!</b>
-                </Title>
+                <Title dangerouslySetInnerHTML={{ __html: t("ME.WELCOME_TITLE") }} />
 
                 <Subtitle>
-                    Khám phá những tiện ích hỗ trợ làm việc và trò chuyện cùng <br />
-                    người thân, bạn bè được tối ưu hóa cho máy tính của bạn.
+                    {t("ME.WELCOME_SUBTITLE")}
                 </Subtitle>
             </Header>
 

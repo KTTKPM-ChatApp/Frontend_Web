@@ -6,6 +6,7 @@ import { styled } from "@mui/material/styles";
 import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import SectionBlock from "./SectionBlock";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const SecurityRow = styled(Box)({
   minHeight: 62,
@@ -35,16 +36,17 @@ const SecuritySub = styled(Typography)({
 });
 
 export default function SecuritySection() {
+  const t = useTrans();
   const [hideConversation, setHideConversation] = useState(false);
 
   return (
-    <SectionBlock title="Thiết lập bảo mật" defaultOpen>
+    <SectionBlock title={t("CONVO.SECURITY_TITLE")} defaultOpen>
       <SecurityRow>
         <SecurityLeft>
           <TimerOutlinedIcon />
           <Box>
-            <SecurityTitle>Tin nhắn tự xoá</SecurityTitle>
-            <SecuritySub>Không bao giờ</SecuritySub>
+            <SecurityTitle>{t("CONVO.AUTO_DELETE")}</SecurityTitle>
+            <SecuritySub>{t("CONVO.NEVER")}</SecuritySub>
           </Box>
         </SecurityLeft>
       </SecurityRow>
@@ -52,7 +54,7 @@ export default function SecuritySection() {
       <SecurityRow>
         <SecurityLeft>
           <VisibilityOffOutlinedIcon />
-          <SecurityTitle>Ẩn trò chuyện</SecurityTitle>
+          <SecurityTitle>{t("CONVO.HIDE_CHAT")}</SecurityTitle>
         </SecurityLeft>
 
         <Switch

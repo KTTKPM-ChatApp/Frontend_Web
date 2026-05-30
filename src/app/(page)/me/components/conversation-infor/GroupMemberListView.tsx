@@ -24,6 +24,8 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
+import { useTrans } from "@/src/common/utilities/hook/trans";
+
 const Root = styled(Box)({
   background: "#fff",
   marginBottom: 8,
@@ -331,6 +333,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
   canManageMembers = false,
   canPromote = false,
 }) => {
+  const t = useTrans();
   const [open, setOpen] = useState(true);
   const [confirmAction, setConfirmAction] = useState<ConfirmActionType>(null);
   const [showAllMembers, setShowAllMembers] = useState(false);
@@ -362,13 +365,13 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
     if (!confirmAction) return "";
     switch (confirmAction.type) {
       case "promote":
-        return "Phong quản trị viên";
+        return t("CONVO.PROMOTE_TO_ADMIN");
       case "demote":
-        return "Hạ quyền quản trị viên";
+        return t("CONVO.DEMOTE_ADMIN");
       case "remove":
-        return "Xóa thành viên";
+        return t("CONVO.DELETE_MEMBER");
       case "transfer":
-        return "Chuyển quyền trưởng nhóm";
+        return t("CONVO.TRANSFER_OWNERSHIP");
     }
   };
 
@@ -376,13 +379,13 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
     if (!confirmAction) return "";
     switch (confirmAction.type) {
       case "promote":
-        return `Bạn có chắc chắn muốn phong "${confirmAction.memberName}" làm quản trị viên nhóm?`;
+        return t("CONVO.PROMOTE_CONFIRM", { name: confirmAction.memberName });
       case "demote":
-        return `Bạn có chắc chắn muốn hạ quyền "${confirmAction.memberName}" xuống thành viên thường?`;
+        return t("CONVO.DEMOTE_CONFIRM", { name: confirmAction.memberName });
       case "remove":
-        return `Bạn có chắc chắn muốn xóa "${confirmAction.memberName}" khỏi nhóm?`;
+        return t("CONVO.REMOVE_MEMBER_CONFIRM", { name: confirmAction.memberName });
       case "transfer":
-        return `Bạn có chắc chắn muốn chuyển quyền trưởng nhóm cho "${confirmAction.memberName}"? Bạn sẽ trở thành quản trị viên.`;
+        return t("CONVO.TRANSFER_CONFIRM", { name: confirmAction.memberName });
     }
   };
 
@@ -392,7 +395,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
     <Root>
       <Header onClick={() => setOpen((prev) => !prev)}>
         <HeaderLeft>
-          <Title>Thành viên nhóm</Title>
+          <Title>{t("CONVO.MEMBERS_GROUP")}</Title>
           <Count>({totalCount})</Count>
         </HeaderLeft>
         <ArrowButton open={open}>
@@ -403,7 +406,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
       <Collapse in={open}>
         <SearchWrap>
           <StyledSearch
-            placeholder="Tìm kiếm thành viên"
+            placeholder={t("GROUP.SEARCH_MEMBERS")}
             value={searchValue}
             onChange={(e) => onSearch(e.target.value)}
             startAdornment={
@@ -414,7 +417,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
 
         {filteredMembers.length === 0 ? (
           <Box p="0 16px 16px" textAlign="center" color="#767A7F" fontSize={14}>
-            {searchValue ? "Không tìm thấy" : "Chưa có thành viên"}
+            {searchValue ? t("GROUP.FRIEND_NOT_FOUND") : t("CONVO.NO_MEMBERS_YET")}
           </Box>
         ) : (
           <>
@@ -429,13 +432,13 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                     {member.isOwner && (
                       <OwnerBadge>
                         <EmojiEventsIcon sx={{ fontSize: 12 }} />
-                        Chủ nhóm
+                        {t("CONVO.ROLE_OWNER")}
                       </OwnerBadge>
                     )}
                     {member.isAdmin && !member.isOwner && (
                       <AdminBadge>
                         <AdminPanelSettingsIcon sx={{ fontSize: 12 }} />
-                        Quản trị viên
+                        {t("CONVO.ROLE_ADMIN")}
                       </AdminBadge>
                     )}
                   </MemberInfo>
@@ -451,7 +454,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                               memberName: member.name,
                             })
                           }
-                          title="Chuyển quyền trưởng nhóm"
+                          title={t("CONVO.TRANSFER_OWNERSHIP")}
                         >
                           <SwapHorizIcon sx={{ fontSize: 18 }} />
                         </TransferButton>
@@ -465,7 +468,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                                 memberName: member.name,
                               })
                             }
-                            title="Phong quản trị viên"
+                            title={t("CONVO.PROMOTE_TO_ADMIN")}
                           >
                             <ArrowForwardIcon sx={{ fontSize: 18 }} />
                           </PromoteButton>
@@ -480,7 +483,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                                 memberName: member.name,
                               })
                             }
-                            title="Hạ quyền quản trị viên"
+                            title={t("CONVO.DEMOTE_ADMIN")}
                           >
                             <ArrowForwardIcon sx={{ fontSize: 18, transform: "rotate(180deg)" }} />
                           </DemoteButton>
@@ -497,7 +500,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
                             memberName: member.name,
                           })
                         }
-                        title="Xóa thành viên"
+                        title={t("CONVO.DELETE_MEMBER")}
                       >
                         <PersonRemoveIcon sx={{ fontSize: 18 }} />
                       </RemoveButton>
@@ -509,7 +512,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
 
             {!showAll && (
               <ViewAllBtn fullWidth onClick={() => setShowAllMembers(true)}>
-                Xem tất cả ({filteredMembers.length})
+                {t("CONVO.VIEW_ALL")} ({filteredMembers.length})
               </ViewAllBtn>
             )}
           </>
@@ -519,7 +522,7 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
           <AddMemberLine onClick={onAddMember}>
             <PersonAddAlt1RoundedIcon sx={{ fontSize: 20 }} />
             <Typography fontSize={14} fontWeight={500}>
-              Thêm thành viên
+              {t("CONVO.ADD_MEMBER")}
             </Typography>
           </AddMemberLine>
         )}
@@ -531,11 +534,11 @@ const GroupMemberListView: React.FC<GroupMemberListViewProps> = ({
           <Typography>{getConfirmMessage()}</Typography>
         </DialogContentStyled>
         <DialogActionsStyled>
-          <CancelButton onClick={() => setConfirmAction(null)}>Hủy</CancelButton>
+          <CancelButton onClick={() => setConfirmAction(null)}>{t("CONVO.CANCEL")}</CancelButton>
           {isDangerAction ? (
-            <ConfirmButtonDanger onClick={handleConfirmAction}>Xác nhận</ConfirmButtonDanger>
+            <ConfirmButtonDanger onClick={handleConfirmAction}>{t("CONVO.CONFIRM")}</ConfirmButtonDanger>
           ) : (
-            <ConfirmButtonPrimary onClick={handleConfirmAction}>Xác nhận</ConfirmButtonPrimary>
+            <ConfirmButtonPrimary onClick={handleConfirmAction}>{t("CONVO.CONFIRM")}</ConfirmButtonPrimary>
           )}
         </DialogActionsStyled>
       </StyledDialog>

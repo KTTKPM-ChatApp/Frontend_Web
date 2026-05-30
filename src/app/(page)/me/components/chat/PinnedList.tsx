@@ -7,6 +7,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { UiMessage, ConversationMemberDto } from "@/src/common/interface/chat-interface";
 import PinnedItem from "./PinnedItem";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface PinnedListProps {
   pinnedMessages: UiMessage[];
@@ -79,12 +80,13 @@ export default function PinnedList({
   onCollapse,
   onMenuClick,
 }: PinnedListProps) {
+  const t = useTrans();
   return (
     <Container>
       <Header>
         <HeaderLeft>
           <PushPinIcon sx={{ fontSize: 16, color: "#fff" }} />
-          <HeaderTitle>Danh sách ghim ({pinnedMessages.length})</HeaderTitle>
+          <HeaderTitle>{t("CHAT.PINNED_LIST_TITLE", { count: pinnedMessages.length })}</HeaderTitle>
         </HeaderLeft>
         <CollapseButton size="small" onClick={onCollapse}>
           <ExpandLessIcon sx={{ fontSize: 18 }} />

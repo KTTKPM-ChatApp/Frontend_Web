@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import {
   Avatar,
   Box,
@@ -190,17 +191,19 @@ const FriendList: React.FC<FriendListProps> = ({
   onFriendClick,
   onlineIds = [],
 }) => {
+  const t = useTrans();
+
   return (
     <Root>
       <Header>
-        <HeaderTitle>Danh sách bạn bè</HeaderTitle>
+        <HeaderTitle>{t("FRIEND.LIST_TITLE")}</HeaderTitle>
       </Header>
 
       <Content>
         <SearchWrapper>
           <SearchIcon sx={{ fontSize: 20, color: "#86909C" }} />
           <StyledSearch
-            placeholder="Tìm bạn bè"
+            placeholder={t("FRIEND.SEARCH_PLACEHOLDER")}
             onChange={(e) => onSearch(e.target.value)}
           />
         </SearchWrapper>
@@ -214,8 +217,8 @@ const FriendList: React.FC<FriendListProps> = ({
             <EmptyIcon>
               <PeopleAltIcon sx={{ fontSize: 36, color: "#767A7F" }} />
             </EmptyIcon>
-            <EmptyText>Chưa có bạn bè nào</EmptyText>
-            <EmptySubtext>Kết bạn để bắt đầu trò chuyện</EmptySubtext>
+            <EmptyText>{t("FRIEND.NO_FRIENDS_YET")}</EmptyText>
+            <EmptySubtext>{t("FRIEND.ADD_FRIEND_HINT")}</EmptySubtext>
           </EmptyState>
         ) : (
           <Stack spacing={1.5}>
@@ -245,8 +248,8 @@ const FriendList: React.FC<FriendListProps> = ({
                       <FriendName>{friend.name}</FriendName>
                       <FriendStatus>
                         {onlineIds.includes(friend.id)
-                          ? "Đang hoạt động"
-                          : "Không hoạt động"}
+                          ? t("CHAT.STATUS_ONLINE")
+                          : t("CHAT.INACTIVE")}
                       </FriendStatus>
                     </Box>
                     <RemoveButton
@@ -259,7 +262,7 @@ const FriendList: React.FC<FriendListProps> = ({
                         onRemoveFriend(friend.id);
                       }}
                     >
-                      Xóa
+                      {t("FRIEND.REMOVE")}
                     </RemoveButton>
                   </Stack>
                 </CardContent>

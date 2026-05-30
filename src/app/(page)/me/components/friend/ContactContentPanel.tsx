@@ -24,6 +24,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
 
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import { ContactView } from "./ContactFunctionList";
 import FriendList from "./FriendList";
 import GroupList from "./GroupList";
@@ -211,6 +212,8 @@ interface ContactContentPanelProps {
 const ContactContentPanel: React.FC<
   ContactContentPanelProps
 > = ({ view }) => {
+  const t = useTrans();
+
   const [friends, setFriends] = useState<
     FriendUser[]
   >([]);
@@ -494,14 +497,13 @@ const ContactContentPanel: React.FC<
         return pendingRequests.length ===
           0 ? (
           renderEmpty(
-            "Không có lời mời kết bạn",
-            "Bạn sẽ thấy lời mời kết bạn ở đây"
+            t("FRIEND.NO_REQUESTS"),
+            t("FRIEND.NO_REQUESTS_SUB")
           )
         ) : (
           <Content>
             <SectionTitle>
-              Lời mời kết bạn (
-              {pendingRequests.length})
+              {t("FRIEND.REQUESTS_SECTION", { count: pendingRequests.length })}
             </SectionTitle>
 
             <Stack spacing={2}>
@@ -549,7 +551,7 @@ const ContactContentPanel: React.FC<
 
                             <UserMessage>
                               {req.message ||
-                                "Đã gửi lời mời kết bạn"}
+                                t("FRIEND.REQUEST_SENT")}
                             </UserMessage>
                           </Box>
                         </Stack>
@@ -568,7 +570,7 @@ const ContactContentPanel: React.FC<
                               )
                             }
                           >
-                            Từ chối
+                            {t("FRIEND.REJECT")}
                           </RejectButton>
 
                           <AcceptButton
@@ -581,7 +583,7 @@ const ContactContentPanel: React.FC<
                               )
                             }
                           >
-                            Chấp nhận
+                            {t("FRIEND.ACCEPT")}
                           </AcceptButton>
                         </Stack>
                       </Stack>
@@ -597,14 +599,13 @@ const ContactContentPanel: React.FC<
         return sentRequests.length ===
           0 ? (
           renderEmpty(
-            "Không có lời mời đã gửi",
-            "Bạn sẽ thấy lời mời đã gửi ở đây"
+            t("FRIEND.NO_SENT"),
+            t("FRIEND.NO_SENT_SUB")
           )
         ) : (
           <Content>
             <SectionTitle>
-              Lời mời đã gửi (
-              {sentRequests.length})
+              {t("FRIEND.SENT_SECTION", { count: sentRequests.length })}
             </SectionTitle>
 
             <Stack spacing={2}>
@@ -647,7 +648,7 @@ const ContactContentPanel: React.FC<
                           </UserName>
 
                           <UserMessage>
-                            Đang chờ phản hồi
+                            {t("FRIEND.PENDING_RESPONSE")}
                           </UserMessage>
                         </Box>
                       </Stack>
@@ -662,7 +663,7 @@ const ContactContentPanel: React.FC<
                           )
                         }
                       >
-                        Hủy yêu cầu
+                        {t("FRIEND.CANCEL_REQUEST")}
                       </CancelButton>
                     </Stack>
                   </CardContent>
@@ -682,17 +683,17 @@ const ContactContentPanel: React.FC<
       <Header>
         <HeaderTitle>
           {view === "friends" &&
-            "Danh sách bạn bè"}
+            t("FRIEND.LIST_TITLE")}
 
           {view === "groups" &&
-            "Nhóm của bạn"}
+            t("GROUP.YOUR_GROUPS")}
 
           {view ===
             "friendRequests" &&
-            "Lời mời kết bạn"}
+            t("FRIEND.REQUEST_TITLE")}
 
           {view === "sentRequests" &&
-            "Lời mời đã gửi"}
+            t("FRIEND.SENT_TITLE")}
         </HeaderTitle>
       </Header>
 

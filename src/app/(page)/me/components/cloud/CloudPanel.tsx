@@ -47,6 +47,8 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import axios from "axios";
 import { cloudService } from "@/src/common/service/cloud-service";
 import { getSessionToken } from "@/src/common/utilities/utils";
+import { Trans } from "react-i18next";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 /* ===================== styled components ===================== */
 
@@ -142,6 +144,7 @@ interface CloudPanelProps {
 }
 
 export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
+  const t = useTrans();
   const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [currentFolder, setCurrentFolder] = useState<any | null>(null);
@@ -174,7 +177,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
     // Check for duplicate name in the same folder
     const isDuplicate = files.some((f) => f.name === renameValue.trim() && f.id !== selectedFile.id);
     if (isDuplicate) {
-      alert(`File "${renameValue.trim()}" đã tồn tại trong thư mục này. Vui lòng chọn tên khác.`);
+      alert(t("CLOUD.RENAME_DUPLICATE_ALERT").replace("{name}", renameValue.trim()));
       return;
     }
     const res = await cloudService.updateFile(selectedFile.id, { name: renameValue.trim() });
@@ -262,7 +265,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
     if (!file) return;
 
     if (totalSizeUsed + file.size > totalStorageLimit) {
-      alert("Vượt quá dung lượng lưu trữ cho phép (1 GB). Vui lòng xóa bớt file để giải phóng bộ nhớ!");
+      alert(t("CLOUD.STORAGE_EXCEEDED"));
       return;
     }
 
@@ -272,7 +275,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
     // Check for duplicate file name in the current folder
     const isDuplicate = files.some((f) => f.name === file.name);
     if (isDuplicate) {
-      alert(`File "${file.name}" đã tồn tại trong thư mục này. Vui lòng đổi tên file trước khi tải lên.`);
+      alert(t("CLOUD.UPLOAD_DUPLICATE_ALERT").replace("{name}", file.name));
       setUploading(false);
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -329,7 +332,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
       if (regRes.ok) {
         setFiles((prev) => [regRes.data, ...prev]);
       } else if (regRes.status === 409) {
-        alert(`File "${file.name}" đã tồn tại trong thư mục này.`);
+        alert(t("CLOUD.FILE_EXISTS_ALERT").replace("{name}", file.name));
       }
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -602,10 +605,10 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                       <FolderIcon sx={{ fontSize: 40, color: "#FFC107" }} />
                     </Box>
                     <Typography variant="h6" fontWeight={700} color="#081B3A">
-                      Chọn thư mục để bắt đầu tải lên tệp tin
+                      {t("CLOUD.SELECT_FOLDER_TITLE")}
                     </Typography>
                     <Typography variant="body2" color="#86909C" sx={{ maxWidth: 420, lineHeight: 1.6 }}>
-                      Vui lòng bấm chọn một thư mục hiện có ở danh sách <strong>Folders</strong> bên trái, hoặc bấm <strong>New Folder (+)</strong> để tạo thư mục mới trước khi tải lên.
+                      {t("CLOUD.SELECT_FOLDER_DESC")}
                     </Typography>
                   </Paper>
                                 ) : files.length === 0 ? (
@@ -613,10 +616,10 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                   <UploadZone onClick={() => fileInputRef.current?.click()} sx={{ py: 10, border: "2px dashed #0068FF" }}>
                     <CloudUploadIcon sx={{ fontSize: 48, color: "#0068FF" }} />
                     <Typography variant="body1" fontWeight={700} color="#081B3A">
-                      Tải tệp tin lên thư mục "{currentFolder.name}"
+                      {t("CLOUD.UPLOAD_TO_FOLDER").replace("{name}", currentFolder.name)}
                     </Typography>
                     <Typography variant="body2" color="#86909C">
-                      Kéo thả tệp tin hoặc nhấp vào đây để tải lên hình ảnh, video, tài liệu...
+                      {t("CLOUD.DRAG_DROP_HINT")}
                     </Typography>
                   </UploadZone>
                 ) : (
@@ -662,7 +665,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                               <Box sx={{ display: { xs: "none", md: "flex" }, gap: 0.5, justifyContent: "center" }}>
                                 <IconButton
                                   size="small"
-                                  title="Tải xuống"
+                                  title={t("CLOUD.DOWNLOAD")}
                                   onClick={() => window.open(file.url, "_blank", "noopener,noreferrer")}
                                   sx={{ color: "#005AE0", "&:hover": { backgroundColor: "#E3F2FD" } }}
                                 >
@@ -670,7 +673,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                                 </IconButton>
                                 <IconButton
                                   size="small"
-                                  title="Đổi tên"
+                                  title={t("CLOUD.RENAME")}
                                   onClick={() => { setSelectedFile(file); setRenameValue(file.name); setOpenRename(true); }}
                                   sx={{ color: "#FF9800", "&:hover": { backgroundColor: "#FFF8E1" } }}
                                 >
@@ -678,7 +681,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                                 </IconButton>
                                 <IconButton
                                   size="small"
-                                  title="Xóa"
+                                  title={t("CLOUD.DELETE")}
                                   onClick={() => handleDeleteFile(file.id)}
                                   sx={{ color: "#E11D48", "&:hover": { backgroundColor: "#FFF1F2" } }}
                                 >
@@ -759,7 +762,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
           <ListItemIcon>
             <DownloadIcon fontSize="small" color="primary" />
           </ListItemIcon>
-          <ListItemText primary="Tải xuống" primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
+          <ListItemText primary={t("CLOUD.DOWNLOAD")} primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
         </MenuItem>
 
         <MenuItem
@@ -771,7 +774,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
           <ListItemIcon>
             <EditIcon fontSize="small" sx={{ color: "#FF9800" }} />
           </ListItemIcon>
-          <ListItemText primary="Đổi tên" primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
+          <ListItemText primary={t("CLOUD.RENAME")} primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
         </MenuItem>
 
         <MenuItem
@@ -785,7 +788,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
           <ListItemIcon>
             <DeleteIcon fontSize="small" sx={{ color: "#E11D48" }} />
           </ListItemIcon>
-          <ListItemText primary="Xóa" primaryTypographyProps={{ variant: "body2", fontWeight: 600, color: "#E11D48" }} />
+          <ListItemText primary={t("CLOUD.DELETE")} primaryTypographyProps={{ variant: "body2", fontWeight: 600, color: "#E11D48" }} />
         </MenuItem>
       </Menu>
 
