@@ -139,10 +139,10 @@ const TimeText = styled(Typography)({
   transition: "opacity 0.15s ease, visibility 0.15s ease",
 });
 
-const formatLastMessageTime = (dateStr?: string, t?: any) => {
+const formatLastMessageTime = (dateStr?: string | number | null, t?: any) => {
   if (!dateStr) return "";
   try {
-    const date = new Date(dateStr);
+    const date = new Date(typeof dateStr === "number" ? dateStr : String(dateStr));
     const now = new Date();
     
     if (date.toDateString() === now.toDateString()) {
