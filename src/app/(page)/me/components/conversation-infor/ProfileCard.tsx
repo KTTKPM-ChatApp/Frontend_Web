@@ -25,6 +25,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { toast } from "react-toastify";
 
 import { useTrans } from "@/src/common/utilities/hook/trans";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { chatService } from "@/src/common/service/chat-service";
 import { uploadMedia } from "@/src/common/service/media-service";
 import { useChatStore } from "@/src/common/store/useChatStore";
@@ -214,6 +215,9 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
     currentConversation?.type === "GROUP";
 
   const members = currentConversation?.members ?? [];
+  const otherMember = !isGroup
+    ? members.find((m: any) => m.userId !== currentUserId)
+    : null;
   const currentUserMember = members.find(
     (m: any) => m.userId === currentUserId
   );
@@ -347,10 +351,11 @@ export default function ProfileCard({ onAddMember }: ProfileCardProps) {
       <TopInfo>
         <AvatarWrapper onClick={handleAvatarClick}>
           <AppAvatar
-            src={currentConversation?.avatarUrl ?? ""}
+            src={resolveMediaUrl(isGroup ? currentConversation?.avatarUrl : (otherMember?.avatarUrl || currentConversation?.avatarUrl)) || undefined}
             name={currentConversation?.name ?? ""}
             size={72}
             fontSize={26}
+            isGroup={isGroup}
           />
           {canEdit && (
             <AvatarOverlay className="avatar-overlay">

@@ -2,6 +2,8 @@
 
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
+import AppAvatar from "@/src/shared/component/Avatar";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { Box, IconButton, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -143,13 +145,19 @@ export default function ChatHeader({
     <HeaderRoot>
       <HeaderLeft>
         {!isDirect ? (
-          <StyledAvatar sx={{ background: "linear-gradient(135deg, #0068FF 0%, #00B4FF 100%)" }}>
-            <GroupsIcon sx={{ fontSize: 22, color: "#fff" }} />
-          </StyledAvatar>
+          <AppAvatar
+            src={resolveMediaUrl(conversation?.avatarUrl) || undefined}
+            name={conversation?.name || "Group"}
+            size={40}
+            isGroup={true}
+          />
         ) : (
-          <StyledAvatar>
-            {conversation?.name?.charAt(0)?.toUpperCase() || "C"}
-          </StyledAvatar>
+          <AppAvatar
+            src={resolveMediaUrl(otherMember?.avatarUrl || conversation?.avatarUrl) || undefined}
+            name={conversation?.name || "C"}
+            size={40}
+            isGroup={false}
+          />
         )}
         <ConvInfo>
           <ConvName>{conversation?.name || t("CHAT.DEFAULT_NAME")}</ConvName>

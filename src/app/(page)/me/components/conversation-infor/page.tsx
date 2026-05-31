@@ -7,6 +7,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { toast } from "react-toastify";
 
 import { useChatStore } from "@/src/common/store/useChatStore";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import { chatService } from "@/src/common/service/chat-service";
 import { friendService } from "@/src/common/service/friend-service";
 import { AttachmentDto } from "@/src/common/interface/chat-interface";
@@ -230,7 +231,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
           members={members.map((m: any) => ({
             id: m.userId,
             name: m.displayName || m.username || m.userId,
-            avatar: m.avatarUrl || undefined,
+            avatar: resolveMediaUrl(m.avatarUrl) || undefined,
             isOwner: m.role === "OWNER",
             isAdmin: m.role === "OWNER" || m.role === "ADMIN",
           }))}

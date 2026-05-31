@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { PaginationState, UiMessage, AttachmentDto } from "@/src/common/interface/chat-interface";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import { pinMessage, toggleReaction, unpinMessage } from "@/src/common/action/chat.action";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import MessageItem from "./MessageItem";
 import SystemMessageBanner from "./message-system/SystemMessageBanner";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -217,7 +218,10 @@ export default function MessageList({
                     mine ? undefined : {
                       id: msg.senderId,
                       name: resolveSenderName(msg),
-                      avatar: undefined,
+                      avatar: (() => {
+                        const member = members?.find((m) => m.userId === msg.senderId);
+                        return resolveMediaUrl(member?.avatarUrl) || undefined;
+                      })(),
                     }
                   }
                   timestamp={new Date(msg.createdAt).toLocaleTimeString("vi-VN", {

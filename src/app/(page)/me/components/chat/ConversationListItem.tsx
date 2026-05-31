@@ -3,7 +3,8 @@
 import { memo, useMemo, useState } from "react";
 import { Badge, Box, IconButton, Stack, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import AppAvatar, { buildS3Url } from "@/src/shared/component/Avatar";
+import AppAvatar from "@/src/shared/component/Avatar";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import type { ConversationDto } from "@/src/common/interface/chat-interface";
 import { getConversationLastMessageText } from "@/src/common/helpers/conversation.helpers";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
@@ -170,8 +171,8 @@ function ConversationListItem({
     : otherMember?.nickname || otherMember?.fullName || item.title;
 
   const displaySrc = isGroup
-    ? buildS3Url(item.avatarUrl)
-    : buildS3Url(otherMember?.avatarUrl || item.avatarUrl);
+    ? resolveMediaUrl(item.avatarUrl) || undefined
+    : resolveMediaUrl(otherMember?.avatarUrl || item.avatarUrl) || undefined;
 
 
   return (
