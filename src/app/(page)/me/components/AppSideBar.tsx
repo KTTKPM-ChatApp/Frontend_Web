@@ -105,11 +105,8 @@ const AppSidebarContent: React.FC<AppSidebarProps> = ({
 
         setMenuAnchorEl(event.currentTarget);
         setActivePopover(type);
-        if (type === "settings") {
-          onSelect("settings");
-        }
       },
-    [activePopover, menuAnchorEl, setActivePopover, onSelect]
+    [activePopover, menuAnchorEl, setActivePopover]
   );
       
   const handleClosePopover = useCallback(() => {
@@ -263,9 +260,7 @@ const AppSidebarContent: React.FC<AppSidebarProps> = ({
                 selected={selectedIcon === "chatbot"}
                 onClick={() => onSelect("chatbot")}
               />
-            </Stack>
 
-            <Stack mb={2} spacing={1.25} alignItems="center">
               <BoxIcon
                 outlined={CloudOutlinedIcon}
                 filled={CloudIcon}
@@ -285,7 +280,7 @@ const AppSidebarContent: React.FC<AppSidebarProps> = ({
               <BoxIcon
                 outlined={SettingsOutlinedIcon}
                 filled={SettingsIcon}
-                selected={selectedIcon === "settings" && activePopover === "settings"}
+                selected={selectedIcon === "settings" || activePopover === "settings"}
                 onClick={handleOpenPopover("settings")}
               />
             </Stack>

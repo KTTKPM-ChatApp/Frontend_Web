@@ -23,11 +23,19 @@ const ItemList = styled(Box)({
     padding: "0 20px 16px",
 });
 
-const ItemRow = styled(Box)({
+const ItemRow = styled("a")({
     display: "flex",
     alignItems: "flex-start",
     gap: 10,
     padding: "10px 0",
+    textDecoration: "none",
+    cursor: "pointer",
+    "&:hover": {
+        "& .file-title": {
+            color: "#0068FF",
+            textDecoration: "underline",
+        }
+    }
 });
 
 const ItemContent = styled(Box)({
@@ -39,6 +47,7 @@ const ItemTitle = styled(Typography)({
     fontSize: 14,
     color: "#0F172A",
     wordBreak: "break-word",
+    fontFamily: "inherit",
 });
 
 const ItemSub = styled(Typography)({
@@ -59,10 +68,10 @@ export default function FileSection({ items }: FileSectionProps) {
             {items.length > 0 ? (
                 <ItemList>
                     {items.slice(0, 6).map((file) => (
-                        <ItemRow key={file.key || file.name}>
-                            <DescriptionOutlinedIcon sx={{ color: "#0F3B82", mt: "2px" }} />
+                        <ItemRow key={file.key || file.name} href={file.url} target="_blank" rel="noopener noreferrer">
+                            <DescriptionOutlinedIcon sx={{ color: "#0068FF", mt: "2px" }} />
                             <ItemContent>
-                                <ItemTitle>{file.name}</ItemTitle>
+                                <ItemTitle className="file-title">{file.name}</ItemTitle>
                                 <ItemSub>{formatFileSize(file.size)}</ItemSub>
                             </ItemContent>
                         </ItemRow>

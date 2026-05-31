@@ -210,6 +210,7 @@ const WelcomeContainer = styled(Box)({
 });
 
 export default function ChatbotPanel() {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<ChatbotConversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatbotMessage[]>([]);
@@ -256,6 +257,7 @@ export default function ChatbotPanel() {
 
   const handleDeleteConversation = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!confirm(t("AI.DELETE_CONVO_CONFIRM"))) return;
     await chatbotService.deleteConversation(convId);
     setConversations((prev) => prev.filter((c) => c.id !== convId));
     if (activeConvId === convId) {
@@ -327,7 +329,7 @@ export default function ChatbotPanel() {
       <ConversationSidebar>
         <ConversationHeader>
           <Typography variant="subtitle1" fontWeight={600}>
-            AI Chatbot
+            {t("AI.TITLE")}
           </Typography>
           <IconButton size="small" onClick={handleNewConversation} sx={{ color: "#005AE0" }}>
             <AddIcon />
@@ -336,7 +338,7 @@ export default function ChatbotPanel() {
         <ConversationList>
           {conversations.length === 0 && (
             <Typography variant="body2" color="text.secondary" textAlign="center" mt={4}>
-              No conversations yet
+              {t("AI.NO_CONVO")}
             </Typography>
           )}
           {conversations.map((conv) => (
@@ -373,9 +375,9 @@ export default function ChatbotPanel() {
         {!activeConvId ? (
           <WelcomeContainer>
             <SmartToyIcon sx={{ fontSize: 64, color: "#005AE0" }} />
-            <Typography variant="h6">AI Chatbot</Typography>
+            <Typography variant="h6">{t("AI.WELCOME_TITLE")}</Typography>
             <Typography variant="body2" textAlign="center" maxWidth={400}>
-              Start a new conversation or select an existing one to chat with the AI assistant.
+              {t("AI.WELCOME_DESC")}
             </Typography>
           </WelcomeContainer>
         ) : (
@@ -384,7 +386,7 @@ export default function ChatbotPanel() {
               <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <SmartToyIcon sx={{ color: "#005AE0" }} />
                 <Typography variant="subtitle1" fontWeight={600}>
-                  {activeConversation?.title || "AI Chat"}
+                  {activeConversation?.title || t("AI.TITLE")}
                 </Typography>
               </Box>
               <Typography
@@ -402,7 +404,7 @@ export default function ChatbotPanel() {
                   fontSize: "12px",
                 }}
               >
-                {messages.length} / 20 tin nhắn (độ dài ngữ cảnh)
+                {t("AI.CONTEXT_LIMIT", { count: messages.length })}
               </Typography>
             </ChatHeader>
 
@@ -437,7 +439,7 @@ export default function ChatbotPanel() {
                         <Box display="flex" gap={0.5} alignItems="center" py={0.5}>
                           <CircularProgress size={16} />
                           <Typography variant="body2" color="text.secondary">
-                            Thinking...
+                            {t("AI.THINKING")}
                           </Typography>
                         </Box>
                       </BubbleContent>
@@ -455,8 +457,8 @@ export default function ChatbotPanel() {
                 maxRows={4}
                 placeholder={
                   messages.length >= 20
-                    ? "Cuộc hội thoại đã kết thúc (tối đa 20 tin nhắn). Vui lòng tạo cuộc hội thoại mới."
-                    : "Type a message..."
+                    ? t("AI.CONVO_LIMIT_REACHED")
+                    : t("AI.TYPE_MESSAGE")
                 }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

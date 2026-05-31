@@ -99,6 +99,21 @@ const LastMessage = styled(Typography)({
   textOverflow: "ellipsis",
 });
 
+const UnreadCountBadge = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#005ae0",
+  color: "#fff",
+  minWidth: 20,
+  height: 20,
+  borderRadius: 10,
+  padding: "0 6px",
+  fontSize: 11,
+  fontWeight: 600,
+  lineHeight: 1,
+});
+
 function ConversationListItem({
   item,
   active,
@@ -187,43 +202,39 @@ function ConversationListItem({
                   </GroupBadge>
                 )}
               </NameWrap>
-
-              {!!item.unreadCount && (
-                <Badge color="primary" badgeContent={item.unreadCount} />
-              )}
             </Row>
 
             <LastMessage>{lastMessageText}</LastMessage>
           </Content>
         </ItemRow>
-        <Stack justifyContent="space-between" height="100%" >
-          <Box>
-            <IconButton
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                p: 0.5,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenMenuConversationPopover(e);
-              }}
-            >
-              <MoreHorizOutlinedIcon sx={{ fontSize: "16px" }} />
-            </IconButton>
-          </Box>
-          <Box>
+        
+        <Stack alignItems="flex-end" justifyContent="space-between" sx={{ height: 44, minWidth: 40, flexShrink: 0 }}>
+          <IconButton
+            size="small"
+            sx={{
+              p: 0.25,
+              mt: -0.5,
+              mr: -0.5,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenMenuConversationPopover(e);
+            }}
+          >
+            <MoreHorizOutlinedIcon sx={{ fontSize: "16px" }} />
+          </IconButton>
+
+          <Stack direction="row" alignItems="center" spacing={0.5}>
             {item.isPinned && (
               <PushPinOutlinedIcon
-                sx={{ fontSize: 16, color: "#6B7280", rotate: "45deg" }}
+                sx={{ fontSize: 14, color: "#6B7280", rotate: "45deg" }}
               />
             )}
-          </Box>
-
-
-
-        </Stack >
+            {!!item.unreadCount && (
+              <UnreadCountBadge>{item.unreadCount}</UnreadCountBadge>
+            )}
+          </Stack>
+        </Stack>
 
       </Item>
 

@@ -177,7 +177,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
     // Check for duplicate name in the same folder
     const isDuplicate = files.some((f) => f.name === renameValue.trim() && f.id !== selectedFile.id);
     if (isDuplicate) {
-      alert(t("CLOUD.RENAME_DUPLICATE_ALERT").replace("{name}", renameValue.trim()));
+      alert(t("CLOUD.RENAME_DUPLICATE_ALERT", { name: renameValue.trim() }));
       return;
     }
     const res = await cloudService.updateFile(selectedFile.id, { name: renameValue.trim() });
@@ -248,7 +248,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
   // Delete folder handler
   const handleDeleteFolder = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this folder? Files inside will be moved to My Drive root.")) {
+    if (confirm(t("CLOUD.DELETE_FOLDER_CONFIRM"))) {
       const res = await cloudService.deleteFolder(id);
       if (res.ok) {
         setFolders((prev) => prev.filter((f) => f.id !== id));
@@ -275,7 +275,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
     // Check for duplicate file name in the current folder
     const isDuplicate = files.some((f) => f.name === file.name);
     if (isDuplicate) {
-      alert(t("CLOUD.UPLOAD_DUPLICATE_ALERT").replace("{name}", file.name));
+      alert(t("CLOUD.UPLOAD_DUPLICATE_ALERT", { name: file.name }));
       setUploading(false);
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -332,7 +332,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
       if (regRes.ok) {
         setFiles((prev) => [regRes.data, ...prev]);
       } else if (regRes.status === 409) {
-        alert(t("CLOUD.FILE_EXISTS_ALERT").replace("{name}", file.name));
+        alert(t("CLOUD.FILE_EXISTS_ALERT", { name: file.name }));
       }
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -346,7 +346,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
 
   // Delete file handler
   const handleDeleteFile = async (id: string) => {
-    if (confirm("Are you sure you want to delete this file?")) {
+    if (confirm(t("CLOUD.DELETE_FILE_CONFIRM"))) {
       const res = await cloudService.deleteFile(id);
       if (res.ok) {
         setFiles((prev) => prev.filter((f) => f.id !== id));
@@ -390,7 +390,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
         {/* Sidebar Header matching Zalo 68px height */}
         <SidebarHeader>
           <Typography variant="h6" fontWeight={700} color="#081B3A">
-            My Drive
+            {t("CLOUD.MY_DRIVE")}
           </Typography>
         </SidebarHeader>
 
@@ -404,7 +404,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
               color="#767A7F"
               sx={{ textTransform: "uppercase", letterSpacing: 0.5, px: 2, mb: 1 }}
             >
-              Folders
+              {t("CLOUD.FOLDERS")}
             </Typography>
             
             {/* List of custom Folders */}
@@ -476,14 +476,14 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
               }}
             >
               <AddIcon sx={{ fontSize: 18 }} />
-              <Typography variant="body2">New Folder</Typography>
+              <Typography variant="body2">{t("CLOUD.NEW_FOLDER")}</Typography>
             </Box>
           </Box>
 
           {/* Quota storage indicator at bottom */}
           <Box sx={{ mt: "auto", borderTop: "1px solid #EEF1F4", pt: 3 }}>
             <Typography variant="body2" fontWeight={700} color="#081B3A" mb={1}>
-              Storage Quota
+              {t("CLOUD.STORAGE_QUOTA")}
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -496,7 +496,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
               }}
             />
             <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-              {formatSize(totalSizeUsed)} used of {formatSize(totalStorageLimit)}
+              {t("CLOUD.STORAGE_USED", { used: formatSize(totalSizeUsed), total: formatSize(totalStorageLimit) })}
             </Typography>
           </Box>
         </Box>
@@ -519,7 +519,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                 onClick={() => setCurrentFolder(null)}
                 sx={{ cursor: "pointer", fontWeight: !currentFolder ? 700 : 500, fontSize: 15 }}
               >
-                My Drive
+                {t("CLOUD.MY_DRIVE")}
               </Link>
               {currentFolder && (
                 <Typography color="text.primary" fontWeight={700} sx={{ fontSize: 15 }}>
@@ -546,7 +546,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                 "&:hover": { backgroundColor: "#0052CC", boxShadow: "none" },
               }}
             >
-              Upload File
+              {t("CLOUD.UPLOAD_FILE")}
             </Button>
           )}
         </ContentHeader>
@@ -557,7 +557,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
           {uploading && (
             <Box display="flex" flexDirection="column" gap={1} p={2.5} bgcolor="#E5F1FF" borderRadius="12px">
               <Typography variant="body2" fontWeight={700} color="#0068FF">
-                Uploading file...
+                {t("CLOUD.UPLOADING_FILE")}
               </Typography>
               <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 3, backgroundColor: "rgba(0,104,255,0.1)" }} />
             </Box>
@@ -616,7 +616,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                   <UploadZone onClick={() => fileInputRef.current?.click()} sx={{ py: 10, border: "2px dashed #0068FF" }}>
                     <CloudUploadIcon sx={{ fontSize: 48, color: "#0068FF" }} />
                     <Typography variant="body1" fontWeight={700} color="#081B3A">
-                      {t("CLOUD.UPLOAD_TO_FOLDER").replace("{name}", currentFolder.name)}
+                      {t("CLOUD.UPLOAD_TO_FOLDER", { name: currentFolder.name })}
                     </Typography>
                     <Typography variant="body2" color="#86909C">
                       {t("CLOUD.DRAG_DROP_HINT")}
@@ -627,11 +627,11 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                     <Table sx={{ width: "100%", minWidth: 500 }}>
                       <TableHead sx={{ backgroundColor: "#F7F9FB" }}>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", width: "100%" }}>Name</TableCell>
-                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>Type</TableCell>
-                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>Size</TableCell>
-                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>Uploaded At</TableCell>
-                          <TableCell align="center" sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>Actions</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", width: "100%" }}>{t("CLOUD.COL_NAME")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>{t("CLOUD.COL_TYPE")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>{t("CLOUD.COL_SIZE")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>{t("CLOUD.COL_UPLOADED_AT")}</TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 700, color: "#081B3A", whiteSpace: "nowrap" }}>{t("CLOUD.COL_ACTIONS")}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody sx={{ backgroundColor: "#FFFFFF" }}>
@@ -713,12 +713,12 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
 
       {/* New Folder Dialog */}
       <Dialog open={openNewFolder} onClose={() => setOpenNewFolder(false)} PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}>
-        <DialogTitle sx={{ fontWeight: 700, color: "#081B3A" }}>New Folder</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: "#081B3A" }}>{t("CLOUD.NEW_FOLDER")}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Folder Name"
+            label={t("CLOUD.FOLDER_NAME")}
             type="text"
             fullWidth
             variant="outlined"
@@ -729,10 +729,10 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setOpenNewFolder(false)} sx={{ color: "#5B6575", fontWeight: 700 }}>
-            Cancel
+            {t("CLOUD.CANCEL")}
           </Button>
           <Button onClick={handleCreateFolder} variant="contained" sx={{ backgroundColor: "#0068FF", borderRadius: "10px", fontWeight: 700, boxShadow: "none", "&:hover": { backgroundColor: "#0052CC", boxShadow: "none" } }}>
-            Create
+            {t("CLOUD.CREATE")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -794,12 +794,12 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
 
       {/* Rename File Dialog */}
       <Dialog open={openRename} onClose={() => setOpenRename(false)} PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}>
-        <DialogTitle sx={{ fontWeight: 700, color: "#081B3A" }}>Đổi tên File</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: "#081B3A" }}>{t("CLOUD.RENAME_FILE")}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Tên file mới"
+            label={t("CLOUD.RENAME_NEW_NAME_LABEL")}
             type="text"
             fullWidth
             variant="outlined"
@@ -810,10 +810,10 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setOpenRename(false)} sx={{ color: "#5B6575", fontWeight: 700 }}>
-            Hủy
+            {t("CLOUD.CANCEL")}
           </Button>
           <Button onClick={handleRenameSubmit} variant="contained" sx={{ backgroundColor: "#0068FF", borderRadius: "10px", fontWeight: 700, boxShadow: "none", "&:hover": { backgroundColor: "#0052CC", boxShadow: "none" } }}>
-            Lưu
+            {t("CLOUD.SAVE")}
           </Button>
         </DialogActions>
       </Dialog>

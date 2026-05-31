@@ -69,39 +69,41 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ open, onClose }) =>
       </DialogTitle>
       
       <DialogContent>
-        <Box sx={{ py: 1 }}>
           {languages.map((language) => (
             <LanguageItem
               key={language.code}
               onClick={() => handleLanguageSelect(language.code)}
-              variant={selectedLanguage === language.code ? "contained" : "outlined"}
-              color={selectedLanguage === language.code ? "primary" : "inherit"}
+              fullWidth
               sx={{
+                mb: 1.5,
+                py: 1.5,
+                px: 2,
                 backgroundColor: selectedLanguage === language.code ? "#E5F1FF" : "transparent",
                 borderColor: selectedLanguage === language.code ? "#005AE0" : "#E5E7EB",
+                color: "inherit",
                 "&:hover": {
                   backgroundColor: selectedLanguage === language.code ? "#E5F1FF" : "#F8FAFC",
+                  borderColor: selectedLanguage === language.code ? "#005AE0" : "#D1D5DB",
                 },
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {language.nativeName}
-                </Typography>
-                <Typography variant="body2" color="#64748B">
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Radio
+                    checked={selectedLanguage === language.code}
+                    color="primary"
+                    sx={{ p: 0 }}
+                  />
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: selectedLanguage === language.code ? "#005AE0" : "#1F2937" }}>
+                    {language.nativeName}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: selectedLanguage === language.code ? "#005AE0" : "#6B7280" }}>
                   {language.name}
                 </Typography>
               </Box>
-              {selectedLanguage === language.code && (
-                <Radio
-                  checked={true}
-                  sx={{ ml: 2 }}
-                  color="primary"
-                />
-              )}
             </LanguageItem>
           ))}
-        </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>

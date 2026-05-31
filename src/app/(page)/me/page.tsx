@@ -363,39 +363,7 @@ const Me = () => {
                   <ConversationList />
                 </TabPanelStyled>
                 <TabPanelStyled value="unRead">
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      height: "300px",
-                      textAlign: "center",
-                      p: 3,
-                      color: "#86909C",
-                      gap: 1.5,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: "50%",
-                        backgroundColor: "#F3F4F6",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <ForumIcon sx={{ fontSize: 28, color: "#9CA3AF" }} />
-                    </Box>
-                    <Typography variant="body2" fontWeight={600} color="#374151">
-                      {t("ME.NO_UNREAD")}
-                    </Typography>
-                    <Typography variant="caption" sx={{ maxWidth: 220, color: "#86909C" }}>
-                      {t("ME.NO_UNREAD_SUB")}
-                    </Typography>
-                  </Box>
+                  <ConversationList filterUnread />
                 </TabPanelStyled>
               </TabContext>
             </>
