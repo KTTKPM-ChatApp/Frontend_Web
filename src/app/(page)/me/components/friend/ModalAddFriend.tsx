@@ -225,12 +225,12 @@ const ModalAddFriend: React.FC<ModalAddFriendProps> = ({
     };
 
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener(
-        "mousedown",
+        "click",
         handleClickOutside
       );
     };

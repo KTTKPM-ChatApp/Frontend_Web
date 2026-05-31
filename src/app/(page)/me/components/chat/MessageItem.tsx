@@ -42,6 +42,7 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
 import FileAttachmentCard from "./FileAttachmentCard";
 import LinkPreviewCard from "./LinkPreviewCard";
+import { buildS3Url } from "@/src/common/components/MediaPreviewModal";
 import type { ConversationMemberDto } from "@/src/common/interface/chat-interface";
 
 interface Attachment {
@@ -863,9 +864,22 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         size: att.size || 0,
                         type: att.type || "document",
                         url: att.url,
+                        key: att.key,
                         contentType: att.contentType,
                       }}
                       isOwn={isOwn}
+                      onPreview={() => {
+                        const fileUrl = att.url || buildS3Url(att.key);
+                        const contentType = (att.contentType || att.content_type || "").toLowerCase();
+                        const isVideo = att.type?.toLowerCase() === 'video' || contentType.startsWith('video/');
+                        const isImage = att.type?.toLowerCase() === 'image' || contentType.startsWith('image/');
+                        
+                        onImageClick?.(fileUrl || "", [{
+                          key: att.key || fileUrl || "",
+                          name: att.name || "file",
+                          type: isVideo ? "video" : isImage ? "image" : "document"
+                        }], 0);
+                      }}
                     />
                   ))}
                 </Box>

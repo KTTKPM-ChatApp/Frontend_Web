@@ -5,6 +5,7 @@ import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import SectionBlock from "./SectionBlock";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 interface LinkSectionProps {
   items: string[];
@@ -62,11 +63,12 @@ const ViewMoreButton = styled(Box)({
 });
 
 export default function LinkSection({ items }: LinkSectionProps) {
+  const t = useTrans();
   const [expanded, setExpanded] = useState(false);
   const visibleItems = expanded ? items : items.slice(0, 8);
 
   return (
-    <SectionBlock title="Link" defaultOpen>
+    <SectionBlock title={t("CONVO.LINK_TITLE")} defaultOpen>
       {items.length > 0 ? (
         <ItemList>
           {visibleItems.map((link) => (
@@ -81,12 +83,12 @@ export default function LinkSection({ items }: LinkSectionProps) {
           ))}
           {items.length > 8 && (
             <ViewMoreButton onClick={() => setExpanded(!expanded)}>
-              {expanded ? "Thu gọn" : `Xem thêm (+${items.length - 8})`}
+              {expanded ? t("CONVO.COLLAPSE") : t("CONVO.VIEW_MORE", { count: items.length - 8 })}
             </ViewMoreButton>
           )}
         </ItemList>
       ) : (
-        <EmptyHint>Chưa có link trong hội thoại</EmptyHint>
+        <EmptyHint>{t("CONVO.LINK_EMPTY")}</EmptyHint>
       )}
     </SectionBlock>
   );

@@ -10,6 +10,7 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import AudioFileOutlinedIcon from "@mui/icons-material/AudioFileOutlined";
+import { buildS3Url } from "@/src/common/components/MediaPreviewModal";
 
 interface FileAttachmentCardProps {
   attachment: {
@@ -17,9 +18,11 @@ interface FileAttachmentCardProps {
     size: number;
     type: string;
     url?: string;
+    key?: string;
     contentType?: string;
   };
   isOwn?: boolean;
+  onPreview?: () => void;
 }
 
 const FileCard = styled(Box, {
@@ -116,12 +119,12 @@ const getFileExtension = (name: string): string => {
   return name.split(".").pop()?.toUpperCase() || "FILE";
 };
 
-export default function FileAttachmentCard({ attachment, isOwn }: FileAttachmentCardProps) {
+export default function FileAttachmentCard({ attachment, isOwn, onPreview }: FileAttachmentCardProps) {
   const { icon, bg } = getFileIcon(attachment.name, attachment.type, attachment.contentType);
   const ext = getFileExtension(attachment.name);
 
   const handleDownload = () => {
-    const fileUrl = attachment.url;
+    const fileUrl = attachment.url || buildS3Url(attachment.key);
     if (!fileUrl) {
       console.warn('[FileAttachmentCard] No URL for file:', attachment.name);
       return;
@@ -137,8 +140,16 @@ export default function FileAttachmentCard({ attachment, isOwn }: FileAttachment
     document.body.removeChild(link);
   };
 
+  const handleCardClick = () => {
+    if (onPreview) {
+      onPreview();
+    } else {
+      handleDownload();
+    }
+  };
+
   return (
-    <FileCard isOwn={isOwn} onClick={handleDownload}>
+    <FileCard isOwn={isOwn} onClick={handleCardClick}>
       <FileIconBox sx={{ background: bg }}>{icon}</FileIconBox>
       <FileInfo>
         <FileName>{attachment.name}</FileName>

@@ -13,6 +13,7 @@ import { friendService } from "@/src/common/service/friend-service";
 import { AttachmentDto } from "@/src/common/interface/chat-interface";
 import { MediaPreviewItem } from "@/src/common/components/MediaPreviewModal";
 import MediaPreviewModal from "@/src/common/components/MediaPreviewModal";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 import DangerZone from "./DangerZone";
 import FileSection from "./FileSection";
 import LinkSection from "./LinkSection";
@@ -59,6 +60,7 @@ const HeaderTitle = styled(Typography)({
 });
 
 export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
+  const t = useTrans();
   const [mounted, setMounted] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ open: boolean; mediaList: MediaPreviewItem[]; initialIndex: number }>({
@@ -207,7 +209,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
     return (
       <Root>
         <Header>
-          <HeaderTitle>Thông tin hội thoại</HeaderTitle>
+          <HeaderTitle>{isGroup ? t("COMMON.CONVO_INFO_GROUP") : t("COMMON.CONVO_INFO_CHAT")}</HeaderTitle>
           <Box />
         </Header>
       </Root>
@@ -217,7 +219,7 @@ export default function InfConvColumn({ conversationId }: InfConvColumnProps) {
   return (
     <Root>
       <Header>
-        <HeaderTitle>Thông tin hội thoại</HeaderTitle>
+        <HeaderTitle>{isGroup ? t("COMMON.CONVO_INFO_GROUP") : t("COMMON.CONVO_INFO_CHAT")}</HeaderTitle>
         <IconButton size="small" onClick={handleClose}>
           <CloseRoundedIcon />
         </IconButton>

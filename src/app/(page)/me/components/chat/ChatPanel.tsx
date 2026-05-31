@@ -333,17 +333,22 @@ export default function ChatPanel({
           onForwardMessage={(msgId, convId) => setForwardTarget({ messageId: msgId, conversationId: convId })}
           onEditMessage={editMessage}
           onImageClick={(url, mediaList, index) => {
-            const items: MediaPreviewItem[] = (mediaList || []).map((att) => ({
-              key: att.url || att.thumbnailUrl || att.key || "",
-              name: att.name || t("CHAT.FILE"),
-              type: att.type || "image",
-            }));
+            const items: MediaPreviewItem[] = (mediaList || []).map((att) => {
+              const contentType = (att.contentType || (att as any).content_type || "").toLowerCase();
+              const isVideo = att.type?.toLowerCase() === "video" || contentType.startsWith("video/");
+              return {
+                key: att.url || att.thumbnailUrl || att.key || "",
+                name: att.name || t("CHAT.FILE"),
+                type: isVideo ? "video" : "image",
+              };
+            });
             if (items.length > 0) {
               setMediaPreview({ open: true, mediaList: items, initialIndex: index || 0 });
             } else if (url) {
+              const isVideoUrl = url.toLowerCase().endsWith(".mp4") || url.toLowerCase().endsWith(".webm");
               setMediaPreview({
                 open: true,
-                mediaList: [{ key: url, name: t("CHAT.FILE"), type: "image" }],
+                mediaList: [{ key: url, name: t("CHAT.FILE"), type: isVideoUrl ? "video" : "image" }],
                 initialIndex: 0,
               });
             }

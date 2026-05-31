@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Dialog, Box, IconButton, Typography, Button } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { styled, keyframes } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 export interface MediaPreviewItem {
   key: string;
@@ -26,13 +27,36 @@ interface MediaPreviewModalProps {
 export const buildS3Url = (key?: string | null): string => {
   if (!key) return "";
   if (key.startsWith("http://") || key.startsWith("https://")) return key;
-  return key;
+  
+  const cloudName = "dokskn4kz";
+  const ext = key.split(".").pop()?.toLowerCase() || "";
+  
+  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) {
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${key}`;
+  }
+  if (["mp4", "webm", "ogg", "mov"].includes(ext)) {
+    return `https://res.cloudinary.com/${cloudName}/video/upload/${key}`;
+  }
+  return `https://res.cloudinary.com/${cloudName}/raw/upload/${key}`;
 };
+
+const animScaleUp = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+`;
 
 const ViewerRoot = styled(Box)({
   width: "100vw",
   height: "100vh",
-  background: "#0B0B0B",
+  background: "rgba(30, 41, 59, 0.65)", // Premium semi-transparent slate-grey
+  backdropFilter: "blur(18px)",          // Blurry backdrop
+  WebkitBackdropFilter: "blur(18px)",    // Safari support
   display: "flex",
   flexDirection: "column",
 });
@@ -40,36 +64,41 @@ const ViewerRoot = styled(Box)({
 const ViewerHeader = styled(Box)({
   height: 56,
   minHeight: 56,
-  padding: "0 16px",
+  padding: "0 24px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  background: "rgba(0,0,0,0.65)",
+  background: "rgba(15, 23, 42, 0.4)",  // Subtle slate-grey accent
+  borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
   color: "#fff",
   zIndex: 2,
 });
 
 const FileName = styled(Typography)({
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: 15,
+  fontWeight: 600,
   color: "#fff",
   maxWidth: 520,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  letterSpacing: "0.2px",
 });
 
 const HeaderActions = styled(Box)({
   display: "flex",
   alignItems: "center",
-  gap: 12,
+  gap: 16,
 });
 
 const Counter = styled(Typography)({
-  fontSize: 14,
-  fontWeight: 500,
+  fontWeight: 600,
   color: "#fff",
-  opacity: 0.8,
+  opacity: 0.9,
+  background: "rgba(255, 255, 255, 0.1)",
+  padding: "4px 10px",
+  borderRadius: "12px",
+  fontSize: "12px",
 });
 
 const ViewerBody = styled(Box)({
@@ -79,7 +108,7 @@ const ViewerBody = styled(Box)({
   alignItems: "center",
   justifyContent: "center",
   position: "relative",
-  padding: "24px 80px", // Space for navigation arrows
+  padding: "32px 96px", // Space for navigation arrows
 });
 
 const FullImage = styled("img")({
@@ -87,31 +116,47 @@ const FullImage = styled("img")({
   maxHeight: "100%",
   objectFit: "contain",
   userSelect: "none",
+  borderRadius: "12px",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+  border: "1px solid rgba(255, 255, 255, 0.15)",
+  animation: `${animScaleUp} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`,
 });
 
 const FullVideo = styled("video")({
   maxWidth: "100%",
   maxHeight: "100%",
   background: "#000",
+  borderRadius: "12px",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+  border: "1px solid rgba(255, 255, 255, 0.15)",
+  animation: `${animScaleUp} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`,
 });
 
 const NavButton = styled(IconButton)({
   position: "absolute",
   top: "50%",
   transform: "translateY(-50%)",
-  width: 48,
-  height: 48,
-  background: "rgba(255,255,255,0.1)",
+  width: 50,
+  height: 50,
+  background: "rgba(255, 255, 255, 0.12)",
+  backdropFilter: "blur(8px)",
+  border: "1px solid rgba(255, 255, 255, 0.18)",
   color: "#fff",
   zIndex: 10,
+  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
   "&:hover": {
-    background: "rgba(255,255,255,0.2)",
+    background: "rgba(255, 255, 255, 0.22)",
+    transform: "translateY(-50%) scale(1.08)",
+    boxShadow: "0 0 15px rgba(255, 255, 255, 0.25)",
+  },
+  "&:active": {
+    transform: "translateY(-50%) scale(0.95)",
   },
   "&.prev": {
-    left: 16,
+    left: 24,
   },
   "&.next": {
-    right: 16,
+    right: 24,
   },
 });
 
@@ -122,8 +167,9 @@ const ThumbnailBar = styled(Box)({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
-  background: "rgba(0,0,0,0.85)",
+  gap: 12,
+  background: "rgba(15, 23, 42, 0.5)",  // Subtle slate-grey accent
+  borderTop: "1px solid rgba(255, 255, 255, 0.08)",
   overflowX: "auto",
   overflowY: "hidden",
   scrollbarWidth: "thin",
@@ -143,14 +189,16 @@ const ThumbnailItem = styled(Box, {
   width: 72,
   height: 72,
   flexShrink: 0,
-  borderRadius: 6,
+  borderRadius: 8,
   overflow: "hidden",
   cursor: "pointer",
-  border: active ? "2px solid #fff" : "2px solid transparent",
+  border: active ? "3px solid #0068FF" : "2px solid rgba(255, 255, 255, 0.1)",
+  boxShadow: active ? "0 0 12px rgba(0, 104, 255, 0.5)" : "none",
   opacity: active ? 1 : 0.6,
-  transition: "all 0.2s ease",
+  transition: "all 0.25s ease",
   "&:hover": {
     opacity: 1,
+    transform: "scale(1.05)",
   },
 }));
 
@@ -173,6 +221,7 @@ export default function MediaPreviewModal({
   initialIndex = 0,
   onClose,
 }: MediaPreviewModalProps) {
+  const t = useTrans();
   // Xây dựng danh sách media đầy đủ
   const allMedia = media && mediaList.length === 0 ? [media] : mediaList.length > 0 ? mediaList : [];
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -190,7 +239,17 @@ export default function MediaPreviewModal({
 
   // ✅ FIX: Use safe URL builder
   const mediaUrl = buildS3Url(currentMedia?.key);
-  const isVideo = currentMedia?.type === "video";
+
+  const fileName = currentMedia?.name || "";
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
+  const isVideo = currentMedia?.type === "video" || ["mp4", "webm", "ogg", "mov"].includes(ext);
+  const isPdf = ext === "pdf";
+  const isTxt = ["txt", "log", "json", "js", "ts", "html", "css", "md"].includes(ext);
+  const isOffice = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(ext);
+  const isImage = !isVideo && !isPdf && !isTxt && !isOffice;
+
+
 
   const handlePrev = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -276,7 +335,7 @@ export default function MediaPreviewModal({
                   minWidth: 0,
                 }}
               >
-                Tải về
+                {t("COMMON.DOWNLOAD")}
               </Button>
             )}
             <IconButton onClick={onClose} sx={{ color: "#fff" }}>
@@ -292,7 +351,7 @@ export default function MediaPreviewModal({
             </NavButton>
           )}
 
-          {mediaUrl && !isVideo && (
+          {mediaUrl && isImage && (
             <FullImage
               src={mediaUrl}
               alt={currentMedia?.name || "image"}
@@ -307,6 +366,57 @@ export default function MediaPreviewModal({
               autoPlay
               key={currentMedia.key} // Force re-render when changing video
               onClick={(e) => e.stopPropagation()}
+            />
+          )}
+
+          {mediaUrl && isPdf && (
+            <Box
+              component="iframe"
+              src={mediaUrl}
+              sx={{
+                width: "80%",
+                height: "90%",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                background: "#fff",
+                borderRadius: "12px",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+                animation: `${animScaleUp} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`,
+              }}
+              onClick={(e: any) => e.stopPropagation()}
+            />
+          )}
+
+          {mediaUrl && isOffice && (
+            <Box
+              component="iframe"
+              src={`https://docs.google.com/gview?url=${encodeURIComponent(mediaUrl)}&embedded=true`}
+              sx={{
+                width: "80%",
+                height: "90%",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                background: "#fff",
+                borderRadius: "12px",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+                animation: `${animScaleUp} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`,
+              }}
+              onClick={(e: any) => e.stopPropagation()}
+            />
+          )}
+
+          {mediaUrl && isTxt && (
+            <Box
+              component="iframe"
+              src={mediaUrl}
+              sx={{
+                width: "80%",
+                height: "90%",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                background: "#fff",
+                borderRadius: "12px",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+                animation: `${animScaleUp} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`,
+              }}
+              onClick={(e: any) => e.stopPropagation()}
             />
           )}
 

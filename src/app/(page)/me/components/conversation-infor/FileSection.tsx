@@ -5,6 +5,7 @@ import { styled } from "@mui/material/styles";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SectionBlock from "./SectionBlock";
 import { AttachmentDto } from "@/src/common/interface/chat-interface";
+import { useTrans } from "@/src/common/utilities/hook/trans";
 
 
 interface FileSectionProps {
@@ -57,6 +58,7 @@ const ItemSub = styled(Typography)({
 });
 
 export default function FileSection({ items }: FileSectionProps) {
+    const t = useTrans();
     const formatFileSize = (size?: number) => {
         if (!size || Number.isNaN(size)) return "";
         if (size < 1024) return `${size} B`;
@@ -64,7 +66,7 @@ export default function FileSection({ items }: FileSectionProps) {
         return `${(size / (1024 * 1024)).toFixed(1)} MB`;
     }
     return (
-        <SectionBlock title="File" defaultOpen>
+        <SectionBlock title={t("CONVO.FILE_TITLE")} defaultOpen>
             {items.length > 0 ? (
                 <ItemList>
                     {items.slice(0, 6).map((file) => (
@@ -78,7 +80,7 @@ export default function FileSection({ items }: FileSectionProps) {
                     ))}
                 </ItemList>
             ) : (
-                <EmptyHint>Chưa có file trong hội thoại</EmptyHint>
+                <EmptyHint>{t("CONVO.FILE_EMPTY")}</EmptyHint>
             )}
         </SectionBlock>
     );

@@ -58,6 +58,8 @@ export default function OverviewCard() {
   const ownerCount = currentConversation?.members?.filter((m: any) => m.role === "OWNER").length ?? 0;
   const adminCount = currentConversation?.members?.filter((m: any) => m.role === "ADMIN").length ?? 0;
 
+  if (!isGroup) return null;
+
   return (
     <Card>
       <SimpleRow>
