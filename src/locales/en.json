@@ -77,6 +77,7 @@
 
   "// ============================== CHAT ==============================": "",
   "CHAT.MEMBER_COUNT": "{{count}} members",
+  "CHAT.MEMBER_COUNT_ONLINE": "{{onlineCount}} online",
   "CHAT.STATUS_ONLINE": "Online",
   "CHAT.STATUS_OFFLINE": "Offline",
   "CHAT.STATUS_JUST_VIEWED": "Just viewed",

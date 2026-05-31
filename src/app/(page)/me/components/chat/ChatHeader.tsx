@@ -135,11 +135,16 @@ export default function ChatHeader({
     statusOnline,
   });
 
+  const groupMembers = conversation?.members || [];
+  const groupOnlineCount = groupMembers.filter((m: any) => {
+    const memberId = m.userId || m.id;
+    return memberId === currentUserId || onlineUserIds.includes(memberId);
+  }).length;
+  const totalMembers = conversation?.members?.length || conversation?.memberCount || 0;
+
   const statusText = isDirect
     ? isOtherOnline ? t("CHAT.STATUS_ONLINE") : t("CHAT.INACTIVE")
-    : conversation?.memberCount 
-      ? t("CHAT.MEMBER_COUNT", { count: conversation.memberCount })
-      : t("CHAT.MEMBER_COUNT", { count: conversation?.members?.length || 0 });
+    : t("CHAT.MEMBER_COUNT_ONLINE", { memberCount: totalMembers, onlineCount: groupOnlineCount });
 
   return (
     <HeaderRoot>

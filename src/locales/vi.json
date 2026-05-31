@@ -124,6 +124,7 @@
 
   "// ============================== CHAT ==============================": "",
   "CHAT.MEMBER_COUNT": "{{count}} thành viên",
+  "CHAT.MEMBER_COUNT_ONLINE": "{{onlineCount}} online",
   "CHAT.STATUS_ONLINE": "Đang hoạt động",
   "CHAT.STATUS_OFFLINE": "Offline",
   "CHAT.STATUS_JUST_VIEWED": "Vừa truy cập",
