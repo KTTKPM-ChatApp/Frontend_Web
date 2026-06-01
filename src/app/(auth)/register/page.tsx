@@ -46,8 +46,8 @@ export default function RegisterPage() {
 
     const mapErrorMessage = (msg: string | undefined): string => {
         if (!msg) return Trans("COMMON.ERROR");
-        if (msg.includes("Email already in use")) return "Email đã được sử dụng";
-        if (msg.includes("Username already taken")) return "Username đã được sử dụng";
+        if (msg.includes("Email already in use")) return Trans("REGIS.EMAIL_IN_USE");
+        if (msg.includes("Username already taken")) return Trans("REGIS.USERNAME_TAKEN");
         if (msg.includes("hệ thống")) return msg;
         return msg;
     };
@@ -79,7 +79,7 @@ export default function RegisterPage() {
                             refreshToken: payload.refreshToken || "",
                             user: payload.user
                         },
-                        message: "Đăng ký thành công"
+                        message: Trans("REGIS.REGISTER_SUCCESS")
                     });
                     router.push("/me");
                 } else {
@@ -119,14 +119,14 @@ export default function RegisterPage() {
                 </LogoWrap>
 
                 <Subtitle>
-                    {"Tạo tài khoản Zalo\nđể kết nối với ứng dụng Zalo Web"}
+                    {Trans("REGIS.SUBTITLE")}
                 </Subtitle>
 
                 <Card>
                     <TabContainer>
                         <CardHeader>
                             <AuthHeader>
-                                Đăng ký tài khoản
+                                {Trans("REGIS.HEADER")}
                             </AuthHeader>
                         </CardHeader>
 
