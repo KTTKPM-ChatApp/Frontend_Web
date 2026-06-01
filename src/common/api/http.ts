@@ -4,6 +4,11 @@ export type CustomOptions = Omit<RequestInit, "method" | "body"> & {
   baseUrl?: string;
   body?: any;
   skipAuth?: boolean;
+  retry?: {
+    attempts?: number;
+    delayMs?: number;
+    retryUnsafe?: boolean;
+  };
 };
 
 export interface IHttpresponse<T = any> {
@@ -13,7 +18,6 @@ export interface IHttpresponse<T = any> {
   ok: boolean;
 }
 
-/** Chuẩn hoá baseUrl + path để tránh double slash */
 const joinUrl = (baseUrl: string, path: string) => {
   const b = baseUrl.replace(/\/+$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
@@ -58,7 +62,6 @@ const buildBodyAndHeaders = (options?: CustomOptions) => {
   const headers: Record<string, string> =
     body instanceof FormData ? {} : { "Content-Type": "application/json" };
 
-  // Add authentication token if available
   if (!options?.skipAuth && typeof window !== "undefined") {
     const token = localStorage.getItem("accessToken");
     if (token) {
@@ -80,6 +83,27 @@ const getResponsePayload = async (res: Response) => {
   return text ? text : null;
 };
 
+const RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getRetryAttempts = (options?: CustomOptions) =>
+  Math.max(1, options?.retry?.attempts ?? (Number(process.env.NEXT_PUBLIC_HTTP_RETRY_ATTEMPTS) || 2));
+
+const getRetryDelayMs = (options?: CustomOptions) =>
+  Math.max(0, options?.retry?.delayMs ?? (Number(process.env.NEXT_PUBLIC_HTTP_RETRY_DELAY_MS) || 3000));
+
+const hasIdempotencyKey = (headers: Record<string, string>) =>
+  Object.keys(headers).some((key) =>
+    key.toLowerCase() === "idempotency-key" || key.toLowerCase() === "x-idempotency-key"
+  );
+
+const canRetryRequest = (method: HttpMethod, headers: Record<string, string>, options?: CustomOptions) =>
+  method === "GET" || Boolean(options?.retry?.retryUnsafe) || hasIdempotencyKey(headers);
+
+const shouldRetryError = (err: any) =>
+  err?.name === "AbortError" || err instanceof TypeError;
+
 export const request = async <T = any>(
   method: HttpMethod,
   url: string,
@@ -87,9 +111,8 @@ export const request = async <T = any>(
 ): Promise<IHttpresponse<T>> => {
   const baseUrl = options?.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  
   if (!baseUrl) {
-    console.error('[HTTP] Missing baseUrl');
+    console.error("[HTTP] Missing baseUrl");
     return {
       statusCode: 500,
       ok: false,
@@ -102,37 +125,92 @@ export const request = async <T = any>(
 
   const { headers, body } = buildBodyAndHeaders(options);
   const optionHeaders = toHeaderRecord(options?.headers);
+  const requestHeaders = {
+    ...headers,
+    ...optionHeaders,
+  };
+  const retryAttempts = getRetryAttempts(options);
+  const retryDelayMs = getRetryDelayMs(options);
+  const retryableRequest = canRetryRequest(method, requestHeaders, options);
+  const {
+    baseUrl: _baseUrl,
+    body: _body,
+    skipAuth: _skipAuth,
+    retry: _retry,
+    signal: externalSignal,
+    headers: _headers,
+    ...fetchOptions
+  } = options ?? {};
 
   try {
-    // Add timeout for request — chatbot requests need a longer timeout (AI takes time)
-    const isChatbotRequest = url.includes('/chatbot/');
+    const isChatbotRequest = url.includes("/chatbot/");
     const timeoutMs = isChatbotRequest ? 90000 : 10000;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.error(`[HTTP] Request timeout after ${timeoutMs / 1000}s: ${method} ${url}`);
-      controller.abort();
-    }, timeoutMs);
 
-    const res = await fetch(fullUrl, {
-      ...options,
-      method,
-      body,
-      headers: {
-        ...headers,
-        ...optionHeaders,
-      },
-      signal: controller.signal,
-    });
+    for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error(`[HTTP] Request timeout after ${timeoutMs / 1000}s: ${method} ${url}`);
+        controller.abort();
+      }, timeoutMs);
+      const abortFromCaller = () => controller.abort();
 
-    clearTimeout(timeoutId);
+      try {
+        if (externalSignal) {
+          if (externalSignal.aborted) controller.abort();
+          externalSignal.addEventListener("abort", abortFromCaller, { once: true });
+        }
 
-    const payload = await getResponsePayload(res);
+        const res = await fetch(fullUrl, {
+          ...fetchOptions,
+          method,
+          body,
+          headers: requestHeaders,
+          signal: controller.signal,
+        });
 
-    if (res.ok) {
-      return { statusCode: res.status, ok: true, payload: payload as T };
+        clearTimeout(timeoutId);
+        externalSignal?.removeEventListener("abort", abortFromCaller);
+
+        if (
+          retryableRequest &&
+          attempt < retryAttempts &&
+          RETRYABLE_STATUS_CODES.has(res.status)
+        ) {
+          console.warn(`[HTTP] ${method} ${url} returned ${res.status}; retrying in ${retryDelayMs}ms (${attempt}/${retryAttempts})`);
+          await sleep(retryDelayMs);
+          continue;
+        }
+
+        const payload = await getResponsePayload(res);
+
+        if (res.ok) {
+          return { statusCode: res.status, ok: true, payload: payload as T };
+        }
+
+        return { statusCode: res.status, ok: false, payload: payload as T };
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        externalSignal?.removeEventListener("abort", abortFromCaller);
+
+        if (externalSignal?.aborted) {
+          throw err;
+        }
+
+        if (retryableRequest && attempt < retryAttempts && shouldRetryError(err)) {
+          console.warn(`[HTTP] ${method} ${url} failed: ${err?.message}; retrying in ${retryDelayMs}ms (${attempt}/${retryAttempts})`);
+          await sleep(retryDelayMs);
+          continue;
+        }
+
+        throw err;
+      }
     }
 
-    return { statusCode: res.status, ok: false, payload: payload as T };
+    return {
+      statusCode: 500,
+      ok: false,
+      payload: { message: "Request failed after retries" } as any,
+    };
   } catch (err: any) {
     console.error("[HTTP] Request error:", err);
     console.error("[HTTP] Error details:", err?.message, err?.stack);
