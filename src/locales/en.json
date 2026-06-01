@@ -4,6 +4,7 @@
   "REGIS.FULLNAME_REQUIRED": "Please enter full name",
   "REGIS.EMAIL_INVALID": "Invalid email",
   "REGIS.EMAIL_REQUIRED": "Please enter email",
+  "REGIS.USERNAME_REQUIRED": "Please enter username",
   "VALIDATION.EMAIL_INVALID": "Invalid email",
   "REGIS.PASSWORD_MIN": "Password must be at least 6 characters",
   "REGIS.PASSWORD_RULE": "Password must contain at least 1 letter and 1 number",

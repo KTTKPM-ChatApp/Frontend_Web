@@ -34,7 +34,7 @@ export async function uploadMedia({
   const needsAttachmentTransform = resourceType === "raw";
 
   // 1) Lấy signature từ backend
-  const signRes = await fetch("/api/media/cloudinary-sign", {
+  const signRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4321"}/api/media/cloudinary-sign`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

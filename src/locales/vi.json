@@ -4,6 +4,7 @@
   "REGIS.FULLNAME_REQUIRED": "Vui lòng nhập họ tên",
   "REGIS.EMAIL_INVALID": "Email không hợp lệ",
   "REGIS.EMAIL_REQUIRED": "Vui lòng nhập email",
+  "REGIS.USERNAME_REQUIRED": "Vui lòng nhập tên đăng nhập",
   "VALIDATION.EMAIL_INVALID": "Email không hợp lệ",
   "REGIS.PASSWORD_MIN": "Mật khẩu tối thiểu 6 ký tự",
   "REGIS.PASSWORD_RULE": "Mật khẩu phải chứa ít nhất 1 chữ cái và 1 số",
