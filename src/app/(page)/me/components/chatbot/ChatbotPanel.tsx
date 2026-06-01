@@ -11,6 +11,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { chatbotService } from "@/src/common/service/chatbot-service";
 import type { ChatbotConversation, ChatbotMessage } from "@/src/common/interface/chatbot-interface";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
 
 const ActionLinkButton = ({ metadata }: { metadata: string }) => {
   const { i18n } = useTranslation();
@@ -421,9 +422,53 @@ export default function ChatbotPanel() {
                         {msg.role === "user" ? <PersonIcon fontSize="small" /> : <SmartToyIcon fontSize="small" />}
                       </AvatarCircle>
                       <BubbleContent elevation={0} isuser={msg.role === "user" ? "true" : "false"}>
-                        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                          {msg.content}
-                        </Typography>
+                        {msg.role === "user" ? (
+                          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                            {msg.content}
+                          </Typography>
+                        ) : (
+                          <Box
+                            sx={{
+                              fontSize: "0.875rem",
+                              lineHeight: 1.6,
+                              color: "#333",
+                              "& p": { margin: 0, marginBottom: "6px", "&:last-child": { marginBottom: 0 } },
+                              "& strong": { fontWeight: 700, color: "#111" },
+                              "& em": { fontStyle: "italic" },
+                              "& ul": { paddingLeft: "18px", margin: "4px 0" },
+                              "& ol": { paddingLeft: "18px", margin: "4px 0" },
+                              "& li": { marginBottom: "2px" },
+                              "& h1,& h2,& h3": { fontWeight: 700, margin: "8px 0 4px", lineHeight: 1.3 },
+                              "& h1": { fontSize: "1.1rem" },
+                              "& h2": { fontSize: "1rem" },
+                              "& h3": { fontSize: "0.95rem" },
+                              "& code": {
+                                fontFamily: "monospace",
+                                fontSize: "12px",
+                                backgroundColor: "rgba(0,0,0,0.06)",
+                                padding: "1px 5px",
+                                borderRadius: "4px",
+                              },
+                              "& pre": {
+                                backgroundColor: "rgba(0,0,0,0.06)",
+                                padding: "8px 12px",
+                                borderRadius: "8px",
+                                overflowX: "auto",
+                                margin: "6px 0",
+                                "& code": { backgroundColor: "transparent", padding: 0 },
+                              },
+                              "& blockquote": {
+                                borderLeft: "3px solid #005AE0",
+                                paddingLeft: "10px",
+                                margin: "6px 0",
+                                color: "#555",
+                              },
+                              "& hr": { border: "none", borderTop: "1px solid #ddd", margin: "8px 0" },
+                            }}
+                          >
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </Box>
+                        )}
                         {msg.role !== "user" && msg.metadata && (
                            <ActionLinkButton metadata={msg.metadata} />
                         )}
