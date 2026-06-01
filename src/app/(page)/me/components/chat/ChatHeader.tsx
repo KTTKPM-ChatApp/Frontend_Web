@@ -144,7 +144,7 @@ export default function ChatHeader({
 
   const statusText = isDirect
     ? isOtherOnline ? t("CHAT.STATUS_ONLINE") : t("CHAT.INACTIVE")
-    : t("CHAT.MEMBER_COUNT_ONLINE", { memberCount: totalMembers, onlineCount: groupOnlineCount });
+    : t("CHAT.MEMBER_COUNT", { count: totalMembers });
 
   return (
     <HeaderRoot>

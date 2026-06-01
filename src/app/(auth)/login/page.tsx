@@ -79,13 +79,13 @@ export default function LoginPage() {
                     return;
                 }
 
-                setErrorAuth(result?.payload?.message ?? "Đăng nhập thất bại");
+                setErrorAuth(result?.payload?.message ?? Trans("LOGIN.FAILED"));
             } catch (error: any) {
                 setErrorAuth(
                     error?.message ||
                     error?.payload?.message ||
                     error?.response?.data?.message ||
-                    "Lỗi hệ thống"
+                    Trans("COMMON.SYSTEM_ERROR")
                 );
             } finally {
                 setLoadingAuth(false);
@@ -114,7 +114,7 @@ export default function LoginPage() {
                 </LogoWrap>
 
                 <Subtitle>
-                    {"Đăng nhập tài khoản Zalo\nđể kết nối với ứng dụng Zalo Web"}
+                    {Trans("LOGIN.SUBTITLE")}
                 </Subtitle>
 
                 <Card>
