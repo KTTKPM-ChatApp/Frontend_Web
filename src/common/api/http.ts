@@ -104,12 +104,14 @@ export const request = async <T = any>(
   const optionHeaders = toHeaderRecord(options?.headers);
 
   try {
-    // Add timeout for request
+    // Add timeout for request — chatbot requests need a longer timeout (AI takes time)
+    const isChatbotRequest = url.includes('/chatbot/');
+    const timeoutMs = isChatbotRequest ? 90000 : 10000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.error(`[HTTP] Request timeout after 10s: ${method} ${url}`);
+      console.error(`[HTTP] Request timeout after ${timeoutMs / 1000}s: ${method} ${url}`);
       controller.abort();
-    }, 10000);
+    }, timeoutMs);
 
     const res = await fetch(fullUrl, {
       ...options,
