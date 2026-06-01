@@ -392,7 +392,11 @@ export const chatService = {
       attachments,
       reply_to_id: replyToId || undefined,
       client_message_id: clientMessageId || undefined,
-    });
+    }, clientMessageId ? {
+      headers: {
+        "Idempotency-Key": clientMessageId,
+      },
+    } : undefined);
   },
 
   fetchConversationById(conversationId: string) {
