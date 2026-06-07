@@ -125,6 +125,11 @@ export const callService = {
     return res.payload;
   },
 
+  async getSfuRoom(roomId: string): Promise<RoomResponse> {
+    const res = await http.get<RoomResponse>(API.API_SFU_ROOM(roomId));
+    return res.payload;
+  },
+
   async createSfuTransport(roomId: string, peerId: string, direction: "send" | "recv"): Promise<TransportResponse> {
     const res = await http.post<TransportResponse>(API.API_SFU_CREATE_TRANSPORT(roomId), { peerId, direction });
     return res.payload;

@@ -18,7 +18,7 @@ let sfuTransportRecv: any = null;
 // mediasoup-client (SFU recv-consume)
 const sfuState = {
   device: null as Device | null,
-  recvTransport: null as any,
+  recvTransport: null as any, // mediasoup-client RecvTransport
 };
 const sfuConsumers: Map<string, any> = new Map(); // key: consumerId
 
@@ -401,7 +401,7 @@ async function connectSfuWebSocket(): Promise<WebSocket> {
       console.error('[SFU-WS] Error:', err);
       reject(err);
     };
-    ws.onmessage = (event) => {
+    ws.onmessage = async (event) => {
       try {
         const msg = JSON.parse(event.data);
         switch (msg.type) {
@@ -442,23 +442,47 @@ async function connectSfuWebSocket(): Promise<WebSocket> {
           }
 
           case 'new-consumer': {
-            // Next chunk: consume + resume via REST, then attach audio to peerStreams
             console.log('[SFU-WS] new-consumer', {
               producerId: msg.producerId,
               peerId: msg.peerId,
               kind: msg.kind,
             });
 
-            if (msg.peerId) {
-              useCallStore.getState().addPeerStream({
-                peerId: msg.peerId,
-                userId: msg.peerId,
-                displayName: msg.peerId,
-                audio: null,
-                video: null,
+            const roomId = useCallStore.getState().sfuRoomId;
+            if (!roomId || !sfuState.recvTransport) {
+              console.warn('[SFU-WS] new-consumer: no roomId or recvTransport');
+              break;
+            }
+
+            try {
+              const rtpCapabilities = sfuState.device?.rtpCapabilities;
+              const transportId = sfuTransportRecv.transportId;
+              const consumeResult = await callService.consume(roomId, transportId, msg.producerId, rtpCapabilities);
+
+              const consumer = await sfuState.recvTransport.consume({
+                id: consumeResult.consumerId,
+                producerId: consumeResult.producerId,
+                kind: consumeResult.kind,
+                rtpParameters: consumeResult.rtpParameters,
+              });
+
+              await callService.resumeConsumer(roomId, consumeResult.consumerId);
+              sfuConsumers.set(consumeResult.consumerId, consumer);
+
+              const remoteStream = new MediaStream([consumer.track]);
+
+              const peerId = msg.peerId || `peer-${msg.producerId}`;
+              useCallStore.getState().addOrUpdatePeerStream({
+                peerId,
+                userId: peerId,
+                displayName: peerId,
+                audio: msg.kind === 'audio' ? remoteStream : null,
+                video: msg.kind === 'video' ? remoteStream : null,
                 audioMuted: false,
                 videoMuted: false,
               });
+            } catch (err) {
+              console.error('[SFU-WS] new-consumer error:', err);
             }
             break;
           }
@@ -490,21 +514,25 @@ export async function startGroupCall(conversationId: string) {
     useCallStore.getState().setConnected(stream);
     useCallStore.getState().setConnecting();
 
-    await callService.createSfuRoom(roomId, conversationId);
+    const roomInfo = await callService.createSfuRoom(roomId, conversationId);
+    const device = new Device();
+    await device.load({ routerRtpCapabilities: roomInfo.routerRtpCapabilities });
+    sfuState.device = device;
+
+    const sendTransportParams = await callService.createSfuTransport(roomId, currentUserId!, "send");
+    sfuTransportSend = sendTransportParams;
+
+    const recvTransportParams = await callService.createSfuTransport(roomId, currentUserId!, "recv");
+    sfuTransportRecv = recvTransportParams;
+    sfuState.recvTransport = device.createRecvTransport({
+      id: recvTransportParams.transportId,
+      iceParameters: recvTransportParams.iceParameters,
+      iceCandidates: recvTransportParams.iceCandidates,
+      dtlsParameters: recvTransportParams.dtlsParameters,
+    });
+    await sfuState.recvTransport.connect({ dtlsParameters: recvTransportParams.dtlsParameters });
 
     const ws = await connectSfuWebSocket();
-
-    const sendTransport = await callService.createSfuTransport(roomId, currentUserId!, "send");
-    sfuTransportSend = sendTransport;
-
-    const recvTransport = await callService.createSfuTransport(roomId, currentUserId!, "recv");
-    sfuTransportRecv = recvTransport;
-
-    const sendRtcTransport = new RTCPeerConnection(getRTCConfig());
-    await sendRtcTransport.setRemoteDescription({
-      type: 'offer',
-      sdp: new Blob([JSON.stringify(sendTransport.dtlsParameters)]).toString(),
-    });
 
     sendSocketMessage("/app/sfu.join", {
       conversation_id: conversationId,
@@ -513,19 +541,13 @@ export async function startGroupCall(conversationId: string) {
 
     useCallStore.getState().setConnected(stream);
 
+    const sendRtcTransport = new RTCPeerConnection(getRTCConfig());
     stream.getAudioTracks().forEach((track) => {
-      if (sfuTransportSend) {
-        const sender = sendRtcTransport.addTrack(track, stream);
-      }
+      sendRtcTransport.addTrack(track, stream);
     });
-
-    if (true) {
-      stream.getVideoTracks().forEach((track) => {
-        if (sfuTransportSend) {
-          const sender = sendRtcTransport.addTrack(track, stream);
-        }
-      });
-    }
+    stream.getVideoTracks().forEach((track) => {
+      sendRtcTransport.addTrack(track, stream);
+    });
 
     const offer = await sendRtcTransport.createOffer();
     await sendRtcTransport.setLocalDescription(offer);
@@ -549,10 +571,22 @@ export async function handleIncomingGroupCall(conversationId: string, sessionId:
     const stream = await getLocalStream(true);
     useCallStore.getState().setConnected(stream);
 
+    const roomInfo = await callService.getSfuRoom(sfuRoomId);
+    const device = new Device();
+    await device.load({ routerRtpCapabilities: roomInfo.routerRtpCapabilities });
+    sfuState.device = device;
+
     const ws = await connectSfuWebSocket();
 
-    const recvTransport = await callService.createSfuTransport(sfuRoomId, currentUserId!, "recv");
-    sfuTransportRecv = recvTransport;
+    const recvTransportParams = await callService.createSfuTransport(sfuRoomId, currentUserId!, "recv");
+    sfuTransportRecv = recvTransportParams;
+    sfuState.recvTransport = device.createRecvTransport({
+      id: recvTransportParams.transportId,
+      iceParameters: recvTransportParams.iceParameters,
+      iceCandidates: recvTransportParams.iceCandidates,
+      dtlsParameters: recvTransportParams.dtlsParameters,
+    });
+    await sfuState.recvTransport.connect({ dtlsParameters: recvTransportParams.dtlsParameters });
 
     sendSocketMessage("/app/sfu.join", {
       conversation_id: conversationId,
