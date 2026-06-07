@@ -11,6 +11,7 @@ import VideoCallIcon from "@mui/icons-material/VideoCall";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import GroupsIcon from "@mui/icons-material/Groups";
+import { startCall, startGroupCall } from "@/src/common/action/call.action";
 
 interface ChatHeaderProps {
   socketConnected: boolean;
@@ -175,8 +176,14 @@ export default function ChatHeader({
       </HeaderLeft>
 
       <Actions>
-        <ActionBtn aria-label={t("CHAT.CALL_AUDIO")}><PhoneIcon fontSize="small" /></ActionBtn>
-        <ActionBtn aria-label={t("CHAT.CALL_VIDEO")}><VideoCallIcon fontSize="small" /></ActionBtn>
+        {isDirect ? (
+          <>
+            <ActionBtn aria-label={t("CHAT.CALL_AUDIO")} onClick={() => conversationId && startCall(conversationId, "AUDIO")}><PhoneIcon fontSize="small" /></ActionBtn>
+            <ActionBtn aria-label={t("CHAT.CALL_VIDEO")} onClick={() => conversationId && startCall(conversationId, "VIDEO")}><VideoCallIcon fontSize="small" /></ActionBtn>
+          </>
+        ) : (
+          <ActionBtn aria-label={t("CHAT.CALL_GROUP")} onClick={() => conversationId && startGroupCall(conversationId)}><GroupsIcon fontSize="small" /></ActionBtn>
+        )}
         <ActionBtn aria-label={t("CHAT.SEARCH")} onClick={onToggleSearch}><SearchIcon fontSize="small" /></ActionBtn>
         <ActionBtn aria-label={t("CHAT.INFO")} onClick={onToggleInfo}><InfoOutlinedIcon fontSize="small" /></ActionBtn>
       </Actions>

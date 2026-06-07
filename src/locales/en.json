@@ -496,6 +496,13 @@
 
   "// ============================== CALL ==============================": "",
 
+  "CHAT.IN_CALL": "In call",
+  "CHAT.CALLING": "Calling...",
+  "CHAT.CALL_ENDED": "Call ended",
+  "CHAT.CALL_MISSED": "Missed call",
+  "CHAT.CALL_ACCEPT": "Accept",
+  "CHAT.CALL_REJECT": "Decline",
+  "CHAT.UNKNOWN": "Unknown",
 
   "FOOTER.COPYRIGHT": " 2012 - 2026 A product of Zalo Group - Terms of Service - Data Processing Notice",
 

@@ -7,6 +7,7 @@ import { styled } from "@mui/material/styles";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
+import CallDialog from "../call/CallDialog";
 import { useChatStore } from "@/src/common/store/useChatStore";
 import {
   deleteMessage,
@@ -395,6 +396,8 @@ export default function ChatPanel({
         initialIndex={mediaPreview.initialIndex}
         onClose={() => setMediaPreview({ open: false, mediaList: [], initialIndex: 0 })}
       />
+
+      <CallDialog />
     </Root>
   );
 }

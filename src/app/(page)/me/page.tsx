@@ -38,8 +38,10 @@ import CreateGroupModal from "./components/chat/CreateGroupModal";
 import SettingsPanel from "./components/settings/SettingsPanel";
 import ChatbotPanel from "./components/chatbot/ChatbotPanel";
 import CloudPanel from "./components/cloud/CloudPanel";
+import IncomingCallDialog from "./components/call/IncomingCallDialog";
 
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
+import { handleSfuSignal } from "@/src/common/action/call.action";
 import { usePresenceHeartbeat } from "@/src/common/hooks/usePresenceHeartbeat";
 import { fetchAuthData } from "@/src/common/helpers/fetchDataHelpers";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -296,6 +298,14 @@ const Me = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      handleSfuSignal((e as CustomEvent).detail);
+    };
+    window.addEventListener("sfu:signal", handler);
+    return () => window.removeEventListener("sfu:signal", handler);
+  }, []);
+
   usePresenceHeartbeat({
     onPresenceUpdate: () => {},
     onUnauthorized: () => {
@@ -480,6 +490,8 @@ const Me = () => {
           setSelectedFriendRequest(null);
         }}
       />
+
+      <IncomingCallDialog />
     </Root>
   );
 };

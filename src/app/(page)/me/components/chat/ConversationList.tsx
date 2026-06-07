@@ -280,7 +280,15 @@ export default function ConversationList({ filterUnread = false }: ConversationL
                 <Content>
                   <Row>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
-                      {isPinned && <PushPin sx={{ fontSize: 13, color: "#2563EB" }} />}
+                      {isPinned && (
+                        <PushPin
+                          sx={{ fontSize: 13, color: "#2563EB", cursor: "pointer", "&:hover": { opacity: 0.7 } }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePin(item.id, isPinned);
+                          }}
+                        />
+                      )}
                       <Name unread={isUnread}>{item.name || t("CHAT.CONVERSATION")}</Name>
                     </Box>
                     <Meta sx={{ minWidth: 46, justifyContent: "flex-end", height: 20 }}>
@@ -289,7 +297,15 @@ export default function ConversationList({ filterUnread = false }: ConversationL
                       ) : (
                         <Person sx={{ fontSize: 14, color: "#94A3B8" }} />
                       )}
-                      {isMuted && <VolumeOff sx={{ fontSize: 13, color: "#94A3B8" }} />}
+                      {isMuted && (
+                        <VolumeOff
+                          sx={{ fontSize: 13, color: "#94A3B8", cursor: "pointer", "&:hover": { opacity: 0.7 } }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleMute(item.id, isMuted);
+                          }}
+                        />
+                      )}
                       
                       <TimeText className="time-text">
                         {formatLastMessageTime(item.lastMessageAt || item.lastMessage?.createdAt, t)}

@@ -1,7 +1,8 @@
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { handleCallSignal } from "../action/call.action";
 
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080";
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
 
 let stompClient: Client | null = null;
 let currentUserId: string | null = null;
@@ -100,6 +101,20 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
               window.dispatchEvent(event);
             } catch (err) {
               console.error("Failed to parse presence update:", err);
+            }
+          },
+        );
+
+        stompClient?.subscribe(
+          "/user/queue/calls",
+          (message: IMessage) => {
+            try {
+              const data = JSON.parse(message.body);
+              console.log('[STOMP incoming call]', data);
+              const event = new CustomEvent("call:incoming", { detail: data });
+              window.dispatchEvent(event);
+            } catch (err) {
+              console.error("Failed to parse incoming call:", err);
             }
           },
         );
@@ -259,7 +274,32 @@ export const subscribeToConversation = (conversationId: string) => {
     },
   );
 
-  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub, reactionSub]);
+  const callSub = stompClient.subscribe(
+    `/topic/conv.${conversationId}/call`,
+    (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        if (data.type === "incoming_call" || data.type === "incoming_group_call") {
+          const event = new CustomEvent("call:incoming", { detail: data });
+          window.dispatchEvent(event);
+        } else if (
+          data.type === "sfu-peer-joined" ||
+          data.type === "sfu-peer-left" ||
+          data.type === "sfu-active-speaker" ||
+          data.type === "sfu-transport-state"
+        ) {
+          const event = new CustomEvent("sfu:signal", { detail: data });
+          window.dispatchEvent(event);
+        } else {
+          handleCallSignal(data);
+        }
+      } catch (err) {
+        console.error("Failed to parse call event:", err);
+      }
+    },
+  );
+
+  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub, reactionSub, callSub]);
 };
 
 export const unsubscribeFromConversation = (conversationId: string) => {

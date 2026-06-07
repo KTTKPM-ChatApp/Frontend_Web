@@ -6,6 +6,7 @@ import { ConversationDto, ConversationLastMessageDto, ReactionDto, UiMessage } f
 import { ChatAttachmentPayload, IUploadedMedia } from "../interface/media-interface";
 import { chatService } from "../service/chat-service";
 import { connectSocket, disconnectSocket, getSocket, sendSocketMessage, subscribeToConversation, unsubscribeFromConversation } from "../socket/socket";
+import { initCallUser } from "./call.action";
 import { useChatStore } from "../store/useChatStore";
 import { usePresenceStore } from "../store/usePresenceStore";
 import http from "../api/http";
@@ -226,6 +227,7 @@ const hydrateReplyMessages = (messages: UiMessage[]): UiMessage[] => {
 export const initChat = (accessToken: string, currentUserId: string) => {
   if (!accessToken || !currentUserId) return;
 
+  initCallUser();
   const state = useChatStore.getState();
   const socket = connectSocket(accessToken, currentUserId);
 

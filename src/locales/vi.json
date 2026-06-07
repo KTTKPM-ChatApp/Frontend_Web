@@ -550,6 +550,12 @@
   "// ============================== CALL ==============================": "",
 
   "CHAT.IN_CALL": "Trong cuộc gọi",
+  "CHAT.CALLING": "Đang gọi...",
+  "CHAT.CALL_ENDED": "Cuộc gọi đã kết thúc",
+  "CHAT.CALL_MISSED": "Cuộc gọi nhỡ",
+  "CHAT.CALL_ACCEPT": "Nghe",
+  "CHAT.CALL_REJECT": "Từ chối",
+  "CHAT.UNKNOWN": "Không xác định",
 
   "// ============================== CONTACT ==============================": "",
   "CONTACT.FRIENDS": "Bạn bè",
