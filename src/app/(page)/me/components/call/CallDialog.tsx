@@ -10,6 +10,8 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import PhoneIcon from "@mui/icons-material/Phone";
 import MinimizeIcon from "@mui/icons-material/Minimize";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import { useCallStore, SfuPeerStream } from "@/src/common/store/useCallStore";
 import { endCall, endGroupCall, answerCall, rejectCall } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -184,9 +186,12 @@ export default function CallDialog() {
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const peerAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
   const peerVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [audioMuted, setAudioMuted] = useState(false);
   const [videoMuted, setVideoMuted] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(false);
   const [elapsed, setElapsed] = useState("");
 
   useEffect(() => {
@@ -218,11 +223,24 @@ export default function CallDialog() {
   }, [remoteStream]);
 
   useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.play().catch(console.warn);
+    }
+  }, [remoteStream]);
+
+  useEffect(() => {
     peerStreams.forEach((peer) => {
-      const el = peerVideoRefs.current.get(peer.peerId);
-      if (el) {
+      const videoEl = peerVideoRefs.current.get(peer.peerId);
+      if (videoEl) {
         const stream = peer.video || peer.audio;
-        if (stream) el.srcObject = stream;
+        if (stream) videoEl.srcObject = stream;
+      }
+
+      const audioEl = peerAudioRefs.current.get(peer.peerId);
+      if (audioEl && peer.audio) {
+        audioEl.srcObject = peer.audio;
+        audioEl.play().catch(console.warn);
       }
     });
   }, [peerStreams]);
@@ -248,6 +266,30 @@ export default function CallDialog() {
       setVideoMuted(!videoMuted);
     }
   }, [localStream, videoMuted]);
+
+  const handleToggleSpeaker = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+      
+      const speakerDevice = audioOutputs.find(d => 
+        d.label.toLowerCase().includes('speaker') ||
+        d.label.toLowerCase().includes('loa') ||
+        d.label.toLowerCase().includes('built-in') ||
+        d.label.toLowerCase().includes('bulit in')
+      );
+      
+      const targetDeviceId = speakerOn 
+        ? 'default' 
+        : (speakerDevice?.deviceId || 'default');
+
+      const audioEls = [remoteAudioRef.current, ...Array.from(peerAudioRefs.current.values())];
+      await Promise.all(audioEls.map(el => el?.setSinkId(targetDeviceId)));
+      setSpeakerOn(!speakerOn);
+    } catch (err) {
+      console.warn('[Speaker] toggle failed:', err);
+    }
+  }, [speakerOn]);
 
   const handleMinimize = useCallback(() => {
     useCallStore.getState().setMinimized(true);
@@ -367,6 +409,10 @@ export default function CallDialog() {
                 ) : (
                   <PeerAvatar>{peer.displayName[0]}</PeerAvatar>
                 )}
+                <audio
+                  ref={(el) => { if (el) peerAudioRefs.current.set(peer.peerId, el); }}
+                  autoPlay playsInline
+                />
                 <PeerName>
                   {peer.displayName}
                   {peer.audioMuted && <MicOffIcon sx={{ fontSize: 12, ml: 0.5 }} />}
@@ -394,6 +440,9 @@ export default function CallDialog() {
             <ControlBtn onClick={handleToggleAudio}>
               {audioMuted ? <MicOffIcon /> : <MicIcon />}
             </ControlBtn>
+            <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E" } : {}}>
+              {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
+            </ControlBtn>
             <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
               {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
             </EndCallBtn>
@@ -413,11 +462,15 @@ export default function CallDialog() {
         <Overlay>
           <VideoContainer>
             <RemoteVideo ref={remoteVideoRef} autoPlay playsInline />
+            <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
             <LocalVideo ref={localVideoRef} autoPlay playsInline muted />
           </VideoContainer>
           <Controls>
             <ControlBtn onClick={handleToggleAudio}>
               {audioMuted ? <MicOffIcon /> : <MicIcon />}
+            </ControlBtn>
+            <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E" } : {}}>
+              {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
             </ControlBtn>
             <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
               {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
@@ -442,9 +495,13 @@ export default function CallDialog() {
         <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
           {elapsed || t("CHAT.IN_CALL")}
         </Typography>
+        <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
         <Controls>
           <ControlBtn onClick={handleToggleAudio}>
             {audioMuted ? <MicOffIcon /> : <MicIcon />}
+          </ControlBtn>
+          <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E" } : {}}>
+            {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
           </ControlBtn>
           <EndCallBtn onClick={handleEndCall}>
             <CallEndIcon />
