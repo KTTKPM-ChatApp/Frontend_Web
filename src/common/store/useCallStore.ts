@@ -59,6 +59,7 @@ export interface CallSetters {
   addPeerStream: (peer: SfuPeerStream) => void;
   removePeerStream: (peerId: string) => void;
   updatePeerStream: (peerId: string, updates: Partial<SfuPeerStream>) => void;
+  addOrUpdatePeerStream: (peer: SfuPeerStream) => void;
   setSpeaking: (speaking: boolean) => void;
   setAudioMuted: (muted: boolean) => void;
   setVideoMuted: (muted: boolean) => void;
@@ -164,6 +165,19 @@ export const useCallStore = create<CallStore>((set) => ({
         p.peerId === peerId ? { ...p, ...updates } : p
       ),
     })),
+
+  addOrUpdatePeerStream: (peer) =>
+    set((state) => {
+      const existing = state.peerStreams.find((p) => p.peerId === peer.peerId);
+      if (existing) {
+        return {
+          peerStreams: state.peerStreams.map((p) =>
+            p.peerId === peer.peerId ? { ...p, ...peer } : p
+          ),
+        };
+      }
+      return { peerStreams: [...state.peerStreams, peer] };
+    }),
 
   setSpeaking: (speaking) => set({ isSpeaking: speaking }),
 
