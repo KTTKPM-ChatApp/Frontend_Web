@@ -288,6 +288,25 @@ export default function CallDialog() {
     );
   }
 
+  if (status === "connecting") {
+    return (
+      <Overlay>
+        <CallAvatar>{(callerName || "?")[0]}</CallAvatar>
+        <Typography sx={{ color: "#fff", fontSize: 24, fontWeight: 600, mb: 1 }}>
+          {callerName || ""}
+        </Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
+          {t("CHAT.CONNECTING")}
+        </Typography>
+        <Controls>
+          <EndCallBtn onClick={handleEndCall}>
+            <CallEndIcon />
+          </EndCallBtn>
+        </Controls>
+      </Overlay>
+    );
+  }
+
   if (status === "connected") {
     if (type === "GROUP") {
       return (

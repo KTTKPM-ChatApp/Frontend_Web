@@ -87,9 +87,9 @@ export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO")
     });
 
     await loadIceServers();
+    useCallStore.getState().setConnecting();
     const stream = await getLocalStream(type === "VIDEO");
     useCallStore.getState().setConnected(stream);
-    useCallStore.getState().setConnecting();
 
     peerConnection = new RTCPeerConnection(getRTCConfig());
     stream.getTracks().forEach((track) => peerConnection!.addTrack(track, stream));
