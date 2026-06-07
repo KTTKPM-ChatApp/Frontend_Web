@@ -29,6 +29,11 @@ export interface CallState {
   audioMuted: boolean;
   videoMuted: boolean;
   callStartTime: number | null;
+  // Loading states
+  isStarting: boolean;
+  isEnding: boolean;
+  isRejecting: boolean;
+  isAnswering: boolean;
 }
 
 export interface CallSetters {
@@ -62,6 +67,10 @@ export interface CallSetters {
   setCallStartTime: (time: number) => void;
   setMinimized: (value: boolean) => void;
   setError: (error: string | null) => void;
+  setStarting: (value: boolean) => void;
+  setEnding: (value: boolean) => void;
+  setRejecting: (value: boolean) => void;
+  setAnswering: (value: boolean) => void;
   resetCall: () => void;
 }
 
@@ -86,6 +95,10 @@ export const initialCallState: CallState = {
   audioMuted: false,
   videoMuted: false,
   callStartTime: null,
+  isStarting: false,
+  isEnding: false,
+  isRejecting: false,
+  isAnswering: false,
 };
 
 export const useCallStore = create<CallStore>((set) => ({
@@ -173,6 +186,11 @@ export const useCallStore = create<CallStore>((set) => ({
   setMinimized: (value) => set({ minimized: value }),
 
   setError: (error) => set({ error }),
+
+  setStarting: (value) => set({ isStarting: value }),
+  setEnding: (value) => set({ isEnding: value }),
+  setRejecting: (value) => set({ isRejecting: value }),
+  setAnswering: (value) => set({ isAnswering: value }),
 
   resetCall: () => set(initialCallState),
 }));

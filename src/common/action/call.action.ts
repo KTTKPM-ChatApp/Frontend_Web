@@ -3,6 +3,7 @@ import { callService, IceServer } from "../service/call-service";
 import { getSocket, sendSocketMessage } from "../socket/socket";
 import { getcurrentUserId } from "../utilities/utils";
 import { playRingtone, playBusyTone, stopRingtone } from "../service/ringtone";
+import { Device } from "mediasoup-client";
 
 let peerConnection: RTCPeerConnection | null = null;
 let localStream: MediaStream | null = null;
@@ -13,8 +14,13 @@ let pendingIceCandidates: RTCIceCandidateInit[] = [];
 let ringingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let sfuTransportSend: any = null;
 let sfuTransportRecv: any = null;
-const sfuProducers: Map<string, string> = new Map();
-const sfuConsumers: Map<string, any> = new Map();
+
+// mediasoup-client (SFU recv-consume)
+const sfuState = {
+  device: null as Device | null,
+  recvTransport: null as any,
+};
+const sfuConsumers: Map<string, any> = new Map(); // key: consumerId
 
 export function initCallUser() {
   currentUserId = getcurrentUserId();
@@ -74,7 +80,9 @@ export function cleanupPeerConnection() {
 function cleanupSfu() {
   sfuTransportSend = null;
   sfuTransportRecv = null;
-  sfuProducers.clear();
+  if (sfuState.device) {
+    sfuState.device = null;
+  }
   sfuConsumers.clear();
 }
 
@@ -126,6 +134,7 @@ export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO")
   const store = useCallStore.getState();
   if (store.active) return;
 
+  useCallStore.getState().setStarting(true);
   try {
     const callResult = await callService.startCall(conversationId, type);
     useCallStore.getState().initiateCall({
@@ -167,12 +176,15 @@ export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO")
   } catch (err: any) {
     useCallStore.getState().setError(err.message || "Failed to start call");
     endCall(conversationId);
+  } finally {
+    useCallStore.getState().setStarting(false);
   }
 }
 
 export async function answerCall(conversationId: string, callId: string) {
   const store = useCallStore.getState();
 
+  useCallStore.getState().setAnswering(true);
   try {
     await callService.joinCall(conversationId, callId);
     useCallStore.getState().setConnecting();
@@ -218,21 +230,28 @@ export async function answerCall(conversationId: string, callId: string) {
   } catch (err: any) {
     useCallStore.getState().setError(err.message || "Failed to answer call");
     endCall(conversationId);
+  } finally {
+    useCallStore.getState().setAnswering(false);
   }
 }
 
 export async function rejectCall(conversationId: string, callId: string) {
+  useCallStore.getState().setRejecting(true);
   try {
     await callService.rejectCall(conversationId, callId);
     sendSocketMessage("/app/call.hangup", {
       conversation_id: conversationId,
     });
-  } catch {}
-  clearPendingOffer();
-  clearPendingIceCandidates();
-  clearRingingTimeout();
-  stopRingtone();
-  useCallStore.getState().resetCall();
+  } catch (err) {
+    console.warn('[Call] rejectCall failed:', err);
+  } finally {
+    clearPendingOffer();
+    clearPendingIceCandidates();
+    clearRingingTimeout();
+    stopRingtone();
+    useCallStore.getState().setRejecting(false);
+    useCallStore.getState().resetCall();
+  }
 }
 
 function getLastCallInfo(): { callId: string | null; convId: string | null } {
@@ -257,9 +276,11 @@ export async function endCall(conversationId?: string) {
   const convId = conversationId || store.conversationId;
   let callId = store.callId;
 
+  useCallStore.getState().setEnding(true);
+
   if (!callId) {
     const last = getLastCallInfo();
-    callId = last.callId || undefined;
+    callId = last.callId ?? null;
   }
 
   if (callId && convId) {
@@ -291,6 +312,7 @@ export async function endCall(conversationId?: string) {
     localStorage.setItem('lastCallId', callId);
     localStorage.setItem('lastConvId', convId);
   }
+  useCallStore.getState().setEnding(false);
   setTimeout(() => {
     clearLastCallInfo();
     useCallStore.getState().resetCall();
@@ -360,8 +382,10 @@ export function handleCallSignal(data: any) {
 
 async function getSfuWebSocketUrl(): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL?.replace('/ws', '') || '';
-  const token = localStorage.getItem('accessToken');
-  return `${baseUrl}/sfu/ws?token=${token}&roomId=${useCallStore.getState().sfuRoomId}&peerId=${currentUserId}`;
+  const token = localStorage.getItem('accessToken') || '';
+  const roomId = useCallStore.getState().sfuRoomId || '';
+  const peerId = currentUserId || '';
+  return `${baseUrl}/sfu/ws?token=${token}&roomId=${roomId}&peerId=${peerId}`;
 }
 
 async function connectSfuWebSocket(): Promise<WebSocket> {
@@ -414,6 +438,28 @@ async function connectSfuWebSocket(): Promise<WebSocket> {
                 videoMuted: false,
               });
             });
+            break;
+          }
+
+          case 'new-consumer': {
+            // Next chunk: consume + resume via REST, then attach audio to peerStreams
+            console.log('[SFU-WS] new-consumer', {
+              producerId: msg.producerId,
+              peerId: msg.peerId,
+              kind: msg.kind,
+            });
+
+            if (msg.peerId) {
+              useCallStore.getState().addPeerStream({
+                peerId: msg.peerId,
+                userId: msg.peerId,
+                displayName: msg.peerId,
+                audio: null,
+                video: null,
+                audioMuted: false,
+                videoMuted: false,
+              });
+            }
             break;
           }
         }

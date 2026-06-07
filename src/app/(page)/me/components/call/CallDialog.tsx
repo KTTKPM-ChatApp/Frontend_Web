@@ -178,6 +178,8 @@ export default function CallDialog() {
     sfuRoomId,
     sessionId,
     callStartTime,
+    isEnding,
+    isRejecting,
   } = useCallStore();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -277,10 +279,10 @@ export default function CallDialog() {
           {type === "GROUP" ? t("CHAT.CALL_GROUP_INCOMING") : t("CHAT.CALLING")}
         </Typography>
         <Controls>
-          <EndCallBtn onClick={() => {
+          <EndCallBtn disabled={isRejecting} onClick={() => {
             if (conversationId && callId) rejectCall(conversationId, callId);
           }}>
-            <CallEndIcon />
+            {isRejecting ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
           {(type === "VIDEO" || type === "GROUP") ? (
             <ControlBtn
@@ -317,8 +319,8 @@ export default function CallDialog() {
           {t("CHAT.CONNECTING")}
         </Typography>
         <Controls>
-          <EndCallBtn onClick={handleEndCall}>
-            <CallEndIcon />
+          <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+            {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
         </Controls>
       </Overlay>
@@ -342,8 +344,8 @@ export default function CallDialog() {
           {elapsed}
         </Typography>
         <Controls>
-          <EndCallBtn onClick={handleEndCall}>
-            <CallEndIcon />
+          <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+            {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
         </Controls>
       </Overlay>
@@ -392,8 +394,8 @@ export default function CallDialog() {
             <ControlBtn onClick={handleToggleAudio}>
               {audioMuted ? <MicOffIcon /> : <MicIcon />}
             </ControlBtn>
-            <EndCallBtn onClick={handleEndCall}>
-              <CallEndIcon />
+            <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+              {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
             </EndCallBtn>
             <ControlBtn onClick={handleToggleVideo}>
               {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
@@ -417,8 +419,8 @@ export default function CallDialog() {
             <ControlBtn onClick={handleToggleAudio}>
               {audioMuted ? <MicOffIcon /> : <MicIcon />}
             </ControlBtn>
-            <EndCallBtn onClick={handleEndCall}>
-              <CallEndIcon />
+            <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+              {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
             </EndCallBtn>
             <ControlBtn onClick={handleToggleVideo}>
               {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}

@@ -17,11 +17,12 @@ const ActionLinkButton = ({ metadata }: { metadata: string }) => {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
 
+  let label = "";
+  let tab = "";
+  let isValid = false;
+
   try {
     const actionObj = JSON.parse(metadata);
-    let label = "";
-    let tab = "";
-
     if (actionObj.type === "switch_tab") {
       tab = actionObj.payload;
       if (tab === "cloud") label = isEn ? "Go to Cloud Drive" : "Đi tới Cloud Drive";
@@ -36,45 +37,46 @@ const ActionLinkButton = ({ metadata }: { metadata: string }) => {
       tab = "contact";
       label = isEn ? "Go to Contacts" : "Đi tới Bạn bè";
     }
-
-    if (!tab) return null;
-
-    const handleClick = () => {
-      window.dispatchEvent(
-        new CustomEvent("app:switch_tab", { detail: { tab } })
-      );
-    };
-
-    return (
-      <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-start" }}>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleClick}
-          sx={{
-            backgroundColor: "#ffffff",
-            color: "#005AE0",
-            fontWeight: 600,
-            textTransform: "none",
-            borderRadius: "18px",
-            border: "1px solid #005AE0",
-            px: 2,
-            py: 0.5,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            "&:hover": {
-              backgroundColor: "#E3F2FD",
-              borderColor: "#0048CC",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-            },
-          }}
-        >
-          {label}
-        </Button>
-      </Box>
-    );
-  } catch (e) {
+    isValid = !!tab;
+  } catch {
     return null;
   }
+
+  if (!isValid) return null;
+
+  const handleClick = () => {
+    window.dispatchEvent(
+      new CustomEvent("app:switch_tab", { detail: { tab } })
+    );
+  };
+
+  return (
+    <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-start" }}>
+      <Button
+        variant="contained"
+        size="small"
+        onClick={handleClick}
+        sx={{
+          backgroundColor: "#ffffff",
+          color: "#005AE0",
+          fontWeight: 600,
+          textTransform: "none",
+          borderRadius: "18px",
+          border: "1px solid #005AE0",
+          px: 2,
+          py: 0.5,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          "&:hover": {
+            backgroundColor: "#E3F2FD",
+            borderColor: "#0048CC",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+          },
+        }}
+      >
+        {label}
+      </Button>
+    </Box>
+  );
 };
 
 const Root = styled(Box)({

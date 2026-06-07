@@ -254,12 +254,12 @@ export default function MediaPreviewModal({
   const handlePrev = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : totalCount - 1));
-  }, [totalCount]);
+  }, [totalCount, setCurrentIndex]);
 
   const handleNext = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
     setCurrentIndex((prev) => (prev < totalCount - 1 ? prev + 1 : 0));
-  }, [totalCount]);
+  }, [totalCount, setCurrentIndex]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!hasNavigation) return;
