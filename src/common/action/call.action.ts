@@ -169,6 +169,7 @@ export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO")
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
 
+    subscribeToConversation(conversationId);
     sendSocketMessage("/app/call.offer", {
       conversation_id: conversationId,
       sdp: peerConnection.localDescription,
@@ -210,10 +211,11 @@ export async function answerCall(conversationId: string, callId: string) {
       useCallStore.getState().setRemoteStream(event.streams[0]);
     };
 
+    subscribeToConversation(conversationId);
+
     const answerParams = pendingOffer
       ? { sdp: pendingOffer.sdp, candidates: pendingIceCandidates }
       : await new Promise<{ sdp: RTCSessionDescriptionInit; candidates: RTCIceCandidateInit[] } | null>((resolve) => {
-          subscribeToConversation(conversationId);
           const check = setInterval(() => {
             if (pendingOffer) {
               clearInterval(check);
