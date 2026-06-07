@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, IconButton, Typography, CircularProgress } from "@mui/material";
+import { Box, IconButton, Typography, CircularProgress, keyframes } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 import MicIcon from "@mui/icons-material/Mic";
@@ -16,18 +16,192 @@ import { useCallStore, SfuPeerStream } from "@/src/common/store/useCallStore";
 import { endCall, endGroupCall, answerCall, rejectCall } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 
+const fadeIn = keyframes`
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+`;
+
+const pulse = keyframes`
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.04); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.8; }
+`;
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+`;
+
+const wave = keyframes`
+  0% { transform: scaleX(0.3); }
+  50% { transform: scaleX(1); }
+  100% { transform: scaleX(0.3); }
+`;
+
+const speakingGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,90,224,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(0,90,224,0); }
+`;
+
 const Overlay = styled(Box)({
   position: "fixed",
   top: 0,
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: "rgba(0,0,0,0.85)",
   zIndex: 9999,
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  animation: `${fadeIn} 0.3s ease-out`,
+});
+
+const AudioOverlay = styled(Overlay)({
+  background: "linear-gradient(135deg, #005AE0 0%, #0068FF 50%, #0077FF 100%)",
+});
+
+const VideoOverlay = styled(Overlay)({
+  backgroundColor: "#000",
+});
+
+const GroupOverlay = styled(Overlay)({
+  backgroundColor: "#0d0d0d",
+});
+
+const TopInfo = styled(Box)({
+  position: "absolute",
+  top: 48,
+  left: 0,
+  right: 0,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  zIndex: 10,
+});
+
+const AvatarContainer = styled(Box)({
+  position: "relative",
+  marginBottom: 16,
+});
+
+const PulseRingOuter = styled(Box)({
+  position: "absolute",
+  top: -20,
+  left: -20,
+  right: -20,
+  bottom: -20,
+  borderRadius: "50%",
+  border: "3px solid rgba(255,255,255,0.3)",
+  animation: `${pulse} 2s ease-in-out infinite`,
+});
+
+const PulseRingInner = styled(Box)({
+  position: "absolute",
+  top: -10,
+  left: -10,
+  right: -10,
+  bottom: -10,
+  borderRadius: "50%",
+  border: "2px solid rgba(255,255,255,0.15)",
+  animation: `${pulse} 2s ease-in-out infinite 0.3s`,
+});
+
+const AvatarCircle = styled(Box)({
+  width: 96,
+  height: 96,
+  borderRadius: "50%",
+  backgroundColor: "#fff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#005AE0",
+  fontSize: 40,
+  fontWeight: 700,
+  boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+  position: "relative",
+  zIndex: 1,
+  animation: `${float} 3s ease-in-out infinite`,
+});
+
+const WaveContainer = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 3,
+  height: 20,
+  marginTop: 8,
+});
+
+const WaveBar = styled(Box)<{ delay: number }>(({ delay }) => ({
+  width: 3,
+  height: "100%",
+  backgroundColor: "rgba(255,255,255,0.6)",
+  borderRadius: 3,
+  animation: `${wave} 0.8s ease-in-out infinite`,
+  animationDelay: `${delay}s`,
+}));
+
+const Controls = styled(Box)({
+  position: "absolute",
+  bottom: 48,
+  left: "50%",
+  transform: "translateX(-50%)",
+  display: "flex",
+  alignItems: "center",
+  gap: 20,
+  backgroundColor: "rgba(0,0,0,0.4)",
+  padding: "10px 28px",
+  borderRadius: 40,
+  backdropFilter: "blur(12px)",
+  zIndex: 10,
+});
+
+const ControlBtn = styled(IconButton)({
+  width: 50,
+  height: 50,
+  color: "#fff",
+  backgroundColor: "rgba(255,255,255,0.2)",
+  backdropFilter: "blur(4px)",
+  transition: "all 0.2s ease",
+  "&:hover": {
+    backgroundColor: "rgba(255,255,255,0.35)",
+    transform: "scale(1.05)",
+  },
+  "&:active": { transform: "scale(0.95)" },
+});
+
+const EndCallBtn = styled(IconButton)({
+  width: 56,
+  height: 56,
+  color: "#fff",
+  backgroundColor: "#EF4444",
+  boxShadow: "0 4px 16px rgba(239,68,68,0.4)",
+  transition: "all 0.2s ease",
+  "&:hover": {
+    backgroundColor: "#DC2626",
+    transform: "scale(1.05)",
+    boxShadow: "0 6px 24px rgba(239,68,68,0.5)",
+  },
+  "&:active": { transform: "scale(0.95)" },
+});
+
+const MinimizedBar = styled(Box)({
+  position: "fixed",
+  bottom: 20,
+  right: 20,
+  zIndex: 9999,
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  backgroundColor: "#1a1a2e",
+  color: "#fff",
+  padding: "10px 20px",
+  borderRadius: 28,
+  cursor: "pointer",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+  transition: "all 0.2s ease",
+  "&:hover": { transform: "scale(1.02)" },
 });
 
 const VideoContainer = styled(Box)({
@@ -37,102 +211,56 @@ const VideoContainer = styled(Box)({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  flexWrap: "wrap",
-  gap: 8,
-  padding: 16,
 });
 
 const RemoteVideo = styled("video")({
   width: "100%",
   height: "100%",
   objectFit: "contain",
-  backgroundColor: "#1a1a1a",
+  backgroundColor: "#000",
 });
 
 const LocalVideo = styled("video")({
   position: "absolute",
-  bottom: 100,
-  right: 24,
-  width: 160,
-  height: 120,
-  borderRadius: 12,
+  bottom: 120,
+  right: 20,
+  width: 140,
+  height: 200,
+  borderRadius: 16,
   objectFit: "cover",
   border: "2px solid rgba(255,255,255,0.3)",
   backgroundColor: "#000",
   transform: "scaleX(-1)",
+  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+  zIndex: 5,
 });
 
-const Controls = styled(Box)({
-  position: "absolute",
-  bottom: 40,
-  left: "50%",
-  transform: "translateX(-50%)",
+const GroupGrid = styled(Box)({
   display: "flex",
-  alignItems: "center",
-  gap: 16,
-  backgroundColor: "rgba(0,0,0,0.5)",
-  padding: "8px 24px",
-  borderRadius: 40,
-  backdropFilter: "blur(8px)",
-});
-
-const ControlBtn = styled(IconButton)({
-  width: 48,
-  height: 48,
-  color: "#fff",
-  backgroundColor: "rgba(255,255,255,0.15)",
-  "&:hover": { backgroundColor: "rgba(255,255,255,0.25)" },
-});
-
-const EndCallBtn = styled(IconButton)({
-  width: 48,
-  height: 48,
-  color: "#fff",
-  backgroundColor: "#E53935",
-  "&:hover": { backgroundColor: "#C62828" },
-});
-
-const MinimizedBar = styled(Box)({
-  position: "fixed",
-  bottom: 16,
-  right: 16,
-  zIndex: 9999,
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  backgroundColor: "#1a1a1a",
-  color: "#fff",
-  padding: "8px 16px",
-  borderRadius: 24,
-  cursor: "pointer",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-});
-
-const CallAvatar = styled(Box)({
-  width: 120,
-  height: 120,
-  borderRadius: "50%",
-  backgroundColor: "#005AE0",
-  display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
   justifyContent: "center",
-  color: "#fff",
-  fontSize: 48,
-  fontWeight: 700,
-  marginBottom: 24,
+  gap: 12,
+  padding: 16,
+  width: "100%",
+  height: "100%",
+  overflowY: "auto",
 });
 
 const PeerTile = styled(Box)({
   position: "relative",
-  flex: "1 1 30%",
-  minWidth: 200,
-  minHeight: 200,
-  backgroundColor: "#2a2a2a",
-  borderRadius: 12,
+  flex: "1 1 calc(50% - 12px)",
+  maxWidth: "calc(50% - 12px)",
+  aspectRatio: "1",
+  backgroundColor: "#1a1a2e",
+  borderRadius: 16,
   overflow: "hidden",
   display: "flex",
+  flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  minHeight: 180,
+  transition: "all 0.2s ease",
 });
 
 const PeerVideo = styled("video")({
@@ -141,7 +269,7 @@ const PeerVideo = styled("video")({
   objectFit: "cover",
 });
 
-const PeerAvatar = styled(Box)({
+const PeerAvatarCircle = styled(Box)({
   width: 64,
   height: 64,
   borderRadius: "50%",
@@ -152,36 +280,35 @@ const PeerAvatar = styled(Box)({
   color: "#fff",
   fontSize: 28,
   fontWeight: 600,
+  boxShadow: "0 4px 12px rgba(0,90,224,0.3)",
 });
 
-const PeerName = styled(Typography)({
+const PeerNamelabel = styled(Typography)({
   position: "absolute",
   bottom: 8,
   left: 8,
   color: "#fff",
   fontSize: 12,
-  backgroundColor: "rgba(0,0,0,0.5)",
-  padding: "2px 8px",
-  borderRadius: 8,
+  fontWeight: 600,
+  backgroundColor: "rgba(0,0,0,0.6)",
+  padding: "4px 10px",
+  borderRadius: 10,
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+});
+
+const PeerSpeakingIndicator = styled(Box)({
+  animation: `${speakingGlow} 1.2s ease-in-out infinite`,
+  borderRadius: "50%",
 });
 
 export default function CallDialog() {
   const t = useTrans();
   const {
-    status,
-    type,
-    localStream,
-    remoteStream,
-    minimized,
-    conversationId,
-    callId,
-    callerName,
-    peerStreams,
-    sfuRoomId,
-    sessionId,
-    callStartTime,
-    isEnding,
-    isRejecting,
+    status, type, localStream, remoteStream, minimized,
+    conversationId, callId, callerName, peerStreams,
+    sfuRoomId, sessionId, callStartTime, isEnding, isRejecting,
   } = useCallStore();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -195,10 +322,7 @@ export default function CallDialog() {
   const [elapsed, setElapsed] = useState("");
 
   useEffect(() => {
-    if (status !== "connected") {
-      setElapsed("");
-      return;
-    }
+    if (status !== "connected") { setElapsed(""); return; }
     const interval = setInterval(() => {
       if (callStartTime) {
         const diff = Math.floor((Date.now() - callStartTime) / 1000);
@@ -211,15 +335,13 @@ export default function CallDialog() {
   }, [status, callStartTime]);
 
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
+    if (localVideoRef.current && localStream)
       localVideoRef.current.srcObject = localStream;
-    }
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
+    if (remoteVideoRef.current && remoteStream)
       remoteVideoRef.current.srcObject = remoteStream;
-    }
   }, [remoteStream]);
 
   useEffect(() => {
@@ -236,7 +358,6 @@ export default function CallDialog() {
         const stream = peer.video || peer.audio;
         if (stream) videoEl.srcObject = stream;
       }
-
       const audioEl = peerAudioRefs.current.get(peer.peerId);
       if (audioEl && peer.audio) {
         audioEl.srcObject = peer.audio;
@@ -246,11 +367,9 @@ export default function CallDialog() {
   }, [peerStreams]);
 
   const handleEndCall = useCallback(() => {
-    if (type === "GROUP" && conversationId && sessionId) {
+    if (type === "GROUP" && conversationId && sessionId)
       endGroupCall(conversationId, sessionId);
-    } else {
-      endCall();
-    }
+    else endCall();
   }, [type, conversationId, sessionId]);
 
   const handleToggleAudio = useCallback(() => {
@@ -271,18 +390,12 @@ export default function CallDialog() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-      
-      const speakerDevice = audioOutputs.find(d => 
+      const speakerDevice = audioOutputs.find(d =>
         d.label.toLowerCase().includes('speaker') ||
         d.label.toLowerCase().includes('loa') ||
-        d.label.toLowerCase().includes('built-in') ||
-        d.label.toLowerCase().includes('bulit in')
+        d.label.toLowerCase().includes('built-in')
       );
-      
-      const targetDeviceId = speakerOn 
-        ? 'default' 
-        : (speakerDevice?.deviceId || 'default');
-
+      const targetDeviceId = speakerOn ? 'default' : (speakerDevice?.deviceId || 'default');
       const audioEls = [remoteAudioRef.current, ...Array.from(peerAudioRefs.current.values())];
       await Promise.all(audioEls.map(el => el?.setSinkId(targetDeviceId)));
       setSpeakerOn(!speakerOn);
@@ -295,224 +408,255 @@ export default function CallDialog() {
     useCallStore.getState().setMinimized(true);
   }, []);
 
+  // --- Minimized ---
   if (minimized) {
     return (
       <MinimizedBar onClick={() => useCallStore.getState().setMinimized(false)}>
         <PhoneIcon sx={{ fontSize: 18, color: "#22C55E" }} />
         <Typography sx={{ fontSize: 13 }}>
-          {type === "GROUP"
-            ? t("CHAT.CALL_GROUP")
-            : type === "VIDEO"
-              ? t("CHAT.CALL_VIDEO")
-              : t("CHAT.CALL_AUDIO")}
+          {type === "GROUP" ? t("CHAT.CALL_GROUP") : type === "VIDEO" ? t("CHAT.CALL_VIDEO") : t("CHAT.CALL_AUDIO")}
         </Typography>
+        {elapsed && <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{elapsed}</Typography>}
       </MinimizedBar>
     );
   }
 
+  // --- Ringing ---
   if (status === "ringing") {
     return (
-      <Overlay>
-        <CallAvatar>{(callerName || "?")[0]}</CallAvatar>
-        <Typography sx={{ color: "#fff", fontSize: 24, fontWeight: 600, mb: 1 }}>
-          {callerName || ""}
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
-          {type === "GROUP" ? t("CHAT.CALL_GROUP_INCOMING") : t("CHAT.CALLING")}
-        </Typography>
+      <AudioOverlay>
+        <TopInfo sx={{ top: 80 }}>
+          <AvatarContainer>
+            <PulseRingOuter />
+            <PulseRingInner />
+            <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+          </AvatarContainer>
+          <Typography sx={{ color: "#fff", fontSize: 26, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+            {callerName || ""}
+          </Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 14, mt: 0.5 }}>
+            {type === "GROUP" ? "Cuộc gọi nhóm" : "Cuộc gọi thoại"}
+          </Typography>
+        </TopInfo>
         <Controls>
           <EndCallBtn disabled={isRejecting} onClick={() => {
             if (conversationId && callId) rejectCall(conversationId, callId);
           }}>
-            {isRejecting ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+            {isRejecting ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
-          {(type === "VIDEO" || type === "GROUP") ? (
-            <ControlBtn
-              onClick={() => {
-                if (conversationId && callId) answerCall(conversationId, callId);
-              }}
-              sx={{ backgroundColor: "#22C55E", "&:hover": { backgroundColor: "#16A34A" } }}
-            >
-              <VideocamIcon />
-            </ControlBtn>
-          ) : (
-            <ControlBtn
-              onClick={() => {
-                if (conversationId && callId) answerCall(conversationId, callId);
-              }}
-              sx={{ backgroundColor: "#22C55E", "&:hover": { backgroundColor: "#16A34A" } }}
-            >
-              <PhoneIcon />
-            </ControlBtn>
-          )}
+          <ControlBtn
+            onClick={() => { if (conversationId && callId) answerCall(conversationId, callId); }}
+            sx={{ backgroundColor: "#22C55E", width: 56, height: 56, "&:hover": { backgroundColor: "#16A34A" } }}
+          >
+            {type === "VIDEO" ? <VideocamIcon /> : <PhoneIcon />}
+          </ControlBtn>
         </Controls>
-      </Overlay>
+      </AudioOverlay>
     );
   }
 
+  // --- Connecting ---
   if (status === "connecting") {
     return (
-      <Overlay>
-        <CallAvatar>{(callerName || "?")[0]}</CallAvatar>
-        <Typography sx={{ color: "#fff", fontSize: 24, fontWeight: 600, mb: 1 }}>
-          {callerName || ""}
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
-          {t("CHAT.CONNECTING")}
-        </Typography>
+      <AudioOverlay>
+        <TopInfo sx={{ top: 80 }}>
+          <AvatarContainer>
+            <PulseRingOuter />
+            <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+          </AvatarContainer>
+          <Typography sx={{ color: "#fff", fontSize: 26, fontWeight: 600 }}>
+            {callerName || ""}
+          </Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 14, mt: 0.5 }}>
+            {t("CHAT.CONNECTING")}
+          </Typography>
+        </TopInfo>
         <Controls>
           <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
-            {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+            {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
         </Controls>
-      </Overlay>
+      </AudioOverlay>
     );
   }
 
+  // --- Reconnecting ---
   if (status === "reconnecting") {
     return (
-      <Overlay>
-        <CallAvatar>{(callerName || "?")[0]}</CallAvatar>
-        <Typography sx={{ color: "#fff", fontSize: 24, fontWeight: 600, mb: 1 }}>
-          {callerName || ""}
-        </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 4 }}>
-          <CircularProgress size={16} sx={{ color: "#FFA000" }} />
-          <Typography sx={{ color: "#FFA000", fontSize: 14 }}>
-            {t("CHAT.RECONNECTING")}
+      <AudioOverlay>
+        <TopInfo sx={{ top: 80 }}>
+          <AvatarContainer>
+            <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+          </AvatarContainer>
+          <Typography sx={{ color: "#fff", fontSize: 26, fontWeight: 600 }}>
+            {callerName || ""}
           </Typography>
-        </Box>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
-          {elapsed}
-        </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+            <CircularProgress size={14} sx={{ color: "#FFA000" }} />
+            <Typography sx={{ color: "#FFA000", fontSize: 14, fontWeight: 600 }}>
+              {t("CHAT.RECONNECTING")}
+            </Typography>
+          </Box>
+          {elapsed && (
+            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13, mt: 1 }}>
+              {elapsed}
+            </Typography>
+          )}
+        </TopInfo>
         <Controls>
           <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
-            {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+            {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
         </Controls>
-      </Overlay>
+      </AudioOverlay>
     );
   }
 
-  if (status === "connected") {
-    if (type === "GROUP") {
-      return (
-        <Overlay>
-          <VideoContainer>
-            {peerStreams.map((peer) => (
-              <PeerTile key={peer.peerId}>
-                {peer.video ? (
-                  <PeerVideo
-                    ref={(el) => { if (el) peerVideoRefs.current.set(peer.peerId, el); }}
-                    autoPlay playsInline
-                  />
-                ) : (
-                  <PeerAvatar>{peer.displayName[0]}</PeerAvatar>
-                )}
-                <audio
-                  ref={(el) => { if (el) peerAudioRefs.current.set(peer.peerId, el); }}
+  // --- Connected ---
+
+  if (status === "connected" && type === "GROUP") {
+    return (
+      <GroupOverlay>
+        <TopInfo sx={{ top: 12, flexDirection: "row", justifyContent: "center", gap: 1 }}>
+          <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600 }}>
+            {peerStreams.length + 1} participants
+          </Typography>
+          {elapsed && (
+            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>· {elapsed}</Typography>
+          )}
+        </TopInfo>
+        <GroupGrid>
+          {peerStreams.map((peer) => (
+            <PeerTile key={peer.peerId}>
+              {peer.video ? (
+                <PeerVideo
+                  ref={(el) => { if (el) peerVideoRefs.current.set(peer.peerId, el); }}
                   autoPlay playsInline
                 />
-                <PeerName>
-                  {peer.displayName}
-                  {peer.audioMuted && <MicOffIcon sx={{ fontSize: 12, ml: 0.5 }} />}
-                </PeerName>
-              </PeerTile>
-            ))}
-            <PeerTile>
-              <LocalVideo
-                ref={localVideoRef}
-                autoPlay playsInline muted
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  transform: "scaleX(-1)",
-                  position: "static",
-                  border: "none",
-                  borderRadius: 0,
-                }}
+              ) : (
+                <PeerAvatarCircle>
+                  {peer.displayName[0].toUpperCase()}
+                </PeerAvatarCircle>
+              )}
+              <audio
+                ref={(el) => { if (el) peerAudioRefs.current.set(peer.peerId, el); }}
+                autoPlay playsInline
               />
-              <PeerName>{t("CHAT.YOU")}</PeerName>
+              <PeerNamelabel>
+                {peer.displayName}
+                {peer.audioMuted && <MicOffIcon sx={{ fontSize: 11, opacity: 0.7 }} />}
+              </PeerNamelabel>
             </PeerTile>
-          </VideoContainer>
-          <Controls>
-            <ControlBtn onClick={handleToggleAudio}>
-              {audioMuted ? <MicOffIcon /> : <MicIcon />}
-            </ControlBtn>
-            <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E" } : {}}>
-              {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
-            </ControlBtn>
-            <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
-              {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
-            </EndCallBtn>
-            <ControlBtn onClick={handleToggleVideo}>
-              {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
-            </ControlBtn>
-            <ControlBtn onClick={handleMinimize}>
-              <MinimizeIcon />
-            </ControlBtn>
-          </Controls>
-        </Overlay>
-      );
-    }
-
-    if (type === "VIDEO") {
-      return (
-        <Overlay>
-          <VideoContainer>
-            <RemoteVideo ref={remoteVideoRef} autoPlay playsInline />
-            <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
-            <LocalVideo ref={localVideoRef} autoPlay playsInline muted />
-          </VideoContainer>
-          <Controls>
-            <ControlBtn onClick={handleToggleAudio}>
-              {audioMuted ? <MicOffIcon /> : <MicIcon />}
-            </ControlBtn>
-            <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E" } : {}}>
-              {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
-            </ControlBtn>
-            <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
-              {isEnding ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : <CallEndIcon />}
-            </EndCallBtn>
-            <ControlBtn onClick={handleToggleVideo}>
-              {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
-            </ControlBtn>
-            <ControlBtn onClick={handleMinimize}>
-              <MinimizeIcon />
-            </ControlBtn>
-          </Controls>
-        </Overlay>
-      );
-    }
-
-    return (
-      <Overlay>
-        <CallAvatar>{(callerName || "?")[0]}</CallAvatar>
-        <Typography sx={{ color: "#fff", fontSize: 24, fontWeight: 600, mb: 1 }}>
-          {callerName || t("CHAT.CALL_AUDIO")}
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
-          {elapsed || t("CHAT.IN_CALL")}
-        </Typography>
-        <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
+          ))}
+          <PeerTile sx={{ border: "2px solid rgba(255,255,255,0.1)" }}>
+            <LocalVideo
+              ref={localVideoRef}
+              autoPlay playsInline muted
+              sx={{
+                width: "100%", height: "100%", objectFit: "cover",
+                transform: "scaleX(-1)", position: "static", border: "none", borderRadius: 0,
+              }}
+            />
+            <PeerNamelabel>{t("CHAT.YOU")}</PeerNamelabel>
+          </PeerTile>
+        </GroupGrid>
         <Controls>
           <ControlBtn onClick={handleToggleAudio}>
             {audioMuted ? <MicOffIcon /> : <MicIcon />}
           </ControlBtn>
-          <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E" } : {}}>
+          <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E", "&:hover": { backgroundColor: "#16A34A" } } : {}}>
             {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
           </ControlBtn>
-          <EndCallBtn onClick={handleEndCall}>
-            <CallEndIcon />
+          <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+            {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
+          <ControlBtn onClick={handleToggleVideo}>
+            {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
+          </ControlBtn>
           <ControlBtn onClick={handleMinimize}>
             <MinimizeIcon />
           </ControlBtn>
         </Controls>
-      </Overlay>
+      </GroupOverlay>
     );
   }
 
-  return null;
+  if (status === "connected" && type === "VIDEO") {
+    return (
+      <VideoOverlay>
+        <TopInfo sx={{ top: 16, flexDirection: "row", justifyContent: "center", gap: 1 }}>
+          <Typography sx={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>
+            {callerName || t("CHAT.CALL_VIDEO")}
+          </Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>· {elapsed}</Typography>
+        </TopInfo>
+        <VideoContainer>
+          <RemoteVideo ref={remoteVideoRef} autoPlay playsInline />
+          <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
+          <LocalVideo ref={localVideoRef} autoPlay playsInline muted />
+        </VideoContainer>
+        <Controls>
+          <ControlBtn onClick={handleToggleAudio}>
+            {audioMuted ? <MicOffIcon /> : <MicIcon />}
+          </ControlBtn>
+          <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E", "&:hover": { backgroundColor: "#16A34A" } } : {}}>
+            {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
+          </ControlBtn>
+          <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+            {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+          </EndCallBtn>
+          <ControlBtn onClick={handleToggleVideo}>
+            {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
+          </ControlBtn>
+          <ControlBtn onClick={handleMinimize}>
+            <MinimizeIcon />
+          </ControlBtn>
+        </Controls>
+      </VideoOverlay>
+    );
+  }
+
+  // --- Audio call (default) ---
+  return (
+    <AudioOverlay>
+      <TopInfo sx={{ top: 80 }}>
+        <AvatarContainer>
+          <PulseRingOuter />
+          <PulseRingInner />
+          <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+        </AvatarContainer>
+        <Typography sx={{ color: "#fff", fontSize: 28, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+          {callerName || t("CHAT.CALL_AUDIO")}
+        </Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 15, mt: 0.5 }}>
+          {elapsed || t("CHAT.IN_CALL")}
+        </Typography>
+        <WaveContainer>
+          <WaveBar delay={0} />
+          <WaveBar delay={0.15} />
+          <WaveBar delay={0.3} />
+          <WaveBar delay={0.45} />
+          <WaveBar delay={0.6} />
+        </WaveContainer>
+      </TopInfo>
+      <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
+      <Controls>
+        <ControlBtn onClick={handleToggleAudio}>
+          {audioMuted ? <MicOffIcon /> : <MicIcon />}
+        </ControlBtn>
+        <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E", "&:hover": { backgroundColor: "#16A34A" } } : {}}>
+          {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
+        </ControlBtn>
+        <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+          {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+        </EndCallBtn>
+        <ControlBtn onClick={handleToggleVideo}>
+          {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
+        </ControlBtn>
+        <ControlBtn onClick={handleMinimize}>
+          <MinimizeIcon />
+        </ControlBtn>
+      </Controls>
+    </AudioOverlay>
+  );
 }
