@@ -1,6 +1,6 @@
 import { useCallStore } from "../store/useCallStore";
 import { callService, IceServer } from "../service/call-service";
-import { getSocket, sendSocketMessage } from "../socket/socket";
+import { getSocket, sendSocketMessage, subscribeToConversation } from "../socket/socket";
 import { getcurrentUserId } from "../utilities/utils";
 import { playRingtone, playBusyTone, stopRingtone } from "../service/ringtone";
 import { Device } from "mediasoup-client";
@@ -210,10 +210,27 @@ export async function answerCall(conversationId: string, callId: string) {
       useCallStore.getState().setRemoteStream(event.streams[0]);
     };
 
-    if (pendingOffer) {
-      const offer = new RTCSessionDescription(pendingOffer.sdp);
+    const answerParams = pendingOffer
+      ? { sdp: pendingOffer.sdp, candidates: pendingIceCandidates }
+      : await new Promise<{ sdp: RTCSessionDescriptionInit; candidates: RTCIceCandidateInit[] } | null>((resolve) => {
+          subscribeToConversation(conversationId);
+          const check = setInterval(() => {
+            if (pendingOffer) {
+              clearInterval(check);
+              clearTimeout(timer);
+              resolve({ sdp: pendingOffer.sdp, candidates: pendingIceCandidates });
+            }
+          }, 200);
+          const timer = setTimeout(() => {
+            clearInterval(check);
+            resolve(null);
+          }, 6000);
+        });
+
+    if (answerParams) {
+      const offer = new RTCSessionDescription(answerParams.sdp);
       await peerConnection.setRemoteDescription(offer);
-      for (const candidate of pendingIceCandidates) {
+      for (const candidate of answerParams.candidates) {
         try {
           await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         } catch {}
