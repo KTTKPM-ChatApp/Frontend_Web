@@ -617,6 +617,7 @@ export default function CallDialog() {
   }
 
   // --- Audio call (default) ---
+  if (status !== "connected") return null;
   return (
     <AudioOverlay>
       <TopInfo sx={{ top: 80 }}>
