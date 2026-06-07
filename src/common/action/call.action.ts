@@ -187,7 +187,11 @@ export async function answerCall(conversationId: string, callId: string) {
 
   useCallStore.getState().setAnswering(true);
   try {
-    await callService.joinCall(conversationId, callId);
+    try {
+      await callService.joinCall(conversationId, callId);
+    } catch (err) {
+      console.warn('[Call] joinCall failed (non-fatal):', err);
+    }
     useCallStore.getState().setConnecting();
 
     await loadIceServers();
