@@ -111,6 +111,19 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
             try {
               const data = JSON.parse(message.body);
               console.log('[STOMP incoming call]', data);
+              const convId = data.conversation_id;
+              if (convId && !conversationSubscriptions.has(convId)) {
+                const callSub = stompClient!.subscribe(
+                  `/topic/conv.${convId}/call`,
+                  (msg: IMessage) => {
+                    try {
+                      const callData = JSON.parse(msg.body);
+                      handleCallSignal(callData);
+                    } catch {}
+                  },
+                );
+                conversationSubscriptions.set(convId, [callSub]);
+              }
               const event = new CustomEvent("call:incoming", { detail: data });
               window.dispatchEvent(event);
             } catch (err) {
