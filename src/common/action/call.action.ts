@@ -80,7 +80,9 @@ export function cleanupPeerConnection() {
 function cleanupSfu() {
   sfuTransportSend = null;
   sfuTransportRecv = null;
-  sfuProducers.clear();
+  if (sfuState.device) {
+    sfuState.device = null;
+  }
   sfuConsumers.clear();
 }
 
@@ -278,7 +280,7 @@ export async function endCall(conversationId?: string) {
 
   if (!callId) {
     const last = getLastCallInfo();
-    callId = last.callId || undefined;
+    callId = last.callId ?? null;
   }
 
   if (callId && convId) {
