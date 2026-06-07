@@ -1,16 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { useEffect, useState, useRef } from "react";
+import { Box, Typography, keyframes } from "@mui/material";
+import { styled, alpha } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { CircularProgress } from "@mui/material";
-import { answerCall, rejectCall, handleIncomingGroupCall } from "@/src/common/action/call.action";
+import { answerCall, rejectCall, handleIncomingGroupCall, endCall } from "@/src/common/action/call.action";
 import { useCallStore } from "@/src/common/store/useCallStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 import { playRingtone, stopRingtone } from "@/src/common/service/ringtone";
+
+const pulseRing = keyframes`
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.8; }
+`;
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+`;
+
+const waveAnimation = keyframes`
+  0% { transform: scaleX(0.3); }
+  50% { transform: scaleX(1); }
+  100% { transform: scaleX(0.3); }
+`;
 
 const Overlay = styled(Box)({
   position: "fixed",
@@ -18,56 +40,131 @@ const Overlay = styled(Box)({
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: "rgba(0,0,0,0.7)",
+  background: "linear-gradient(135deg, #005AE0 0%, #0068FF 50%, #0077FF 100%)",
   zIndex: 9998,
   display: "flex",
+  flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  animation: `${fadeIn} 0.3s ease-out`,
 });
 
-const Card = styled(Box)({
-  backgroundColor: "#fff",
-  borderRadius: 16,
-  padding: 32,
-  textAlign: "center",
-  minWidth: 320,
-  boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+const ContentWrapper = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: 1,
+  width: "100%",
+  paddingTop: 80,
+});
+
+const AvatarContainer = styled(Box)({
+  position: "relative",
+  marginBottom: 32,
+});
+
+const PulseRing = styled(Box)({
+  position: "absolute",
+  top: -12,
+  left: -12,
+  right: -12,
+  bottom: -12,
+  borderRadius: "50%",
+  border: "3px solid rgba(255,255,255,0.4)",
+  animation: `${pulseRing} 1.5s ease-in-out infinite`,
+});
+
+const PulseRing2 = styled(Box)({
+  position: "absolute",
+  top: -24,
+  left: -24,
+  right: -24,
+  bottom: -24,
+  borderRadius: "50%",
+  border: "2px solid rgba(255,255,255,0.2)",
+  animation: `${pulseRing} 1.5s ease-in-out infinite 0.3s`,
 });
 
 const Avatar = styled(Box)({
-  width: 80,
-  height: 80,
+  width: 120,
+  height: 120,
   borderRadius: "50%",
-  backgroundColor: "#005AE0",
+  backgroundColor: "#fff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "#fff",
-  fontSize: 32,
+  color: "#005AE0",
+  fontSize: 48,
   fontWeight: 700,
-  margin: "0 auto 16px",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+  position: "relative",
+  zIndex: 1,
+  animation: `${float} 3s ease-in-out infinite`,
 });
+
+const CallerInfo = styled(Box)({
+  textAlign: "center",
+  marginBottom: 48,
+});
+
+const WaveContainer = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 4,
+  marginTop: 16,
+  height: 24,
+});
+
+const Wave = styled(Box)<{ delay: number }>(({ delay }) => ({
+  width: 4,
+  height: "100%",
+  backgroundColor: "rgba(255,255,255,0.7)",
+  borderRadius: 4,
+  animation: `${waveAnimation} 1s ease-in-out infinite`,
+  animationDelay: `${delay}s`,
+}));
 
 const Actions = styled(Box)({
   display: "flex",
+  alignItems: "center",
   justifyContent: "center",
-  gap: 24,
-  marginTop: 24,
+  gap: 48,
+  marginBottom: 80,
+  paddingBottom: 40,
 });
 
-const ActionBtn = styled(Box)<{ color: string }>(({ color }) => ({
-  width: 56,
-  height: 56,
+const ActionBtn = styled(Box)<{ color: string; bgcolor?: string }>(({ color, bgcolor }) => ({
+  width: 64,
+  height: 64,
   borderRadius: "50%",
-  backgroundColor: color,
+  backgroundColor: bgcolor || "#fff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  color: "#fff",
-  transition: "transform 0.2s",
-  "&:hover": { transform: "scale(1.1)" },
+  color: color,
+  boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+  transition: "all 0.2s ease",
+  "&:hover": {
+    transform: "scale(1.1)",
+    boxShadow: "0 6px 24px rgba(0,0,0,0.3)",
+  },
+  "&:active": {
+    transform: "scale(0.95)",
+  },
 }));
+
+const CallTypeBadge = styled(Box)({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  backgroundColor: "rgba(255,255,255,0.15)",
+  padding: "6px 16px",
+  borderRadius: 20,
+  marginTop: 12,
+});
 
 export default function IncomingCallDialog() {
   const t = useTrans();
@@ -94,6 +191,14 @@ export default function IncomingCallDialog() {
   const handleAccept = () => {
     stopRingtone();
     setVisible(false);
+
+    const store = useCallStore.getState();
+    const wasInExistingCall = store.active && store.status !== "idle";
+
+    if (wasInExistingCall) {
+      endCall();
+    }
+
     useCallStore.getState().receiveCall({
       callId: data.call_id || data.session_id,
       conversationId: data.conversation_id,
@@ -115,57 +220,83 @@ export default function IncomingCallDialog() {
     stopRingtone();
     setVisible(false);
     if (data.type === "incoming_group_call") {
-      // group calls don't have individual reject; just ignore
     } else {
       rejectCall(data.conversation_id, data.call_id);
     }
   };
 
   const isGroup = data.type === "incoming_group_call";
+  const isVideo = data.call_type === "VIDEO";
+  const callerInitial = (data.caller_name || "?")[0].toUpperCase();
 
   return (
     <Overlay onClick={handleReject}>
-      <Card onClick={(e) => e.stopPropagation()}>
-        {isGroup ? (
-          <Avatar sx={{ backgroundColor: "#7C3AED" }}>
-            <GroupsIcon sx={{ fontSize: 36 }} />
+      <ContentWrapper>
+        <AvatarContainer>
+          <PulseRing />
+          <PulseRing2 />
+          <Avatar>
+            {isGroup ? (
+              <GroupsIcon sx={{ fontSize: 56, color: "#005AE0" }} />
+            ) : (
+              <Typography sx={{ color: "#005AE0", fontWeight: 700, fontSize: 48 }}>
+                {callerInitial}
+              </Typography>
+            )}
           </Avatar>
-        ) : (
-          <Avatar>{(data.caller_name || "?")[0]}</Avatar>
-        )}
-        <Typography sx={{ fontSize: 20, fontWeight: 600, mb: 1 }}>
-          {data.caller_name || t("CHAT.UNKNOWN")}
-        </Typography>
-        <Typography sx={{ fontSize: 14, color: "#6B7280" }}>
-          {isGroup ? t("CHAT.CALL_GROUP") : (data.call_type === "VIDEO" ? t("CHAT.CALL_VIDEO") : t("CHAT.CALL_AUDIO"))}
-        </Typography>
-        <Actions>
-          <ActionBtn
-            color="#22C55E"
-            onClick={handleAccept}
-            sx={{ opacity: isAnswering ? 0.7 : 1, cursor: isAnswering ? "not-allowed" : "pointer" }}
+        </AvatarContainer>
+
+        <CallerInfo>
+          <Typography
+            sx={{
+              color: "#fff",
+              fontSize: 28,
+              fontWeight: 600,
+              textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            }}
           >
+            {data.caller_name || t("CHAT.UNKNOWN")}
+          </Typography>
+          <Typography
+            sx={{
+              color: "rgba(255,255,255,0.85)",
+              fontSize: 15,
+              mt: 0.5,
+            }}
+          >
+            {isGroup ? "Cuộc gọi nhóm" : isVideo ? "Cuộc gọi video" : "Cuộc gọi thoại"}
+          </Typography>
+          {!isGroup && (
+            <WaveContainer>
+              <Wave delay={0} />
+              <Wave delay={0.2} />
+              <Wave delay={0.4} />
+              <Wave delay={0.6} />
+              <Wave delay={0.8} />
+            </WaveContainer>
+          )}
+        </CallerInfo>
+
+        <Actions>
+          <ActionBtn bgcolor="#fff" color="#EF4444" onClick={handleReject}>
+            {isRejecting ? (
+              <CircularProgress size={28} sx={{ color: "#EF4444" }} />
+            ) : (
+              <CallEndIcon sx={{ fontSize: 28 }} />
+            )}
+          </ActionBtn>
+
+          <ActionBtn bgcolor="#22C55E" color="#fff" onClick={handleAccept}>
             {isAnswering ? (
-              <CircularProgress size={24} sx={{ color: "#fff" }} />
+              <CircularProgress size={28} sx={{ color: "#fff" }} />
             ) : isGroup ? (
               <GroupsIcon sx={{ fontSize: 28 }} />
             ) : (
               <PhoneIcon sx={{ fontSize: 28 }} />
             )}
           </ActionBtn>
-          <ActionBtn
-            color="#E53935"
-            onClick={handleReject}
-            sx={{ opacity: isRejecting ? 0.7 : 1, cursor: isRejecting ? "not-allowed" : "pointer" }}
-          >
-            {isRejecting ? (
-              <CircularProgress size={24} sx={{ color: "#fff" }} />
-            ) : (
-              <CallEndIcon sx={{ fontSize: 28 }} />
-            )}
-          </ActionBtn>
         </Actions>
-      </Card>
+      </ContentWrapper>
     </Overlay>
   );
 }
