@@ -6,6 +6,7 @@ import { styled } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 import GroupsIcon from "@mui/icons-material/Groups";
+import { CircularProgress } from "@mui/material";
 import { answerCall, rejectCall, handleIncomingGroupCall } from "@/src/common/action/call.action";
 import { useCallStore } from "@/src/common/store/useCallStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -72,6 +73,8 @@ export default function IncomingCallDialog() {
   const t = useTrans();
   const [visible, setVisible] = useState(false);
   const [data, setData] = useState<any>(null);
+  const isAnswering = useCallStore((s) => s.isAnswering);
+  const isRejecting = useCallStore((s) => s.isRejecting);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -137,11 +140,29 @@ export default function IncomingCallDialog() {
           {isGroup ? t("CHAT.CALL_GROUP") : (data.call_type === "VIDEO" ? t("CHAT.CALL_VIDEO") : t("CHAT.CALL_AUDIO"))}
         </Typography>
         <Actions>
-          <ActionBtn color="#22C55E" onClick={handleAccept}>
-            {isGroup ? <GroupsIcon sx={{ fontSize: 28 }} /> : <PhoneIcon sx={{ fontSize: 28 }} />}
+          <ActionBtn
+            color="#22C55E"
+            onClick={handleAccept}
+            sx={{ opacity: isAnswering ? 0.7 : 1, cursor: isAnswering ? "not-allowed" : "pointer" }}
+          >
+            {isAnswering ? (
+              <CircularProgress size={24} sx={{ color: "#fff" }} />
+            ) : isGroup ? (
+              <GroupsIcon sx={{ fontSize: 28 }} />
+            ) : (
+              <PhoneIcon sx={{ fontSize: 28 }} />
+            )}
           </ActionBtn>
-          <ActionBtn color="#E53935" onClick={handleReject}>
-            <CallEndIcon sx={{ fontSize: 28 }} />
+          <ActionBtn
+            color="#E53935"
+            onClick={handleReject}
+            sx={{ opacity: isRejecting ? 0.7 : 1, cursor: isRejecting ? "not-allowed" : "pointer" }}
+          >
+            {isRejecting ? (
+              <CircularProgress size={24} sx={{ color: "#fff" }} />
+            ) : (
+              <CallEndIcon sx={{ fontSize: 28 }} />
+            )}
           </ActionBtn>
         </Actions>
       </Card>
