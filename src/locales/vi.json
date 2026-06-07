@@ -552,6 +552,7 @@
   "CHAT.IN_CALL": "Trong cuộc gọi",
   "CHAT.CALLING": "Đang gọi...",
   "CHAT.CONNECTING": "Đang kết nối...",
+  "CHAT.RECONNECTING": "Đang kết nối lại...",
   "CHAT.CALL_ENDED": "Cuộc gọi đã kết thúc",
   "CHAT.CALL_MISSED": "Cuộc gọi nhỡ",
   "CHAT.CALL_ACCEPT": "Nghe",

@@ -2,12 +2,14 @@ import { useCallStore } from "../store/useCallStore";
 import { callService, IceServer } from "../service/call-service";
 import { getSocket, sendSocketMessage } from "../socket/socket";
 import { getcurrentUserId } from "../utilities/utils";
+import { playRingtone, playBusyTone, stopRingtone } from "../service/ringtone";
 
 let peerConnection: RTCPeerConnection | null = null;
 let localStream: MediaStream | null = null;
 let iceServers: IceServer[] = [];
 let currentUserId: string | null = null;
 let pendingOffer: { sdp: RTCSessionDescriptionInit; senderId: string } | null = null;
+let ringingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let sfuTransportSend: any = null;
 let sfuTransportRecv: any = null;
 const sfuProducers: Map<string, string> = new Map();
@@ -79,6 +81,42 @@ function clearPendingOffer() {
   pendingOffer = null;
 }
 
+function setupRingingTimeout(conversationId: string) {
+  clearRingingTimeout();
+  ringingTimeoutId = setTimeout(() => {
+    const store = useCallStore.getState();
+    if (store.status === "ringing" || store.status === "connecting") {
+      endCall(conversationId);
+    }
+    ringingTimeoutId = null;
+  }, 30000);
+}
+
+function clearRingingTimeout() {
+  if (ringingTimeoutId) {
+    clearTimeout(ringingTimeoutId);
+    ringingTimeoutId = null;
+  }
+}
+
+function setupIceStateHandler(pc: RTCPeerConnection) {
+  pc.oniceconnectionstatechange = () => {
+    const state = pc.iceConnectionState;
+    const callStore = useCallStore.getState();
+    if (state === "connected") {
+      if (callStore.status === "reconnecting") {
+        callStore.setConnected(localStream!);
+      }
+    } else if (state === "disconnected") {
+      if (callStore.status === "connected") {
+        callStore.setReconnecting();
+      }
+    } else if (state === "failed") {
+      endCall();
+    }
+  };
+}
+
 export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO") {
   const store = useCallStore.getState();
   if (store.active) return;
@@ -90,6 +128,7 @@ export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO")
       conversationId,
       type,
     });
+    setupRingingTimeout(conversationId);
 
     await loadIceServers();
     useCallStore.getState().setConnecting();
@@ -98,6 +137,7 @@ export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO")
 
     peerConnection = new RTCPeerConnection(getRTCConfig());
     stream.getTracks().forEach((track) => peerConnection!.addTrack(track, stream));
+    setupIceStateHandler(peerConnection);
 
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -138,6 +178,7 @@ export async function answerCall(conversationId: string, callId: string) {
 
     peerConnection = new RTCPeerConnection(getRTCConfig());
     stream.getTracks().forEach((track) => peerConnection!.addTrack(track, stream));
+    setupIceStateHandler(peerConnection);
 
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -177,6 +218,8 @@ export async function rejectCall(conversationId: string, callId: string) {
     });
   } catch {}
   clearPendingOffer();
+  clearRingingTimeout();
+  stopRingtone();
   useCallStore.getState().resetCall();
 }
 
@@ -195,9 +238,15 @@ export async function endCall(conversationId?: string) {
   }
 
   clearPendingOffer();
+  clearRingingTimeout();
+  stopRingtone();
+  const wasConnected = useCallStore.getState().status === "connected";
   cleanupPeerConnection();
   cleanupLocalStream();
   useCallStore.getState().setEnded();
+  if (wasConnected) {
+    playBusyTone();
+  }
   setTimeout(() => useCallStore.getState().resetCall(), 1000);
 }
 
@@ -242,9 +291,15 @@ export function handleCallSignal(data: any) {
     }
     case "hangup": {
       clearPendingOffer();
+      clearRingingTimeout();
+      stopRingtone();
+      const wasConnected = useCallStore.getState().status === "connected";
       cleanupPeerConnection();
       cleanupLocalStream();
       useCallStore.getState().setEnded();
+      if (wasConnected) {
+        playBusyTone();
+      }
       setTimeout(() => useCallStore.getState().resetCall(), 1000);
       break;
     }

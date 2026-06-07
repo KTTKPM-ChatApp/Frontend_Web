@@ -16,7 +16,7 @@ export interface CallState {
   callerId: string | null;
   callerName: string | null;
   type: "AUDIO" | "VIDEO" | "GROUP" | null;
-  status: "idle" | "ringing" | "connecting" | "connected" | "ended";
+  status: "idle" | "ringing" | "connecting" | "connected" | "reconnecting" | "ended";
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   active: boolean;
@@ -28,6 +28,7 @@ export interface CallState {
   isSpeaking: boolean;
   audioMuted: boolean;
   videoMuted: boolean;
+  callStartTime: number | null;
 }
 
 export interface CallSetters {
@@ -57,6 +58,8 @@ export interface CallSetters {
   setAudioMuted: (muted: boolean) => void;
   setVideoMuted: (muted: boolean) => void;
   setEnded: () => void;
+  setReconnecting: () => void;
+  setCallStartTime: (time: number) => void;
   setMinimized: (value: boolean) => void;
   setError: (error: string | null) => void;
   resetCall: () => void;
@@ -82,6 +85,7 @@ export const initialCallState: CallState = {
   isSpeaking: false,
   audioMuted: false,
   videoMuted: false,
+  callStartTime: null,
 };
 
 export const useCallStore = create<CallStore>((set) => ({
@@ -118,7 +122,11 @@ export const useCallStore = create<CallStore>((set) => ({
   setConnecting: () => set({ status: "connecting" }),
 
   setConnected: (stream) =>
-    set({ status: "connected", localStream: stream }),
+    set({ status: "connected", localStream: stream, callStartTime: Date.now() }),
+
+  setReconnecting: () => set({ status: "reconnecting" }),
+
+  setCallStartTime: (time) => set({ callStartTime: time }),
 
   setRemoteStream: (stream) => set({ remoteStream: stream }),
 
@@ -159,6 +167,7 @@ export const useCallStore = create<CallStore>((set) => ({
       peerStreams: [],
       sfuRoomId: null,
       sessionId: null,
+      callStartTime: null,
     }),
 
   setMinimized: (value) => set({ minimized: value }),

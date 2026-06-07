@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Typography, CircularProgress } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 import MicIcon from "@mui/icons-material/Mic";
@@ -177,6 +177,7 @@ export default function CallDialog() {
     peerStreams,
     sfuRoomId,
     sessionId,
+    callStartTime,
   } = useCallStore();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -184,6 +185,23 @@ export default function CallDialog() {
   const peerVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [audioMuted, setAudioMuted] = useState(false);
   const [videoMuted, setVideoMuted] = useState(false);
+  const [elapsed, setElapsed] = useState("");
+
+  useEffect(() => {
+    if (status !== "connected") {
+      setElapsed("");
+      return;
+    }
+    const interval = setInterval(() => {
+      if (callStartTime) {
+        const diff = Math.floor((Date.now() - callStartTime) / 1000);
+        const min = Math.floor(diff / 60);
+        const sec = diff % 60;
+        setElapsed(`${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [status, callStartTime]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -307,6 +325,31 @@ export default function CallDialog() {
     );
   }
 
+  if (status === "reconnecting") {
+    return (
+      <Overlay>
+        <CallAvatar>{(callerName || "?")[0]}</CallAvatar>
+        <Typography sx={{ color: "#fff", fontSize: 24, fontWeight: 600, mb: 1 }}>
+          {callerName || ""}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 4 }}>
+          <CircularProgress size={16} sx={{ color: "#FFA000" }} />
+          <Typography sx={{ color: "#FFA000", fontSize: 14 }}>
+            {t("CHAT.RECONNECTING")}
+          </Typography>
+        </Box>
+        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
+          {elapsed}
+        </Typography>
+        <Controls>
+          <EndCallBtn onClick={handleEndCall}>
+            <CallEndIcon />
+          </EndCallBtn>
+        </Controls>
+      </Overlay>
+    );
+  }
+
   if (status === "connected") {
     if (type === "GROUP") {
       return (
@@ -395,7 +438,7 @@ export default function CallDialog() {
           {callerName || t("CHAT.CALL_AUDIO")}
         </Typography>
         <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14, mb: 4 }}>
-          {t("CHAT.IN_CALL")}
+          {elapsed || t("CHAT.IN_CALL")}
         </Typography>
         <Controls>
           <ControlBtn onClick={handleToggleAudio}>

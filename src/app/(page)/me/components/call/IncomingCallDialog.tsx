@@ -9,6 +9,7 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import { answerCall, rejectCall, handleIncomingGroupCall } from "@/src/common/action/call.action";
 import { useCallStore } from "@/src/common/store/useCallStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
+import { playRingtone, stopRingtone } from "@/src/common/service/ringtone";
 
 const Overlay = styled(Box)({
   position: "fixed",
@@ -79,6 +80,7 @@ export default function IncomingCallDialog() {
       if (store.status !== "idle") return;
       setData(detail);
       setVisible(true);
+      playRingtone();
     };
     window.addEventListener("call:incoming", handler);
     return () => window.removeEventListener("call:incoming", handler);
@@ -87,6 +89,7 @@ export default function IncomingCallDialog() {
   if (!visible || !data) return null;
 
   const handleAccept = () => {
+    stopRingtone();
     setVisible(false);
     useCallStore.getState().receiveCall({
       callId: data.call_id || data.session_id,
@@ -106,6 +109,7 @@ export default function IncomingCallDialog() {
   };
 
   const handleReject = () => {
+    stopRingtone();
     setVisible(false);
     if (data.type === "incoming_group_call") {
       // group calls don't have individual reject; just ignore

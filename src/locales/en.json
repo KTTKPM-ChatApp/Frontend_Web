@@ -499,6 +499,7 @@
   "CHAT.IN_CALL": "In call",
   "CHAT.CALLING": "Calling...",
   "CHAT.CONNECTING": "Connecting...",
+  "CHAT.RECONNECTING": "Reconnecting...",
   "CHAT.CALL_ENDED": "Call ended",
   "CHAT.CALL_MISSED": "Missed call",
   "CHAT.CALL_ACCEPT": "Accept",
