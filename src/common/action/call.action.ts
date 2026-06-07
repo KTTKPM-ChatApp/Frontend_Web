@@ -7,6 +7,7 @@ let peerConnection: RTCPeerConnection | null = null;
 let localStream: MediaStream | null = null;
 let iceServers: IceServer[] = [];
 let currentUserId: string | null = null;
+let pendingOffer: { sdp: RTCSessionDescriptionInit; senderId: string } | null = null;
 let sfuTransportSend: any = null;
 let sfuTransportRecv: any = null;
 const sfuProducers: Map<string, string> = new Map();
@@ -72,6 +73,10 @@ function cleanupSfu() {
   sfuTransportRecv = null;
   sfuProducers.clear();
   sfuConsumers.clear();
+}
+
+function clearPendingOffer() {
+  pendingOffer = null;
 }
 
 export async function startCall(conversationId: string, type: "AUDIO" | "VIDEO") {
@@ -146,6 +151,18 @@ export async function answerCall(conversationId: string, callId: string) {
     peerConnection.ontrack = (event) => {
       useCallStore.getState().setRemoteStream(event.streams[0]);
     };
+
+    if (pendingOffer) {
+      const offer = new RTCSessionDescription(pendingOffer.sdp);
+      await peerConnection.setRemoteDescription(offer);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      sendSocketMessage("/app/call.answer", {
+        conversation_id: conversationId,
+        sdp: peerConnection.localDescription,
+      });
+      pendingOffer = null;
+    }
   } catch (err: any) {
     useCallStore.getState().setError(err.message || "Failed to answer call");
     endCall(conversationId);
@@ -159,6 +176,7 @@ export async function rejectCall(conversationId: string, callId: string) {
       conversation_id: conversationId,
     });
   } catch {}
+  clearPendingOffer();
   useCallStore.getState().resetCall();
 }
 
@@ -176,6 +194,7 @@ export async function endCall(conversationId?: string) {
     });
   }
 
+  clearPendingOffer();
   cleanupPeerConnection();
   cleanupLocalStream();
   useCallStore.getState().setEnded();
@@ -186,9 +205,14 @@ export function handleCallSignal(data: any) {
   const store = useCallStore.getState();
   const peer = peerConnection;
 
-  if (!store.active) return;
-
   if (data.sender_id === currentUserId) return;
+
+  if (!store.active) {
+    if (data.type === "offer") {
+      pendingOffer = { sdp: data.sdp, senderId: data.sender_id };
+    }
+    return;
+  }
 
   switch (data.type) {
     case "offer": {
@@ -217,6 +241,7 @@ export function handleCallSignal(data: any) {
       break;
     }
     case "hangup": {
+      clearPendingOffer();
       cleanupPeerConnection();
       cleanupLocalStream();
       useCallStore.getState().setEnded();
@@ -399,6 +424,7 @@ export async function endGroupCall(conversationId: string, sessionId: string) {
     });
   } catch {}
 
+  clearPendingOffer();
   cleanupLocalStream();
   cleanupSfu();
   useCallStore.getState().setEnded();
