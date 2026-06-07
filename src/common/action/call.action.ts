@@ -9,6 +9,7 @@ let localStream: MediaStream | null = null;
 let iceServers: IceServer[] = [];
 let currentUserId: string | null = null;
 let pendingOffer: { sdp: RTCSessionDescriptionInit; senderId: string } | null = null;
+let pendingIceCandidates: RTCIceCandidateInit[] = [];
 let ringingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let sfuTransportSend: any = null;
 let sfuTransportRecv: any = null;
@@ -79,6 +80,10 @@ function cleanupSfu() {
 
 function clearPendingOffer() {
   pendingOffer = null;
+}
+
+function clearPendingIceCandidates() {
+  pendingIceCandidates = [];
 }
 
 function setupRingingTimeout(conversationId: string) {
@@ -196,6 +201,12 @@ export async function answerCall(conversationId: string, callId: string) {
     if (pendingOffer) {
       const offer = new RTCSessionDescription(pendingOffer.sdp);
       await peerConnection.setRemoteDescription(offer);
+      for (const candidate of pendingIceCandidates) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch {}
+      }
+      pendingIceCandidates = [];
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
       sendSocketMessage("/app/call.answer", {
@@ -218,26 +229,55 @@ export async function rejectCall(conversationId: string, callId: string) {
     });
   } catch {}
   clearPendingOffer();
+  clearPendingIceCandidates();
   clearRingingTimeout();
   stopRingtone();
   useCallStore.getState().resetCall();
 }
 
+function getLastCallInfo(): { callId: string | null; convId: string | null } {
+  try {
+    const callId = localStorage.getItem('lastCallId');
+    const convId = localStorage.getItem('lastConvId');
+    return { callId, convId };
+  } catch {
+    return { callId: null, convId: null };
+  }
+}
+
+function clearLastCallInfo() {
+  try {
+    localStorage.removeItem('lastCallId');
+    localStorage.removeItem('lastConvId');
+  } catch {}
+}
+
 export async function endCall(conversationId?: string) {
   const store = useCallStore.getState();
   const convId = conversationId || store.conversationId;
-  const callId = store.callId;
+  let callId = store.callId;
+
+  if (!callId) {
+    const last = getLastCallInfo();
+    callId = last.callId || undefined;
+  }
 
   if (callId && convId) {
     try {
       await callService.endCall(convId, callId);
-    } catch {}
+    } catch {
+      console.warn('[Call] HTTP endCall failed — call may stay ONGOING in DB');
+    }
+  }
+
+  if (convId) {
     sendSocketMessage("/app/call.hangup", {
       conversation_id: convId,
     });
   }
 
   clearPendingOffer();
+  clearPendingIceCandidates();
   clearRingingTimeout();
   stopRingtone();
   const wasConnected = useCallStore.getState().status === "connected";
@@ -247,7 +287,14 @@ export async function endCall(conversationId?: string) {
   if (wasConnected) {
     playBusyTone();
   }
-  setTimeout(() => useCallStore.getState().resetCall(), 1000);
+  if (callId && convId) {
+    localStorage.setItem('lastCallId', callId);
+    localStorage.setItem('lastConvId', convId);
+  }
+  setTimeout(() => {
+    clearLastCallInfo();
+    useCallStore.getState().resetCall();
+  }, 1000);
 }
 
 export function handleCallSignal(data: any) {
@@ -259,6 +306,8 @@ export function handleCallSignal(data: any) {
   if (!store.active) {
     if (data.type === "offer") {
       pendingOffer = { sdp: data.sdp, senderId: data.sender_id };
+    } else if (data.type === "ice-candidate" && data.candidate) {
+      pendingIceCandidates.push(data.candidate);
     }
     return;
   }
@@ -291,6 +340,7 @@ export function handleCallSignal(data: any) {
     }
     case "hangup": {
       clearPendingOffer();
+      clearPendingIceCandidates();
       clearRingingTimeout();
       stopRingtone();
       const wasConnected = useCallStore.getState().status === "connected";

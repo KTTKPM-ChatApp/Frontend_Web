@@ -192,7 +192,14 @@ export const sendSocketMessage = (destination: string, body: any): boolean => {
 
 export const subscribeToConversation = (conversationId: string) => {
   if (!stompClient || !stompClient.connected || !conversationId) return;
-  if (conversationSubscriptions.has(conversationId)) return;
+
+  // Always unsubscribe existing subscriptions first to avoid race conditions
+  // (e.g. lazy call sub created before this runs during reconnect)
+  const existing = conversationSubscriptions.get(conversationId);
+  if (existing) {
+    existing.forEach(sub => sub.unsubscribe());
+    conversationSubscriptions.delete(conversationId);
+  }
 
   const typingSub = stompClient.subscribe(
     `/topic/conv.${conversationId}/typing`,
