@@ -113,6 +113,11 @@ const AvatarCircle = styled(Box)({
   position: "relative",
   zIndex: 1,
   animation: `${float} 3s ease-in-out infinite`,
+  "@media (max-width: 767px)": {
+    width: 72,
+    height: 72,
+    fontSize: 30,
+  },
 });
 
 const WaveContainer = styled(Box)({
@@ -146,6 +151,11 @@ const Controls = styled(Box)({
   borderRadius: 40,
   backdropFilter: "blur(12px)",
   zIndex: 10,
+  "@media (max-width: 767px)": {
+    gap: 12,
+    padding: "8px 16px",
+    bottom: 32,
+  },
 });
 
 const ControlBtn = styled(IconButton)({
@@ -160,6 +170,10 @@ const ControlBtn = styled(IconButton)({
     transform: "scale(1.05)",
   },
   "&:active": { transform: "scale(0.95)" },
+  "@media (max-width: 767px)": {
+    width: 44,
+    height: 44,
+  },
 });
 
 const EndCallBtn = styled(IconButton)({
@@ -175,6 +189,10 @@ const EndCallBtn = styled(IconButton)({
     boxShadow: "0 6px 24px rgba(239,68,68,0.5)",
   },
   "&:active": { transform: "scale(0.95)" },
+  "@media (max-width: 767px)": {
+    width: 48,
+    height: 48,
+  },
 });
 
 const VideoContainer = styled(Box)({
@@ -206,6 +224,13 @@ const LocalVideo = styled("video")({
   transform: "scaleX(-1)",
   boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
   zIndex: 5,
+  "@media (max-width: 767px)": {
+    width: 100,
+    height: 140,
+    bottom: 90,
+    right: 12,
+    borderRadius: 12,
+  },
 });
 
 const MinimizedBar = styled(Box)({

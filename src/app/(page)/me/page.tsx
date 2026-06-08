@@ -4,7 +4,7 @@
 // TODO: Re-enable after fixing dynamic values causing hydration mismatch
 
 import React, { useState, useEffect } from "react";
-import { Box, Button, Grid, Tab, Typography } from "@mui/material";
+import { Box, Button, Grid, Tab, Typography, useMediaQuery, Drawer, BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 import ClickAwayListener from "@mui/material/ClickAwayListener";
@@ -16,6 +16,16 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ForumIcon from "@mui/icons-material/Forum";
+
+import ChatIcon from "@mui/icons-material/Chat";
+import ChatOutlinedIcon from "@mui/icons-material/ChatOutlined";
+import ContactsIcon from "@mui/icons-material/Contacts";
+import ContactsOutlinedIcon from "@mui/icons-material/ContactsOutlined";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
+import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
 import SearchBar from "./components/SearchBar";
 import AppSidebar from "./components/AppSideBar";
@@ -183,6 +193,30 @@ const CancelIconStyled = styled(CancelIcon)(() => ({
   color: "#005AE0",
 }));
 
+const MobileLayout = styled(Box)({
+  height: "100vh",
+  width: "100vw",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+});
+
+const MobileContent = styled(Box)({
+  flex: 1,
+  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+});
+
+const MobileBottomNav = styled(Paper)({
+  position: "fixed",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  zIndex: 1100,
+  borderRadius: 0,
+});
+
 /* ===================== types ===================== */
 
 type SidebarKey = "chat" | "contact" | "cloud" | "folder" | "chatbot" | "business" | "settings";
@@ -200,8 +234,11 @@ export type FilterCategoryKey =
 
 const Me = () => {
   const t = useTrans();
+  const isMobile = useMediaQuery('(max-width:767px)');
   // type ContactView = "friends" | "groups" | "friendRequests" | "sentRequests";
   const [selectedIcon, setSelectedIcon] = useState<SidebarKey>("chat");
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
   const [contactView, setContactView] = useState<ContactView>("friends");
   const [chatTab, setChatTab] = useState<string>("allChats");
   const [isSelectedCategory, setSelectedCategory] = useState(false);
@@ -230,6 +267,17 @@ const Me = () => {
     }
   }, [activeConversationId]);
 
+  // Mobile: switch to chat view when conversation opens, back to list when closed
+  useEffect(() => {
+    if (isMobile) {
+      if (activeConversationId) {
+        setMobileView("chat");
+      } else {
+        setMobileView("list");
+      }
+    }
+  }, [activeConversationId, isMobile]);
+
   const handleSelectedIcon = (iconName: SidebarKey) => {
     setSelectedIcon(iconName);
     if (iconName === "contact") {
@@ -238,7 +286,28 @@ const Me = () => {
     if (iconName !== "chat") {
       setActiveConversationId(null);
     }
+    if (isMobile) {
+      setMobileView("list");
+    }
   };
+
+  const handleMobileBack = () => {
+    setActiveConversationId(null);
+    setMobileView("list");
+  };
+
+  const handleMobileInfoToggle = () => {
+    setMobileInfoOpen((prev) => !prev);
+  };
+
+  const mobileBottomNavIcons: { key: SidebarKey; label: string; icon: React.ReactNode }[] = [
+    { key: "chat", label: "Chat", icon: selectedIcon === "chat" ? <ChatIcon /> : <ChatOutlinedIcon /> },
+    { key: "contact", label: "Contacts", icon: selectedIcon === "contact" ? <ContactsIcon /> : <ContactsOutlinedIcon /> },
+    { key: "chatbot", label: "AI", icon: <SmartToyOutlinedIcon /> },
+    { key: "cloud", label: "Cloud", icon: <CloudOutlinedIcon /> },
+    { key: "business", label: "Business", icon: <BusinessCenterOutlinedIcon /> },
+    { key: "settings", label: "Settings", icon: <SettingsOutlinedIcon /> },
+  ];
 
   const handleOpenSettings = () => setSelectedIcon("settings");
   const handleOpenProfile = () => setSelectedIcon("settings");
@@ -317,182 +386,322 @@ const Me = () => {
     return null;
   }
 
-  return (
-    <Root container>
-      <AppSidebar selectedIcon={selectedIcon} onSelect={handleSelectedIcon} onOpenProfile={handleOpenProfile} onOpenSettings={handleOpenSettings} />
+  // Desktop layout
+  if (!isMobile) {
+    return (
+      <Root container>
+        <AppSidebar selectedIcon={selectedIcon} onSelect={handleSelectedIcon} onOpenProfile={handleOpenProfile} onOpenSettings={handleOpenSettings} />
 
-      {(selectedIcon === "chat" || selectedIcon === "contact") && (
-        <ConversationColumn>
-          {selectedIcon === "chat" ? (
-            <>
-              <SearchBar
-                onAddFriend={() => setShowAddFriendModal(true)}
-                onCreateGroup={() => setShowCreateGroupModal(true)}
-              />
-
-              <TabContext value={chatTab}>
-                <ChatTabsWrapper data-testid="chat-tabs">
-                  <TabListStyled onChange={handleChangeChatTab} aria-label="chat tabs">
-                    <TabStyled label={t("ME.ALL_CHATS")} value="allChats" />
-                    <TabStyled label={t("ME.UNREAD")} value="unRead" />
-                  </TabListStyled>
-
-                  <TabsRight>
-                    <ClickAwayListener onClickAway={() => setSelectedCategory(false)}>
-                      <DropdownWrapper>
-                        <CategoryFilterButton
-                          className={selectedCategories.length > 0 ? "active" : ""}
-                          sx={isSelectedCategory ? { backgroundColor: "#E5F1FF", color: "#005AE0" } : null}
-                          endIcon={
-                            selectedCategories.length > 0 ? (
-                              <CancelIconStyled
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedCategories([]);
-                                }}
-                              />
-                            ) : (
-                              <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
-                            )
-                          }
-                          onClick={() => setSelectedCategory((prev) => !prev)}
-                        >
-                          {getCategoryLabel()}
-                        </CategoryFilterButton>
-
-                        {isSelectedCategory && (
-                          <FilterCategoryDropdown selected={selectedCategories} onChange={setSelectedCategories} />
-                        )}
-                      </DropdownWrapper>
-                    </ClickAwayListener>
-                    <StyledMoreIcon />
-                  </TabsRight>
-                </ChatTabsWrapper>
-
-                <TabPanelStyled value="allChats">
-                  <ConversationList />
-                </TabPanelStyled>
-                <TabPanelStyled value="unRead">
-                  <ConversationList filterUnread />
-                </TabPanelStyled>
-              </TabContext>
-            </>
-          ) : selectedIcon === "contact" ? (
-            <>
-              <SearchBar />
-              <Box sx={{ flex: 1, overflowY: "auto", pt: 1 }}>
-                <ContactFunctionList value={contactView} onChange={setContactView} />
-              </Box>
-            </>
-          ) : null}
-        </ConversationColumn>
-      )}
-
-      <ChatColumn size="grow">
-        <Panel>
-          {selectedIcon === "chat" ? (
-            !activeConversationId ? (
-              <WelcomeWrap>
-                <WelcomeSite
-                  slides={[
-                    {
-                      imageSrc:
-                        "https://chat.zalo.me/assets/inapp-welcome-screen-06-darkmode.336078e876ae12bf42474586745397f0.png",
-                      title: t("ME.WELCOME_SLIDE1_TITLE"),
-                      description: t("ME.WELCOME_SLIDE1_DESC"),
-                    },
-                    {
-                      imageSrc:
-                        "https://chat.zalo.me/assets/zbiz_onboard_vi_3x.62514921c8505730d07aff3fa8c4e9c3.png",
-                      title: t("ME.WELCOME_SLIDE2_TITLE"),
-                      description:
-                        t("ME.WELCOME_SLIDE2_DESC"),
-                    },
-                  ]}
+        {(selectedIcon === "chat" || selectedIcon === "contact") && (
+          <ConversationColumn>
+            {selectedIcon === "chat" ? (
+              <>
+                <SearchBar
+                  onAddFriend={() => setShowAddFriendModal(true)}
+                  onCreateGroup={() => setShowCreateGroupModal(true)}
                 />
-              </WelcomeWrap>
-            ) : (
-              <Box sx={{ display: "flex", height: "100%" }}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <ChatPanel
-                    accessToken={accessToken}
-                    currentUserId={currentUserId}
-                    conversationId={activeConversationId}
-                    title={t("ME.MESSAGES")}
-                    onToggleSearch={() =>
-                      setRightPanelMode((prev) => (prev === "search" ? "info" : "search"))
-                    }
-                    onToggleInfo={() => setRightPanelMode("info")}
-                  />
+
+                <TabContext value={chatTab}>
+                  <ChatTabsWrapper data-testid="chat-tabs">
+                    <TabListStyled onChange={handleChangeChatTab} aria-label="chat tabs">
+                      <TabStyled label={t("ME.ALL_CHATS")} value="allChats" />
+                      <TabStyled label={t("ME.UNREAD")} value="unRead" />
+                    </TabListStyled>
+
+                    <TabsRight>
+                      <ClickAwayListener onClickAway={() => setSelectedCategory(false)}>
+                        <DropdownWrapper>
+                          <CategoryFilterButton
+                            className={selectedCategories.length > 0 ? "active" : ""}
+                            sx={isSelectedCategory ? { backgroundColor: "#E5F1FF", color: "#005AE0" } : null}
+                            endIcon={
+                              selectedCategories.length > 0 ? (
+                                <CancelIconStyled
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedCategories([]);
+                                  }}
+                                />
+                              ) : (
+                                <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+                              )
+                            }
+                            onClick={() => setSelectedCategory((prev) => !prev)}
+                          >
+                            {getCategoryLabel()}
+                          </CategoryFilterButton>
+
+                          {isSelectedCategory && (
+                            <FilterCategoryDropdown selected={selectedCategories} onChange={setSelectedCategories} />
+                          )}
+                        </DropdownWrapper>
+                      </ClickAwayListener>
+                      <StyledMoreIcon />
+                    </TabsRight>
+                  </ChatTabsWrapper>
+
+                  <TabPanelStyled value="allChats">
+                    <ConversationList />
+                  </TabPanelStyled>
+                  <TabPanelStyled value="unRead">
+                    <ConversationList filterUnread />
+                  </TabPanelStyled>
+                </TabContext>
+              </>
+            ) : selectedIcon === "contact" ? (
+              <>
+                <SearchBar />
+                <Box sx={{ flex: 1, overflowY: "auto", pt: 1 }}>
+                  <ContactFunctionList value={contactView} onChange={setContactView} />
                 </Box>
+              </>
+            ) : null}
+          </ConversationColumn>
+        )}
 
-                {rightPanelMode === "search" ? (
-                  <SearchSidebar
-                    conversationId={activeConversationId}
-                    onClose={() => setRightPanelMode("info")}
-                    onMessageClick={(message) => {
-                      const id = `msg-${message.messageId}`;
-                      const el = document.getElementById(id);
-                      if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "center" });
-                        setTimeout(() => {
-                          el.style.transition = "background-color 0.3s ease, border-color 0.3s ease";
-                          el.style.backgroundColor = "#FFF3CD";
-                          el.style.borderRadius = "8px";
-                          el.style.outline = "2px solid #FCD34D";
-                          setTimeout(() => {
-                            el.style.backgroundColor = "";
-                            el.style.outline = "";
-                            el.style.borderRadius = "";
-                          }, 2000);
-                        }, 500);
-                      }
-                    }}
+        <ChatColumn size="grow">
+          <Panel>
+            {selectedIcon === "chat" ? (
+              !activeConversationId ? (
+                <WelcomeWrap>
+                  <WelcomeSite
+                    slides={[
+                      {
+                        imageSrc:
+                          "https://chat.zalo.me/assets/inapp-welcome-screen-06-darkmode.336078e876ae12bf42474586745397f0.png",
+                        title: t("ME.WELCOME_SLIDE1_TITLE"),
+                        description: t("ME.WELCOME_SLIDE1_DESC"),
+                      },
+                      {
+                        imageSrc:
+                          "https://chat.zalo.me/assets/zbiz_onboard_vi_3x.62514921c8505730d07aff3fa8c4e9c3.png",
+                        title: t("ME.WELCOME_SLIDE2_TITLE"),
+                        description:
+                          t("ME.WELCOME_SLIDE2_DESC"),
+                      },
+                    ]}
                   />
-                ) : (
-                  <InfConvColumn conversationId={activeConversationId} />
-                )}
+                </WelcomeWrap>
+              ) : (
+                <Box sx={{ display: "flex", height: "100%" }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <ChatPanel
+                      accessToken={accessToken}
+                      currentUserId={currentUserId}
+                      conversationId={activeConversationId}
+                      title={t("ME.MESSAGES")}
+                      onToggleSearch={() =>
+                        setRightPanelMode((prev) => (prev === "search" ? "info" : "search"))
+                      }
+                      onToggleInfo={() => setRightPanelMode("info")}
+                    />
+                  </Box>
+
+                  {rightPanelMode === "search" ? (
+                    <SearchSidebar
+                      conversationId={activeConversationId}
+                      onClose={() => setRightPanelMode("info")}
+                      onMessageClick={(message) => {
+                        const id = `msg-${message.messageId}`;
+                        const el = document.getElementById(id);
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "center" });
+                          setTimeout(() => {
+                            el.style.transition = "background-color 0.3s ease, border-color 0.3s ease";
+                            el.style.backgroundColor = "#FFF3CD";
+                            el.style.borderRadius = "8px";
+                            el.style.outline = "2px solid #FCD34D";
+                            setTimeout(() => {
+                              el.style.backgroundColor = "";
+                              el.style.outline = "";
+                              el.style.borderRadius = "";
+                            }, 2000);
+                          }, 500);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <InfConvColumn conversationId={activeConversationId} />
+                  )}
+                </Box>
+              )
+            ) : selectedIcon === "contact" ? (
+              <ContactContentPanel view={contactView} />
+            ) : selectedIcon === "settings" ? (
+              <SettingsPanel />
+            ) : selectedIcon === "chatbot" ? (
+              <ChatbotPanel />
+            ) : selectedIcon === "cloud" ? (
+              <CloudPanel />
+            ) : selectedIcon === "business" ? (
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
+                {t("ME.BUSINESS_DEVELOPING")}
               </Box>
-            )
-          ) : selectedIcon === "contact" ? (
-            <ContactContentPanel view={contactView} />
-          ) : selectedIcon === "settings" ? (
-            <SettingsPanel />
-          ) : selectedIcon === "chatbot" ? (
-            <ChatbotPanel />
-          ) : selectedIcon === "cloud" ? (
-            <CloudPanel />
-          ) : selectedIcon === "business" ? (
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
-              {t("ME.BUSINESS_DEVELOPING")}
-            </Box>
-          ) : null}
-        </Panel>
-      </ChatColumn>
+            ) : null}
+          </Panel>
+        </ChatColumn>
 
-      <ModalAddFriend
-        open={showAddFriendModal}
-        onClose={() => setShowAddFriendModal(false)}
-      />
+        <ModalAddFriend
+          open={showAddFriendModal}
+          onClose={() => setShowAddFriendModal(false)}
+        />
 
+        <CreateGroupModal open={showCreateGroupModal} onClose={() => setShowCreateGroupModal(false)} />
+
+        <FriendRequestConfirmModal
+          open={showFriendRequestModal}
+          onClose={() => setShowFriendRequestModal(false)}
+          user={selectedFriendRequest}
+          onConfirm={() => {
+            setShowFriendRequestModal(false);
+            setSelectedFriendRequest(null);
+          }}
+          onReject={() => {
+            setShowFriendRequestModal(false);
+            setSelectedFriendRequest(null);
+          }}
+        />
+
+        <IncomingCallDialog />
+      </Root>
+    );
+  }
+
+  // Mobile layout
+  const showList = mobileView === "list";
+  const showChat = mobileView === "chat" && activeConversationId;
+  const isChatSelected = selectedIcon === "chat" || selectedIcon === "contact";
+
+  return (
+    <MobileLayout>
+      <MobileContent>
+        {isChatSelected && showList && (
+          <>
+            {selectedIcon === "chat" ? (
+              <>
+                <SearchBar
+                  onAddFriend={() => setShowAddFriendModal(true)}
+                  onCreateGroup={() => setShowCreateGroupModal(true)}
+                />
+                <TabContext value={chatTab}>
+                  <ChatTabsWrapper data-testid="chat-tabs">
+                    <TabListStyled onChange={handleChangeChatTab} aria-label="chat tabs">
+                      <TabStyled label={t("ME.ALL_CHATS")} value="allChats" />
+                      <TabStyled label={t("ME.UNREAD")} value="unRead" />
+                    </TabListStyled>
+                    <TabsRight>
+                      <ClickAwayListener onClickAway={() => setSelectedCategory(false)}>
+                        <DropdownWrapper>
+                          <CategoryFilterButton
+                            className={selectedCategories.length > 0 ? "active" : ""}
+                            sx={isSelectedCategory ? { backgroundColor: "#E5F1FF", color: "#005AE0" } : null}
+                            endIcon={
+                              selectedCategories.length > 0 ? (
+                                <CancelIconStyled onClick={(e) => { e.stopPropagation(); setSelectedCategories([]); }} />
+                              ) : (
+                                <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+                              )
+                            }
+                            onClick={() => setSelectedCategory((prev) => !prev)}
+                          >
+                            {getCategoryLabel()}
+                          </CategoryFilterButton>
+                          {isSelectedCategory && (
+                            <FilterCategoryDropdown selected={selectedCategories} onChange={setSelectedCategories} />
+                          )}
+                        </DropdownWrapper>
+                      </ClickAwayListener>
+                      <StyledMoreIcon />
+                    </TabsRight>
+                  </ChatTabsWrapper>
+                  <TabPanelStyled value="allChats" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                    <ConversationList />
+                  </TabPanelStyled>
+                  <TabPanelStyled value="unRead" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                    <ConversationList filterUnread />
+                  </TabPanelStyled>
+                </TabContext>
+              </>
+            ) : (
+              <>
+                <SearchBar />
+                <Box sx={{ flex: 1, overflowY: "auto", pt: 1 }}>
+                  <ContactFunctionList value={contactView} onChange={setContactView} />
+                </Box>
+              </>
+            )}
+          </>
+        )}
+
+        {isChatSelected && showChat && (
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <ChatPanel
+              accessToken={accessToken}
+              currentUserId={currentUserId}
+              conversationId={activeConversationId!}
+              title={t("ME.MESSAGES")}
+              onToggleSearch={() => setRightPanelMode((prev) => (prev === "search" ? "info" : "search"))}
+              onToggleInfo={handleMobileInfoToggle}
+              onBackClick={handleMobileBack}
+            />
+          </Box>
+        )}
+
+        {!isChatSelected && selectedIcon === "settings" && <SettingsPanel />}
+        {!isChatSelected && selectedIcon === "chatbot" && <ChatbotPanel />}
+        {!isChatSelected && selectedIcon === "cloud" && <CloudPanel />}
+        {!isChatSelected && selectedIcon === "business" && (
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#6B7280", fontSize: 16 }}>
+            {t("ME.BUSINESS_DEVELOPING")}
+          </Box>
+        )}
+      </MobileContent>
+
+      <MobileBottomNav elevation={8}>
+        <BottomNavigation
+          value={selectedIcon}
+          onChange={(_, newValue) => handleSelectedIcon(newValue)}
+          showLabels
+          sx={{ height: 60, "& .MuiBottomNavigationAction-label": { fontSize: 11, mt: 0.25 } }}
+        >
+          {mobileBottomNavIcons.map((item) => (
+            <BottomNavigationAction
+              key={item.key}
+              value={item.key}
+              label={item.label}
+              icon={item.icon}
+              sx={{
+                minWidth: 0,
+                py: 0.5,
+                color: selectedIcon === item.key ? "#005AE0" : "rgba(0,0,0,0.6)",
+                "&.Mui-selected": { color: "#005AE0" },
+              }}
+            />
+          ))}
+        </BottomNavigation>
+      </MobileBottomNav>
+
+      <Drawer
+        anchor="right"
+        open={mobileInfoOpen}
+        onClose={() => setMobileInfoOpen(false)}
+        PaperProps={{ sx: { width: "85vw", maxWidth: 380 } }}
+      >
+        {activeConversationId && <InfConvColumn conversationId={activeConversationId} />}
+      </Drawer>
+
+      <ModalAddFriend open={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} />
       <CreateGroupModal open={showCreateGroupModal} onClose={() => setShowCreateGroupModal(false)} />
-
       <FriendRequestConfirmModal
         open={showFriendRequestModal}
         onClose={() => setShowFriendRequestModal(false)}
         user={selectedFriendRequest}
-        onConfirm={() => {
-          setShowFriendRequestModal(false);
-          setSelectedFriendRequest(null);
-        }}
-        onReject={() => {
-          setShowFriendRequestModal(false);
-          setSelectedFriendRequest(null);
-        }}
+        onConfirm={() => { setShowFriendRequestModal(false); setSelectedFriendRequest(null); }}
+        onReject={() => { setShowFriendRequestModal(false); setSelectedFriendRequest(null); }}
       />
 
       <IncomingCallDialog />
-    </Root>
+    </MobileLayout>
   );
 };
 

@@ -34,6 +34,7 @@ interface ChatPanelProps {
   title?: string;
   onToggleSearch?: () => void;
   onToggleInfo?: () => void;
+  onBackClick?: () => void;
 }
 
 const Root = styled(Box)({
@@ -74,6 +75,7 @@ export default function ChatPanel({
   title,
   onToggleSearch,
   onToggleInfo,
+  onBackClick,
 }: ChatPanelProps) {
   const t = useTrans();
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -271,6 +273,7 @@ export default function ChatPanel({
           error={error}
           onToggleSearch={onToggleSearch}
           onToggleInfo={onToggleInfo}
+          onBackClick={onBackClick}
         />
       </HeaderWrap>
 

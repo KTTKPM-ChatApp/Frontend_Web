@@ -61,6 +61,10 @@ const GroupGrid = styled(Box)({
   width: "100%",
   height: "100%",
   overflowY: "auto",
+  "@media (max-width: 767px)": {
+    gap: 8,
+    padding: 8,
+  },
 });
 
 const PeerTile = styled(Box)({
@@ -77,6 +81,12 @@ const PeerTile = styled(Box)({
   justifyContent: "center",
   minHeight: 180,
   transition: "all 0.2s ease",
+  "@media (max-width: 767px)": {
+    minHeight: 120,
+    flex: "1 1 calc(50% - 8px)",
+    maxWidth: "calc(50% - 8px)",
+    borderRadius: 12,
+  },
 });
 
 const PeerVideo = styled("video")({
@@ -97,6 +107,11 @@ const PeerAvatarCircle = styled(Box)({
   fontSize: 28,
   fontWeight: 600,
   boxShadow: "0 4px 12px rgba(0,90,224,0.3)",
+  "@media (max-width: 767px)": {
+    width: 48,
+    height: 48,
+    fontSize: 22,
+  },
 });
 
 const PeerNamelabel = styled(Typography)({
@@ -127,6 +142,11 @@ const Controls = styled(Box)({
   borderRadius: 40,
   backdropFilter: "blur(12px)",
   zIndex: 10,
+  "@media (max-width: 767px)": {
+    gap: 12,
+    padding: "8px 16px",
+    bottom: 32,
+  },
 });
 
 const ControlBtn = styled(IconButton)({
@@ -141,6 +161,10 @@ const ControlBtn = styled(IconButton)({
     transform: "scale(1.05)",
   },
   "&:active": { transform: "scale(0.95)" },
+  "@media (max-width: 767px)": {
+    width: 44,
+    height: 44,
+  },
 });
 
 const EndCallBtn = styled(IconButton)({
@@ -156,6 +180,10 @@ const EndCallBtn = styled(IconButton)({
     boxShadow: "0 6px 24px rgba(239,68,68,0.5)",
   },
   "&:active": { transform: "scale(0.95)" },
+  "@media (max-width: 767px)": {
+    width: 48,
+    height: 48,
+  },
 });
 
 const MinimizedBar = styled(Box)({

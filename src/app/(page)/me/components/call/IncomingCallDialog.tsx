@@ -47,6 +47,7 @@ const Overlay = styled(Box)({
   alignItems: "center",
   justifyContent: "center",
   animation: `${fadeIn} 0.3s ease-out`,
+  overflowY: "auto",
 });
 
 const ContentWrapper = styled(Box)({
@@ -57,6 +58,9 @@ const ContentWrapper = styled(Box)({
   flex: 1,
   width: "100%",
   paddingTop: 80,
+  "@media (max-width: 767px)": {
+    paddingTop: 40,
+  },
 });
 
 const AvatarContainer = styled(Box)({
@@ -101,6 +105,11 @@ const Avatar = styled(Box)({
   position: "relative",
   zIndex: 1,
   animation: `${float} 3s ease-in-out infinite`,
+  "@media (max-width: 767px)": {
+    width: 80,
+    height: 80,
+    fontSize: 36,
+  },
 });
 
 const CallerInfo = styled(Box)({
@@ -133,6 +142,11 @@ const Actions = styled(Box)({
   gap: 48,
   marginBottom: 80,
   paddingBottom: 40,
+  "@media (max-width: 767px)": {
+    gap: 32,
+    marginBottom: 40,
+    paddingBottom: 24,
+  },
 });
 
 const ActionBtn = styled(Box)<{ color: string; bgcolor?: string }>(({ color, bgcolor }) => ({
@@ -153,6 +167,10 @@ const ActionBtn = styled(Box)<{ color: string; bgcolor?: string }>(({ color, bgc
   },
   "&:active": {
     transform: "scale(0.95)",
+  },
+  "@media (max-width: 767px)": {
+    width: 56,
+    height: 56,
   },
 }));
 

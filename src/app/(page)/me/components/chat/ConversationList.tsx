@@ -59,6 +59,17 @@ const Item = styled(Box, {
     opacity: 0,
     visibility: "hidden",
   },
+  "@media (max-width: 767px)": {
+    "& .more-btn": {
+      opacity: 1,
+      visibility: "visible",
+      position: "static",
+    },
+    "&:hover .time-text": {
+      opacity: 1,
+      visibility: "visible",
+    },
+  },
 }));
 
 const ItemRow = styled(Box)({
