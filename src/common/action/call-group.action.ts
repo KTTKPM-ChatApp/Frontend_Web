@@ -181,9 +181,9 @@ export async function startGroupCall(conversationId: string) {
   if (store.active) return;
 
   try {
-    const session = await callService.createGroupCall(conversationId);
-    const roomId = session.sfuRoomId;
-    const sessionId = session.id;
+    const res = await callService.createGroupCall(conversationId);
+    const roomId = res.session.sfuRoomId;
+    const sessionId = res.session.id;
 
     useCallStore.getState().initiateCall({
       callId: sessionId,
