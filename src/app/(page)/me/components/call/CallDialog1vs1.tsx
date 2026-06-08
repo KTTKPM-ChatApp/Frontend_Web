@@ -12,6 +12,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import MinimizeIcon from "@mui/icons-material/Minimize";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+import FlipCameraIosIcon from "@mui/icons-material/FlipCameraIos";
 import { useCallStore } from "@/src/common/store/useCallStore";
 import { endCall, answerCall, rejectCall, enableVideo } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -50,6 +51,8 @@ const Overlay = styled(Box)({
   alignItems: "center",
   justifyContent: "center",
   animation: `${fadeIn} 0.3s ease-out`,
+  paddingTop: "env(safe-area-inset-top, 0px)",
+  paddingBottom: "env(safe-area-inset-bottom, 0px)",
 });
 
 const AudioOverlay = styled(Overlay)({
@@ -216,7 +219,7 @@ const RemoteVideo = styled("video")({
 
 const LocalVideo = styled("video")({
   position: "absolute",
-  bottom: 120,
+  top: 80,
   right: 20,
   width: 140,
   height: 200,
@@ -230,10 +233,24 @@ const LocalVideo = styled("video")({
   "@media (max-width: 767px)": {
     width: 100,
     height: 140,
-    bottom: 90,
+    top: 60,
     right: 12,
     borderRadius: 12,
   },
+});
+
+const MiniAvatar = styled(Box)({
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  backgroundColor: "#005AE0",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: 600,
+  flexShrink: 0,
 });
 
 const MinimizedBar = styled(Box)({
@@ -246,7 +263,7 @@ const MinimizedBar = styled(Box)({
   gap: 10,
   backgroundColor: "#1a1a2e",
   color: "#fff",
-  padding: "10px 20px",
+  padding: "6px 16px 6px 6px",
   borderRadius: 28,
   cursor: "pointer",
   boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
@@ -269,6 +286,12 @@ export default function CallDialog1vs1() {
   const [videoMuted, setVideoMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
   const [elapsed, setElapsed] = useState("");
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [cameraFacingMode, setCameraFacingMode] = useState<"user" | "environment">("user");
+  const [connectionQuality, setConnectionQuality] = useState<string>("");
+  const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartY = useRef<number>(0);
+  const wakeLockRef = useRef<any>(null);
 
   useEffect(() => {
     if (status !== "connected") { setElapsed(""); return; }
@@ -282,6 +305,56 @@ export default function CallDialog1vs1() {
     }, 1000);
     return () => clearInterval(interval);
   }, [status, callStartTime]);
+
+  useEffect(() => {
+    const conn = (navigator as any).connection;
+    if (!conn) { setConnectionQuality(""); return; }
+    const update = () => {
+      const types: Record<string, string> = { "slow-2g": "Rất yếu", "2g": "Yếu", "3g": "Trung bình", "4g": "Tốt" };
+      setConnectionQuality(types[conn.effectiveType] || "");
+    };
+    update();
+    conn.addEventListener("change", update);
+    return () => conn.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (status !== "connected") return;
+    setControlsVisible(true);
+    if (autoHideRef.current) clearTimeout(autoHideRef.current);
+    autoHideRef.current = setTimeout(() => setControlsVisible(false), 5000);
+    return () => { if (autoHideRef.current) clearTimeout(autoHideRef.current); };
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "connected" && status !== "ringing") {
+      if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; }
+      return;
+    }
+    if ("wakeLock" in navigator) {
+      navigator.wakeLock.request("screen").then((wl) => { wakeLockRef.current = wl; }).catch(() => {});
+    }
+    return () => { if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; } };
+  }, [status]);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (autoHideRef.current) clearTimeout(autoHideRef.current);
+    if (status === "connected") {
+      autoHideRef.current = setTimeout(() => setControlsVisible(false), 5000);
+    }
+  }, [status]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    if (deltaY > 80) {
+      useCallStore.getState().setMinimized(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (localVideoRef.current && localStream)
@@ -341,6 +414,25 @@ export default function CallDialog1vs1() {
     }
   }, [speakerOn]);
 
+  const handleSwitchCamera = useCallback(async () => {
+    if (!localStream) return;
+    const newFacing = cameraFacingMode === "user" ? "environment" : "user";
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: newFacing, width: { ideal: 360, max: 720 }, height: { ideal: 480, max: 1280 }, frameRate: { ideal: 24, max: 30 } },
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+      const oldTracks = localStream.getVideoTracks();
+      oldTracks.forEach((t) => { localStream.removeTrack(t); t.stop(); });
+      localStream.addTrack(newTrack);
+      useCallStore.getState().setLocalStream(localStream);
+      setCameraFacingMode(newFacing);
+    } catch (err) {
+      console.warn("[SwitchCamera] failed:", err);
+    }
+  }, [localStream, cameraFacingMode]);
+
   const handleMinimize = useCallback(() => {
     useCallStore.getState().setMinimized(true);
   }, []);
@@ -348,9 +440,9 @@ export default function CallDialog1vs1() {
   if (minimized) {
     return (
       <MinimizedBar onClick={() => useCallStore.getState().setMinimized(false)}>
-        <PhoneIcon sx={{ fontSize: 18, color: "#22C55E" }} />
-        <Typography sx={{ fontSize: 13 }}>
-          {type === "VIDEO" ? t("CHAT.CALL_VIDEO") : t("CHAT.CALL_AUDIO")}
+        <MiniAvatar>{(callerName || "?")[0].toUpperCase()}</MiniAvatar>
+        <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+          {callerName || (type === "VIDEO" ? t("CHAT.CALL_VIDEO") : t("CHAT.CALL_AUDIO"))}
         </Typography>
         {elapsed && <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{elapsed}</Typography>}
       </MinimizedBar>
@@ -435,6 +527,11 @@ export default function CallDialog1vs1() {
               {elapsed}
             </Typography>
           )}
+          {connectionQuality && (
+            <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11, mt: 0.5 }}>
+              Chất lượng mạng: {connectionQuality}
+            </Typography>
+          )}
         </TopInfo>
         <Controls>
           <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
@@ -447,8 +544,8 @@ export default function CallDialog1vs1() {
 
   if (status === "connected" && type === "VIDEO") {
     return (
-      <VideoOverlay>
-        <TopInfo sx={{ top: { xs: 8, md: 16 }, flexDirection: "row", justifyContent: "center", gap: 1 }}>
+      <VideoOverlay onClick={showControls} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        <TopInfo sx={{ top: { xs: 8, md: 16 }, flexDirection: "row", justifyContent: "center", gap: 1, opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s" }}>
           <Typography sx={{ color: "#fff", fontSize: { xs: 13, md: 16 }, fontWeight: 600 }}>
             {callerName || t("CHAT.CALL_VIDEO")}
           </Typography>
@@ -459,7 +556,7 @@ export default function CallDialog1vs1() {
           <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
           <LocalVideo ref={localVideoRef} autoPlay playsInline muted />
         </VideoContainer>
-        <Controls>
+        <Controls sx={{ opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s", pointerEvents: controlsVisible ? "auto" : "none" }}>
           <ControlBtn onClick={handleToggleAudio}>
             {audioMuted ? <MicOffIcon /> : <MicIcon />}
           </ControlBtn>
@@ -469,6 +566,9 @@ export default function CallDialog1vs1() {
           <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
             {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
           </EndCallBtn>
+          <ControlBtn onClick={handleSwitchCamera}>
+            <FlipCameraIosIcon />
+          </ControlBtn>
           <ControlBtn onClick={handleMinimize}>
             <MinimizeIcon />
           </ControlBtn>
@@ -480,8 +580,8 @@ export default function CallDialog1vs1() {
   if (status !== "connected") return null;
 
   return (
-    <AudioOverlay>
-      <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
+    <AudioOverlay onClick={showControls} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <TopInfo sx={{ top: { xs: 40, md: 80 }, opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s" }}>
         <AvatarContainer>
           <PulseRingOuter />
           <PulseRingInner />
@@ -502,7 +602,7 @@ export default function CallDialog1vs1() {
         </WaveContainer>
       </TopInfo>
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
-      <Controls>
+      <Controls sx={{ opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s", pointerEvents: controlsVisible ? "auto" : "none" }}>
         <ControlBtn onClick={handleToggleAudio}>
           {audioMuted ? <MicOffIcon /> : <MicIcon />}
         </ControlBtn>

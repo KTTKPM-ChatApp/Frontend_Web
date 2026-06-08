@@ -91,6 +91,7 @@ export enum SystemEventType {
   OWNER_TRANSFERRED = "OWNER_TRANSFERRED",
   GROUP_DISBANDED = "GROUP_DISBANDED",
   CONVERSATION_UPDATED = "CONVERSATION_UPDATED",
+  CALL_LOG = "CALL_LOG",
 }
 
 export interface SystemMemberMetadata {

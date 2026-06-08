@@ -85,6 +85,23 @@ export const buildSystemMessageText = (message: UiMessage) => {
             return `${actor} đã cập nhật thông tin nhóm`;
         }
 
+        case SystemEventType.CALL_LOG: {
+            const metadata = message.metadata as Record<string, unknown>;
+            const callType = metadata?.callType === "VIDEO" ? "video" : "thoại";
+            const duration = (metadata?.duration as number) ?? 0;
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            const endedAt = metadata?.endedAt
+                ? new Date(metadata.endedAt as string)
+                : new Date();
+            const timeStr = endedAt.toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+
+            return `Cuộc gọi ${callType} kết thúc lúc ${timeStr} (${minutes} ph ${seconds} giây)`;
+        }
+
         default:
             return message.body || "Tin nhắn hệ thống";
     }

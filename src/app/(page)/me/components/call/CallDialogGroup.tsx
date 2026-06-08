@@ -11,6 +11,7 @@ import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import MinimizeIcon from "@mui/icons-material/Minimize";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+import FlipCameraIosIcon from "@mui/icons-material/FlipCameraIos";
 import { useCallStore, SfuPeerStream } from "@/src/common/store/useCallStore";
 import { endGroupCall } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
@@ -38,6 +39,8 @@ const Overlay = styled(Box)({
   alignItems: "center",
   justifyContent: "center",
   animation: `${fadeIn} 0.3s ease-out`,
+  paddingTop: "env(safe-area-inset-top, 0px)",
+  paddingBottom: "env(safe-area-inset-bottom, 0px)",
 });
 
 const TopInfo = styled(Box)({
@@ -67,26 +70,30 @@ const GroupGrid = styled(Box)({
   },
 });
 
-const PeerTile = styled(Box)({
-  position: "relative",
-  flex: "1 1 calc(50% - 12px)",
-  maxWidth: "calc(50% - 12px)",
-  aspectRatio: "1",
-  backgroundColor: "#1a1a2e",
-  borderRadius: 16,
-  overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: 180,
-  transition: "all 0.2s ease",
-  "@media (max-width: 767px)": {
-    minHeight: 120,
-    flex: "1 1 calc(50% - 8px)",
-    maxWidth: "calc(50% - 8px)",
-    borderRadius: 12,
-  },
+const PeerTile = styled(Box)<{ $count?: number }>(({ $count = 2 }) => {
+  const cols = $count <= 1 ? 1 : $count <= 4 ? 2 : 3;
+  const pct = `${100 / cols}%`;
+  return {
+    position: "relative",
+    flex: `1 1 calc(${pct} - 12px)`,
+    maxWidth: `calc(${pct} - 12px)`,
+    aspectRatio: cols === 1 ? "16/9" : "1",
+    backgroundColor: "#1a1a2e",
+    borderRadius: 16,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: cols === 1 ? 240 : 180,
+    transition: "all 0.2s ease",
+    "@media (max-width: 767px)": {
+      minHeight: cols === 1 ? 160 : 120,
+      flex: `1 1 calc(${pct} - 8px)`,
+      maxWidth: `calc(${pct} - 8px)`,
+      borderRadius: 12,
+    },
+  };
 });
 
 const PeerVideo = styled("video")({
@@ -186,6 +193,20 @@ const EndCallBtn = styled(IconButton)({
   },
 });
 
+const MiniAvatar = styled(Box)({
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  backgroundColor: "#005AE0",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: 600,
+  flexShrink: 0,
+});
+
 const MinimizedBar = styled(Box)({
   position: "fixed",
   bottom: 20,
@@ -196,7 +217,7 @@ const MinimizedBar = styled(Box)({
   gap: 10,
   backgroundColor: "#1a1a2e",
   color: "#fff",
-  padding: "10px 20px",
+  padding: "6px 16px 6px 6px",
   borderRadius: 28,
   cursor: "pointer",
   boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
@@ -226,6 +247,11 @@ export default function CallDialogGroup() {
   const [videoMuted, setVideoMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
   const [elapsed, setElapsed] = useState("");
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [cameraFacingMode, setCameraFacingMode] = useState<"user" | "environment">("user");
+  const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartY = useRef<number>(0);
+  const wakeLockRef = useRef<any>(null);
 
   useEffect(() => {
     if (status !== "connected") { setElapsed(""); return; }
@@ -239,6 +265,44 @@ export default function CallDialogGroup() {
     }, 1000);
     return () => clearInterval(interval);
   }, [status, callStartTime]);
+
+  useEffect(() => {
+    if (status !== "connected") return;
+    setControlsVisible(true);
+    if (autoHideRef.current) clearTimeout(autoHideRef.current);
+    autoHideRef.current = setTimeout(() => setControlsVisible(false), 5000);
+    return () => { if (autoHideRef.current) clearTimeout(autoHideRef.current); };
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "connected" && status !== "ringing") {
+      if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; }
+      return;
+    }
+    if ("wakeLock" in navigator) {
+      navigator.wakeLock.request("screen").then((wl) => { wakeLockRef.current = wl; }).catch(() => {});
+    }
+    return () => { if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; } };
+  }, [status]);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (autoHideRef.current) clearTimeout(autoHideRef.current);
+    if (status === "connected") {
+      autoHideRef.current = setTimeout(() => setControlsVisible(false), 5000);
+    }
+  }, [status]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    if (deltaY > 80) {
+      useCallStore.getState().setMinimized(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (localVideoRef.current && localStream)
@@ -297,6 +361,25 @@ export default function CallDialogGroup() {
     }
   }, [speakerOn]);
 
+  const handleSwitchCamera = useCallback(async () => {
+    if (!localStream) return;
+    const newFacing = cameraFacingMode === "user" ? "environment" : "user";
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: newFacing, width: { ideal: 360, max: 720 }, height: { ideal: 480, max: 1280 }, frameRate: { ideal: 24, max: 30 } },
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+      const oldTracks = localStream.getVideoTracks();
+      oldTracks.forEach((t) => { localStream.removeTrack(t); t.stop(); });
+      localStream.addTrack(newTrack);
+      useCallStore.getState().setLocalStream(localStream);
+      setCameraFacingMode(newFacing);
+    } catch (err) {
+      console.warn("[SwitchCamera] failed:", err);
+    }
+  }, [localStream, cameraFacingMode]);
+
   const handleMinimize = useCallback(() => {
     useCallStore.getState().setMinimized(true);
   }, []);
@@ -304,7 +387,8 @@ export default function CallDialogGroup() {
   if (minimized) {
     return (
       <MinimizedBar onClick={() => useCallStore.getState().setMinimized(false)}>
-        <Typography sx={{ fontSize: 13 }}>{t("CHAT.CALL_GROUP")}</Typography>
+        <MiniAvatar>{(peerStreams[0]?.displayName || "G")[0].toUpperCase()}</MiniAvatar>
+        <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{t("CHAT.CALL_GROUP")}</Typography>
         {elapsed && <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{elapsed}</Typography>}
       </MinimizedBar>
     );
@@ -312,11 +396,14 @@ export default function CallDialogGroup() {
 
   if (status !== "connected") return null;
 
+  const { isSpeaking } = useCallStore();
+  const totalParticipants = peerStreams.length + 1;
+
   return (
-    <Overlay>
-      <TopInfo>
+    <Overlay onClick={showControls} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <TopInfo sx={{ opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s" }}>
         <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600 }}>
-          {peerStreams.length + 1} participants
+          {totalParticipants} participants
         </Typography>
         {elapsed && (
           <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>· {elapsed}</Typography>
@@ -324,7 +411,7 @@ export default function CallDialogGroup() {
       </TopInfo>
       <GroupGrid>
         {peerStreams.map((peer) => (
-          <PeerTile key={peer.peerId}>
+          <PeerTile key={peer.peerId} $count={totalParticipants}>
             {peer.video ? (
               <PeerVideo
                 ref={(el) => { if (el) peerVideoRefs.current.set(peer.peerId, el); }}
@@ -345,7 +432,7 @@ export default function CallDialogGroup() {
             </PeerNamelabel>
           </PeerTile>
         ))}
-        <PeerTile sx={{ border: "2px solid rgba(255,255,255,0.1)" }}>
+        <PeerTile $count={totalParticipants} sx={{ border: isSpeaking ? "2px solid #005AE0" : "2px solid rgba(255,255,255,0.1)", animation: isSpeaking ? `${speakingGlow} 1.5s ease-in-out infinite` : "none" }}>
           <LocalVideo
             ref={localVideoRef}
             autoPlay playsInline muted
@@ -353,7 +440,7 @@ export default function CallDialogGroup() {
           <PeerNamelabel>{t("CHAT.YOU")}</PeerNamelabel>
         </PeerTile>
       </GroupGrid>
-      <Controls>
+      <Controls sx={{ opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s", pointerEvents: controlsVisible ? "auto" : "none" }}>
         <ControlBtn onClick={handleToggleAudio}>
           {audioMuted ? <MicOffIcon /> : <MicIcon />}
         </ControlBtn>
@@ -365,6 +452,9 @@ export default function CallDialogGroup() {
         </EndCallBtn>
         <ControlBtn onClick={handleToggleVideo}>
           {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
+        </ControlBtn>
+        <ControlBtn onClick={handleSwitchCamera}>
+          <FlipCameraIosIcon />
         </ControlBtn>
         <ControlBtn onClick={handleMinimize}>
           <MinimizeIcon />

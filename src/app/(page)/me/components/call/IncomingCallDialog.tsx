@@ -48,6 +48,8 @@ const Overlay = styled(Box)({
   justifyContent: "center",
   animation: `${fadeIn} 0.3s ease-out`,
   overflowY: "auto",
+  paddingTop: "env(safe-area-inset-top, 0px)",
+  paddingBottom: "env(safe-area-inset-bottom, 0px)",
 });
 
 const ContentWrapper = styled(Box)({
@@ -91,24 +93,24 @@ const PulseRing2 = styled(Box)({
 });
 
 const Avatar = styled(Box)({
-  width: 120,
-  height: 120,
+  width: 140,
+  height: 140,
   borderRadius: "50%",
   backgroundColor: "#fff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   color: "#005AE0",
-  fontSize: 48,
+  fontSize: 56,
   fontWeight: 700,
   boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
   position: "relative",
   zIndex: 1,
   animation: `${float} 3s ease-in-out infinite`,
   "@media (max-width: 767px)": {
-    width: 80,
-    height: 80,
-    fontSize: 36,
+    width: 100,
+    height: 100,
+    fontSize: 40,
   },
 });
 
@@ -150,8 +152,8 @@ const Actions = styled(Box)({
 });
 
 const ActionBtn = styled(Box)<{ color: string; bgcolor?: string }>(({ color, bgcolor }) => ({
-  width: 64,
-  height: 64,
+  width: 72,
+  height: 72,
   borderRadius: "50%",
   backgroundColor: bgcolor || "#fff",
   display: "flex",
@@ -169,8 +171,8 @@ const ActionBtn = styled(Box)<{ color: string; bgcolor?: string }>(({ color, bgc
     transform: "scale(0.95)",
   },
   "@media (max-width: 767px)": {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
   },
 }));
 
