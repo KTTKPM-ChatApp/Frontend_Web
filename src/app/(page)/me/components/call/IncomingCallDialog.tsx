@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Box, Typography, keyframes } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -11,7 +11,6 @@ import { answerCall, rejectCall, handleIncomingGroupCall, endCall } from "@/src/
 import { useCallStore } from "@/src/common/store/useCallStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 import { playRingtone, stopRingtone } from "@/src/common/service/ringtone";
-import { userService } from "@/src/common/service/user-service";
 import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
 import AppAvatar from "@/src/shared/component/Avatar";
 
@@ -189,18 +188,9 @@ export default function IncomingCallDialog() {
       if (store.status !== "idle") return;
       setData(detail);
       setCallerName(detail.caller_name || "");
-      setCallerAvatar(null);
+      setCallerAvatar(detail.caller_avatar_url || null);
       setVisible(true);
       playRingtone();
-      if (detail.started_by && !detail.caller_name) {
-        userService.getUserById(detail.started_by).then((res) => {
-          if (res?.ok) {
-            const user = (res.payload as any)?.data ?? res.payload;
-            if (user?.displayName) setCallerName(user.displayName);
-            if (user?.avatarUrl) setCallerAvatar(user.avatarUrl);
-          }
-        }).catch(() => {});
-      }
     };
     window.addEventListener("call:incoming", handler);
     return () => window.removeEventListener("call:incoming", handler);
