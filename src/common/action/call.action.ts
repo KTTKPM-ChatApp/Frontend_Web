@@ -1,5 +1,12 @@
+import { initCallUser as initCallUser1vs1 } from './call-1-1.action';
+import { initCallUser as initCallUserGroup } from './call-group.action';
+
+export function initCallUser() {
+  initCallUser1vs1();
+  initCallUserGroup();
+}
+
 export {
-  initCallUser,
   startCall,
   answerCall,
   rejectCall,
