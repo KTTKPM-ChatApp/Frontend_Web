@@ -49,6 +49,7 @@ import SettingsPanel from "./components/settings/SettingsPanel";
 import ChatbotPanel from "./components/chatbot/ChatbotPanel";
 import CloudPanel from "./components/cloud/CloudPanel";
 import IncomingCallDialog from "./components/call/IncomingCallDialog";
+import CallDialog from "./components/call/CallDialog";
 
 import { cleanupChat, initChat } from "@/src/common/action/chat.action";
 import { handleSfuSignal } from "@/src/common/action/call.action";
@@ -563,6 +564,7 @@ const Me = () => {
         />
 
         <IncomingCallDialog />
+        <CallDialog />
       </Root>
     );
   }
@@ -701,6 +703,7 @@ const Me = () => {
       />
 
       <IncomingCallDialog />
+      <CallDialog />
     </MobileLayout>
   );
 };
