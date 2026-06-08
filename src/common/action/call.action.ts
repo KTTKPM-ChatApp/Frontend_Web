@@ -5,6 +5,7 @@ export {
   rejectCall,
   endCall,
   handleCallSignal,
+  enableVideo,
 } from './call-1-1.action';
 
 export {
