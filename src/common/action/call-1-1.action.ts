@@ -44,13 +44,48 @@ function getRTCConfig(): RTCConfiguration {
   };
 }
 
+function getVideoConstraints(video: boolean): MediaStreamConstraints["video"] {
+  if (!video) return false;
+  return {
+    facingMode: "user",
+    width: { ideal: 360, max: 720 },
+    height: { ideal: 480, max: 1280 },
+    frameRate: { ideal: 24, max: 30 },
+  };
+}
+
 async function getLocalStream(video: boolean): Promise<MediaStream> {
   if (localStream) return localStream;
   localStream = await navigator.mediaDevices.getUserMedia({
     audio: true,
-    video,
+    video: getVideoConstraints(video),
   });
   return localStream;
+}
+
+export async function enableVideo(): Promise<void> {
+  try {
+    const videoStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: getVideoConstraints(true),
+    });
+    const videoTrack = videoStream.getVideoTracks()[0];
+    if (!videoTrack) return;
+
+    const pc = peerConnection;
+    if (pc) {
+      pc.getSenders().find((s) => s.track?.kind === "video")?.replaceTrack(videoTrack)
+        ?? pc.addTrack(videoTrack, localStream || videoStream);
+    }
+
+    if (localStream) {
+      localStream.addTrack(videoTrack);
+    }
+    const store = useCallStore.getState();
+    store.setLocalStream(localStream!);
+  } catch (err) {
+    console.warn('[Call] enableVideo failed:', err);
+  }
 }
 
 export function cleanupLocalStream() {

@@ -13,7 +13,7 @@ import MinimizeIcon from "@mui/icons-material/Minimize";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import { useCallStore } from "@/src/common/store/useCallStore";
-import { endCall, answerCall, rejectCall } from "@/src/common/action/call.action";
+import { endCall, answerCall, rejectCall, enableVideo } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 
 const fadeIn = keyframes`
@@ -312,10 +312,15 @@ export default function CallDialog1vs1() {
   }, [localStream, audioMuted]);
 
   const handleToggleVideo = useCallback(() => {
-    if (localStream) {
-      localStream.getVideoTracks().forEach((t) => (t.enabled = videoMuted));
-      setVideoMuted(!videoMuted);
+    if (!localStream) return;
+    const tracks = localStream.getVideoTracks();
+    if (tracks.length === 0) {
+      enableVideo();
+      setVideoMuted(false);
+      return;
     }
+    tracks.forEach((t) => (t.enabled = videoMuted));
+    setVideoMuted(!videoMuted);
   }, [localStream, videoMuted]);
 
   const handleToggleSpeaker = useCallback(async () => {

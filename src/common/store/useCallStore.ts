@@ -54,6 +54,7 @@ export interface CallSetters {
   setConnecting: () => void;
   setConnected: (stream: MediaStream) => void;
   setRemoteStream: (stream: MediaStream) => void;
+  setLocalStream: (stream: MediaStream) => void;
   setSfuRoomId: (roomId: string) => void;
   setSessionId: (sessionId: string) => void;
   addPeerStream: (peer: SfuPeerStream) => void;
@@ -143,6 +144,8 @@ export const useCallStore = create<CallStore>((set) => ({
   setCallStartTime: (time) => set({ callStartTime: time }),
 
   setRemoteStream: (stream) => set({ remoteStream: stream }),
+
+  setLocalStream: (stream) => set({ localStream: stream }),
 
   setSfuRoomId: (roomId) => set({ sfuRoomId: roomId }),
 
