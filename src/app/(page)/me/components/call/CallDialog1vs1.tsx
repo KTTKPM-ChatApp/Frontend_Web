@@ -69,6 +69,9 @@ const TopInfo = styled(Box)({
   flexDirection: "column",
   alignItems: "center",
   zIndex: 10,
+  "@media (max-width: 767px)": {
+    top: 24,
+  },
 });
 
 const AvatarContainer = styled(Box)({
@@ -352,13 +355,13 @@ export default function CallDialog1vs1() {
   if (status === "ringing") {
     return (
       <AudioOverlay>
-        <TopInfo sx={{ top: 80 }}>
+        <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
           <AvatarContainer>
             <PulseRingOuter />
             <PulseRingInner />
             <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
           </AvatarContainer>
-          <Typography sx={{ color: "#fff", fontSize: 26, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+          <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
             {callerName || ""}
           </Typography>
           <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 14, mt: 0.5 }}>
@@ -385,12 +388,12 @@ export default function CallDialog1vs1() {
   if (status === "connecting") {
     return (
       <AudioOverlay>
-        <TopInfo sx={{ top: 80 }}>
+        <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
           <AvatarContainer>
             <PulseRingOuter />
             <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
           </AvatarContainer>
-          <Typography sx={{ color: "#fff", fontSize: 26, fontWeight: 600 }}>
+          <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600 }}>
             {callerName || ""}
           </Typography>
           <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 14, mt: 0.5 }}>
@@ -409,11 +412,11 @@ export default function CallDialog1vs1() {
   if (status === "reconnecting") {
     return (
       <AudioOverlay>
-        <TopInfo sx={{ top: 80 }}>
+        <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
           <AvatarContainer>
             <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
           </AvatarContainer>
-          <Typography sx={{ color: "#fff", fontSize: 26, fontWeight: 600 }}>
+          <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600 }}>
             {callerName || ""}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
@@ -440,11 +443,11 @@ export default function CallDialog1vs1() {
   if (status === "connected" && type === "VIDEO") {
     return (
       <VideoOverlay>
-        <TopInfo sx={{ top: 16, flexDirection: "row", justifyContent: "center", gap: 1 }}>
-          <Typography sx={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>
+        <TopInfo sx={{ top: { xs: 8, md: 16 }, flexDirection: "row", justifyContent: "center", gap: 1 }}>
+          <Typography sx={{ color: "#fff", fontSize: { xs: 13, md: 16 }, fontWeight: 600 }}>
             {callerName || t("CHAT.CALL_VIDEO")}
           </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>· {elapsed}</Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: { xs: 11, md: 14 } }}>· {elapsed}</Typography>
         </TopInfo>
         <VideoContainer>
           <RemoteVideo ref={remoteVideoRef} autoPlay playsInline />
@@ -473,13 +476,13 @@ export default function CallDialog1vs1() {
 
   return (
     <AudioOverlay>
-      <TopInfo sx={{ top: 80 }}>
+      <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
         <AvatarContainer>
           <PulseRingOuter />
           <PulseRingInner />
           <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
         </AvatarContainer>
-        <Typography sx={{ color: "#fff", fontSize: 28, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+        <Typography sx={{ color: "#fff", fontSize: { xs: 22, md: 28 }, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
           {callerName || t("CHAT.CALL_AUDIO")}
         </Typography>
         <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 15, mt: 0.5 }}>
