@@ -124,7 +124,20 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
                     (msg: IMessage) => {
                       try {
                         const callData = JSON.parse(msg.body);
-                        handleCallSignal(callData);
+                        if (callData.type === "incoming_call" || callData.type === "incoming_group_call") {
+                          const event = new CustomEvent("call:incoming", { detail: callData });
+                          window.dispatchEvent(event);
+                        } else if (
+                          callData.type === "sfu-peer-joined" ||
+                          callData.type === "sfu-peer-left" ||
+                          callData.type === "sfu-active-speaker" ||
+                          callData.type === "sfu-transport-state"
+                        ) {
+                          const event = new CustomEvent("sfu:signal", { detail: callData });
+                          window.dispatchEvent(event);
+                        } else {
+                          handleCallSignal(callData);
+                        }
                       } catch {}
                     },
                   );

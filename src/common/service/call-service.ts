@@ -17,7 +17,7 @@ export interface StartCallResponse {
   participants: { userId: string; joinedAt: string }[];
 }
 
-export interface GroupCallSessionResponse {
+export interface GroupCallSessionData {
   id: string;
   conversationId: string;
   sfuRoomId: string;
@@ -25,13 +25,11 @@ export interface GroupCallSessionResponse {
   hostId: string;
   status: string;
   startedAt: string;
-  participants: {
-    userId: string;
-    displayName: string;
-    joinedAt: string;
-    audioMuted: boolean;
-    videoMuted: boolean;
-  }[];
+}
+
+export interface GroupCallSessionResponse {
+  session: GroupCallSessionData;
+  participant: any;
 }
 
 export interface TransportResponse {
