@@ -6,7 +6,7 @@ const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
 
 let stompClient: Client | null = null;
 let currentUserId: string | null = null;
-const conversationSubscriptions = new Map<string, any[]>();
+const conversationSubscriptions = new Map<string, Map<string, any>>();
 
 const dispatchChatEvent = (eventName: string, body: string) => {
   try {
@@ -112,17 +112,24 @@ export const connectSocket = (accessToken?: string, userId?: string) => {
               const data = JSON.parse(message.body);
               console.log('[STOMP incoming call]', data);
               const convId = data.conversation_id;
-              if (convId && !conversationSubscriptions.has(convId)) {
-                const callSub = stompClient!.subscribe(
-                  `/topic/conv.${convId}/call`,
-                  (msg: IMessage) => {
-                    try {
-                      const callData = JSON.parse(msg.body);
-                      handleCallSignal(callData);
-                    } catch {}
-                  },
-                );
-                conversationSubscriptions.set(convId, [callSub]);
+              if (convId) {
+                let subs = conversationSubscriptions.get(convId);
+                if (!subs) {
+                  subs = new Map();
+                  conversationSubscriptions.set(convId, subs);
+                }
+                if (!subs.has("call")) {
+                  const callSub = stompClient!.subscribe(
+                    `/topic/conv.${convId}/call`,
+                    (msg: IMessage) => {
+                      try {
+                        const callData = JSON.parse(msg.body);
+                        handleCallSignal(callData);
+                      } catch {}
+                    },
+                  );
+                  subs.set("call", callSub);
+                }
               }
               const event = new CustomEvent("call:incoming", { detail: data });
               window.dispatchEvent(event);
@@ -190,136 +197,113 @@ export const sendSocketMessage = (destination: string, body: any): boolean => {
   }
 };
 
+function subscribeIfMissing(conversationId: string, key: string, destination: string, handler: (msg: IMessage) => void) {
+  let subs = conversationSubscriptions.get(conversationId);
+  if (!subs) {
+    subs = new Map();
+    conversationSubscriptions.set(conversationId, subs);
+  }
+  if (subs.has(key)) return;
+  const sub = stompClient!.subscribe(destination, handler);
+  subs.set(key, sub);
+}
+
 export const subscribeToConversation = (conversationId: string) => {
   if (!stompClient || !stompClient.connected || !conversationId) return;
 
-  // Always unsubscribe existing subscriptions first to avoid race conditions
-  // (e.g. lazy call sub created before this runs during reconnect)
-  const existing = conversationSubscriptions.get(conversationId);
-  if (existing) {
-    existing.forEach(sub => sub.unsubscribe());
-    conversationSubscriptions.delete(conversationId);
-  }
+  subscribeIfMissing(conversationId, "typing", `/topic/conv.${conversationId}/typing`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const eventName = data.typing ? "chat:typing" : "chat:stop_typing";
+      const event = new CustomEvent(eventName, { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse typing event:", err);
+    }
+  });
 
-  const typingSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/typing`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const eventName = data.typing ? "chat:typing" : "chat:stop_typing";
-        const event = new CustomEvent(eventName, { detail: data });
+  subscribeIfMissing(conversationId, "read", `/topic/conv.${conversationId}/read`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const event = new CustomEvent("message:read", { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse read receipt:", err);
+    }
+  });
+
+  subscribeIfMissing(conversationId, "delete", `/topic/conv.${conversationId}/delete`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const event = new CustomEvent("chat:deleted", { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse delete event:", err);
+    }
+  });
+
+  subscribeIfMissing(conversationId, "pin", `/topic/conv.${conversationId}/pin`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const eventName = data.pinned ? "chat:pinned" : "chat:unpinned";
+      const event = new CustomEvent(eventName, { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse pin event:", err);
+    }
+  });
+
+  subscribeIfMissing(conversationId, "system", `/topic/conv.${conversationId}/system`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const event = new CustomEvent("chat:system-message", { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse system event:", err);
+    }
+  });
+
+  subscribeIfMissing(conversationId, "messages", `/topic/conv.${conversationId}/messages`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const event = new CustomEvent("chat:new", { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse new message event:", err);
+    }
+  });
+
+  subscribeIfMissing(conversationId, "reaction", `/topic/conv.${conversationId}/reaction`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      const event = new CustomEvent("chat:reaction", { detail: data });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Failed to parse reaction event:", err);
+    }
+  });
+
+  subscribeIfMissing(conversationId, "call", `/topic/conv.${conversationId}/call`, (message) => {
+    try {
+      const data = JSON.parse(message.body);
+      if (data.type === "incoming_call" || data.type === "incoming_group_call") {
+        const event = new CustomEvent("call:incoming", { detail: data });
         window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse typing event:", err);
-      }
-    },
-  );
-
-  const readSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/read`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const event = new CustomEvent("message:read", { detail: data });
+      } else if (
+        data.type === "sfu-peer-joined" ||
+        data.type === "sfu-peer-left" ||
+        data.type === "sfu-active-speaker" ||
+        data.type === "sfu-transport-state"
+      ) {
+        const event = new CustomEvent("sfu:signal", { detail: data });
         window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse read receipt:", err);
+      } else {
+        handleCallSignal(data);
       }
-    },
-  );
-
-  const deleteSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/delete`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const event = new CustomEvent("chat:deleted", { detail: data });
-        window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse delete event:", err);
-      }
-    },
-  );
-
-  const pinSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/pin`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const eventName = data.pinned ? "chat:pinned" : "chat:unpinned";
-        const event = new CustomEvent(eventName, { detail: data });
-        window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse pin event:", err);
-      }
-    },
-  );
-
-  const systemSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/system`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const event = new CustomEvent("chat:system-message", { detail: data });
-        window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse system event:", err);
-      }
-    },
-  );
-
-  const messageSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/messages`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const event = new CustomEvent("chat:new", { detail: data });
-        window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse new message event:", err);
-      }
-    },
-  );
-
-  const reactionSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/reaction`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        const event = new CustomEvent("chat:reaction", { detail: data });
-        window.dispatchEvent(event);
-      } catch (err) {
-        console.error("Failed to parse reaction event:", err);
-      }
-    },
-  );
-
-  const callSub = stompClient.subscribe(
-    `/topic/conv.${conversationId}/call`,
-    (message: IMessage) => {
-      try {
-        const data = JSON.parse(message.body);
-        if (data.type === "incoming_call" || data.type === "incoming_group_call") {
-          const event = new CustomEvent("call:incoming", { detail: data });
-          window.dispatchEvent(event);
-        } else if (
-          data.type === "sfu-peer-joined" ||
-          data.type === "sfu-peer-left" ||
-          data.type === "sfu-active-speaker" ||
-          data.type === "sfu-transport-state"
-        ) {
-          const event = new CustomEvent("sfu:signal", { detail: data });
-          window.dispatchEvent(event);
-        } else {
-          handleCallSignal(data);
-        }
-      } catch (err) {
-        console.error("Failed to parse call event:", err);
-      }
-    },
-  );
-
-  conversationSubscriptions.set(conversationId, [typingSub, readSub, deleteSub, pinSub, systemSub, messageSub, reactionSub, callSub]);
+    } catch (err) {
+      console.error("Failed to parse call event:", err);
+    }
+  });
 };
 
 export const unsubscribeFromConversation = (conversationId: string) => {

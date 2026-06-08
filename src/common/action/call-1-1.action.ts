@@ -196,7 +196,7 @@ export async function answerCall(conversationId: string, callId: string) {
 
     subscribeToConversation(conversationId);
 
-    const answerParams = pendingOffer
+    let answerParams: { sdp: RTCSessionDescriptionInit; candidates: RTCIceCandidateInit[] } | null = pendingOffer
       ? { sdp: pendingOffer.sdp, candidates: pendingIceCandidates }
       : await new Promise<{ sdp: RTCSessionDescriptionInit; candidates: RTCIceCandidateInit[] } | null>((resolve) => {
           const check = setInterval(() => {
@@ -211,6 +211,19 @@ export async function answerCall(conversationId: string, callId: string) {
             resolve(null);
           }, 6000);
         });
+
+    if (!answerParams) {
+      console.warn('[Call] pendingOffer not found via WS, falling back to HTTP getCallState');
+      try {
+        const state: any = await callService.getCallState(conversationId);
+        if (state?.offerSdp) {
+          answerParams = { sdp: JSON.parse(state.offerSdp), candidates: pendingIceCandidates };
+          console.log('[Call] recovered offer via HTTP fallback');
+        }
+      } catch (err) {
+        console.warn('[Call] HTTP fallback getCallState failed:', err);
+      }
+    }
 
     if (answerParams) {
       const offer = new RTCSessionDescription(answerParams.sdp);
@@ -344,6 +357,12 @@ export function handleCallSignal(data: any) {
       }
       const offer = new RTCSessionDescription(data.sdp);
       peer.setRemoteDescription(offer).then(async () => {
+        for (const candidate of pendingIceCandidates) {
+          try {
+            await peer.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch {}
+        }
+        pendingIceCandidates = [];
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
         sendSocketMessage("/app/call.answer", {
