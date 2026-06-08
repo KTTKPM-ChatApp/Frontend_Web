@@ -4,6 +4,7 @@ export interface SfuPeerStream {
   peerId: string;
   userId: string;
   displayName: string;
+  avatarUrl?: string | null;
   audio: MediaStream | null;
   video: MediaStream | null;
   audioMuted: boolean;
@@ -15,6 +16,7 @@ export interface CallState {
   conversationId: string | null;
   callerId: string | null;
   callerName: string | null;
+  callerAvatarUrl: string | null;
   type: "AUDIO" | "VIDEO" | "GROUP" | null;
   status: "idle" | "ringing" | "connecting" | "connected" | "reconnecting" | "ended";
   localStream: MediaStream | null;
@@ -41,12 +43,15 @@ export interface CallSetters {
     callId: string;
     conversationId: string;
     type: "AUDIO" | "VIDEO" | "GROUP";
+    callerName?: string;
+    callerAvatarUrl?: string | null;
   }) => void;
   receiveCall: (params: {
     callId: string;
     conversationId: string;
     callerId: string;
     callerName: string;
+    callerAvatarUrl?: string | null;
     type: "AUDIO" | "VIDEO" | "GROUP";
     sfuRoomId?: string;
     sessionId?: string;
@@ -68,6 +73,7 @@ export interface CallSetters {
   setReconnecting: () => void;
   setCallStartTime: (time: number) => void;
   setMinimized: (value: boolean) => void;
+  setCallerInfo: (name: string, avatarUrl?: string | null) => void;
   setError: (error: string | null) => void;
   setStarting: (value: boolean) => void;
   setEnding: (value: boolean) => void;
@@ -83,6 +89,7 @@ export const initialCallState: CallState = {
   conversationId: null,
   callerId: null,
   callerName: null,
+  callerAvatarUrl: null,
   type: null,
   status: "idle",
   localStream: null,
@@ -111,7 +118,8 @@ export const useCallStore = create<CallStore>((set) => ({
       callId: params.callId,
       conversationId: params.conversationId,
       callerId: null,
-      callerName: null,
+      callerName: params.callerName ?? null,
+      callerAvatarUrl: params.callerAvatarUrl ?? null,
       type: params.type,
       status: "ringing",
       active: true,
@@ -125,6 +133,7 @@ export const useCallStore = create<CallStore>((set) => ({
       conversationId: params.conversationId,
       callerId: params.callerId,
       callerName: params.callerName,
+      callerAvatarUrl: params.callerAvatarUrl ?? null,
       type: params.type,
       status: "ringing",
       active: true,
@@ -201,6 +210,8 @@ export const useCallStore = create<CallStore>((set) => ({
     }),
 
   setMinimized: (value) => set({ minimized: value }),
+
+  setCallerInfo: (name: string, avatarUrl?: string | null) => set({ callerName: name, callerAvatarUrl: avatarUrl ?? null }),
 
   setError: (error) => set({ error }),
 
