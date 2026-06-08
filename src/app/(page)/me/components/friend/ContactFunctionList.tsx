@@ -27,6 +27,10 @@ const FunctionItem = styled(ListItemButton)({
   "& .MuiListItemIcon-root": {
     color: "inherit",
   },
+  "@media (max-width: 767px)": {
+    margin: "2px 4px",
+    minHeight: 40,
+  },
 });
 
 const StyledListItemText = styled(ListItemText)({

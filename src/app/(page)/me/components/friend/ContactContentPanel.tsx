@@ -55,6 +55,10 @@ const Header = styled(Box)({
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 20px",
+  "@media (max-width: 767px)": {
+    height: 52,
+    padding: "0 16px",
+  },
 });
 
 const HeaderTitle = styled(Typography)({
@@ -75,6 +79,9 @@ const Content = styled(Box)({
   "&::-webkit-scrollbar-thumb": {
     background: "#D7DDE5",
     borderRadius: 999,
+  },
+  "@media (max-width: 767px)": {
+    padding: 12,
   },
 });
 
@@ -518,8 +525,8 @@ const ContactContentPanel: React.FC<
                       }}
                     >
                       <Stack
-                        direction="row"
-                        alignItems="center"
+                        direction={{ xs: "column", md: "row" }}
+                        alignItems={{ xs: "stretch", md: "center" }}
                         justifyContent="space-between"
                         spacing={2}
                       >
@@ -557,8 +564,9 @@ const ContactContentPanel: React.FC<
                         </Stack>
 
                         <Stack
-                          direction="row"
+                          direction={{ xs: "row", md: "row" }}
                           spacing={1}
+                          justifyContent={{ xs: "flex-end", md: "flex-start" }}
                         >
                           <RejectButton
                             startIcon={
@@ -617,8 +625,8 @@ const ContactContentPanel: React.FC<
                     }}
                   >
                     <Stack
-                      direction="row"
-                      alignItems="center"
+                      direction={{ xs: "column", md: "row" }}
+                      alignItems={{ xs: "stretch", md: "center" }}
                       justifyContent="space-between"
                       spacing={2}
                     >
