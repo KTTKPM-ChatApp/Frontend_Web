@@ -32,6 +32,10 @@ const Header = styled(Box)({
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 20px",
+  "@media (max-width: 767px)": {
+    height: 52,
+    padding: "0 16px",
+  },
 });
 
 const HeaderTitle = styled(Typography)({
@@ -44,6 +48,9 @@ const Content = styled(Box)({
   flex: 1,
   padding: 20,
   overflowY: "auto",
+  "@media (max-width: 767px)": {
+    padding: 12,
+  },
 });
 
 const SearchWrapper = styled(Box)({
@@ -91,6 +98,10 @@ const GroupAvatar = styled(Avatar)({
   backgroundColor: "#0068FF",
   fontSize: 18,
   fontWeight: 600,
+  "@media (max-width: 767px)": {
+    width: 40,
+    height: 40,
+  },
 });
 
 const GroupName = styled(Typography)({
@@ -101,11 +112,17 @@ const GroupName = styled(Typography)({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  "@media (max-width: 767px)": {
+    fontSize: 14,
+  },
 });
 
 const GroupInfo = styled(Typography)({
   fontSize: 13,
   color: "#767A7F",
+  "@media (max-width: 767px)": {
+    fontSize: 11,
+  },
 });
 
 const EmptyState = styled(Box)({
@@ -206,6 +223,10 @@ const GroupList: React.FC<GroupListProps> = ({
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
                 gap: 2,
+                "@media (max-width: 767px)": {
+                  gridTemplateColumns: "1fr",
+                  gap: 1.5,
+                },
               }}
             >
               {groups.map((group) => (

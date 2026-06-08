@@ -32,6 +32,10 @@ const Header = styled(Box)({
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 20px",
+  "@media (max-width: 767px)": {
+    height: 52,
+    padding: "0 16px",
+  },
 });
 
 const HeaderTitle = styled(Typography)({
@@ -44,6 +48,9 @@ const Content = styled(Box)({
   flex: 1,
   padding: 20,
   overflowY: "auto",
+  "@media (max-width: 767px)": {
+    padding: 12,
+  },
 });
 
 const SearchWrapper = styled(Box)({
@@ -59,6 +66,9 @@ const SearchWrapper = styled(Box)({
   "&:focus-within": {
     borderColor: "#0068FF",
     background: "#FFFFFF",
+  },
+  "@media (max-width: 767px)": {
+    height: 36,
   },
 });
 
@@ -90,17 +100,27 @@ const FriendAvatar = styled(Avatar)({
   backgroundColor: "#0068FF",
   fontSize: 16,
   fontWeight: 600,
+  "@media (max-width: 767px)": {
+    width: 40,
+    height: 40,
+  },
 });
 
 const FriendName = styled(Typography)({
   fontSize: 14,
   fontWeight: 600,
   color: "#000000",
+  "@media (max-width: 767px)": {
+    fontSize: 14,
+  },
 });
 
 const FriendStatus = styled(Typography)({
   fontSize: 13,
   color: "#767A7F",
+  "@media (max-width: 767px)": {
+    fontSize: 11,
+  },
 });
 
 const EmptyState = styled(Box)({
@@ -148,6 +168,11 @@ const RemoveButton = styled(Button)({
   "&:hover": {
     background: "#FEE2E2",
     borderColor: "#FECACA",
+  },
+  "@media (max-width: 767px)": {
+    height: 30,
+    padding: "0 10px",
+    fontSize: 12,
   },
 });
 

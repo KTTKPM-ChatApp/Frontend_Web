@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import { Box, IconButton, CircularProgress, Tooltip } from "@mui/material";
+import { Box, IconButton, CircularProgress, Tooltip, useMediaQuery } from "@mui/material";
 import { sendTyping, sendStopTyping } from "@/src/common/action/chat.action";
 import { styled } from "@mui/material/styles";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
@@ -38,6 +38,9 @@ const ChatInputContainer = styled(Box)({
   background: "#fff",
   borderTop: "1px solid #E5E7EB",
   padding: "8px 12px 12px",
+  "@media (max-width: 767px)": {
+    padding: "6px 8px 8px",
+  },
 });
 
 const InputWrapper = styled(Box)({
@@ -53,6 +56,10 @@ const InputWrapper = styled(Box)({
     borderColor: "#005AE0",
     boxShadow: "0 0 0 2px rgba(0, 90, 224, 0.1)",
     background: "#FFFFFF",
+  },
+  "@media (max-width: 767px)": {
+    padding: "0 4px",
+    gap: 0,
   },
 });
 
@@ -85,6 +92,11 @@ const IconBtn = styled(IconButton)({
     background: "rgba(0, 0, 0, 0.06)",
     color: "#005AE0",
   },
+  "@media (max-width: 767px)": {
+    width: 40,
+    height: 40,
+    minWidth: 40,
+  },
 });
 
 const SendBtn = styled(IconButton)({
@@ -102,6 +114,11 @@ const SendBtn = styled(IconButton)({
     backgroundColor: "#E5E7EB",
     color: "#94A3B8",
   },
+  "@media (max-width: 767px)": {
+    width: 40,
+    height: 40,
+    minWidth: 40,
+  },
 });
 
 const EmojiWrap = styled(Box)({
@@ -116,6 +133,9 @@ const PickerBox = styled(Box)({
   boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
   borderRadius: 12,
   overflow: "hidden",
+  "@media (max-width: 767px)": {
+    right: -50,
+  },
 });
 
 const DropZone = styled(Box, {
@@ -129,6 +149,7 @@ const DropZone = styled(Box, {
 }));
 
 export default function ChatInput({ disabled, conversationId, onSend, replyMessage, onCancelReply }: ChatInputProps) {
+  const isMobile = useMediaQuery("(max-width:767px)");
   const [value, setValue] = useState("");
   const [openEmoji, setOpenEmoji] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachmentPayload[]>([]);
@@ -340,7 +361,7 @@ export default function ChatInput({ disabled, conversationId, onSend, replyMessa
                 <EmojiPicker
                   onEmojiClick={handleEmojiClick}
                   width={320}
-                  height={400}
+                  height={isMobile ? 350 : 400}
                   previewConfig={{ showPreview: false }}
                   searchDisabled={false}
                   skinTonesDisabled
