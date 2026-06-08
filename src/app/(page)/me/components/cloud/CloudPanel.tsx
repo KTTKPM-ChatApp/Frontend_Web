@@ -29,6 +29,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  useMediaQuery,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -66,6 +67,12 @@ const SidebarSection = styled(Box)({
   display: "flex",
   flexDirection: "column",
   backgroundColor: "#FFFFFF",
+  "@media (max-width: 767px)": {
+    width: "100%",
+    minWidth: "unset",
+    borderRight: "none",
+    height: "100%",
+  },
 });
 
 const SidebarHeader = styled(Box)({
@@ -84,6 +91,10 @@ const ContentSection = styled(Box)({
   backgroundColor: "#F4F6F8",
   minWidth: 0,
   overflow: "hidden",
+  "@media (max-width: 767px)": {
+    width: "100%",
+    height: "100%",
+  },
 });
 
 const ContentHeader = styled(Box)({
@@ -106,6 +117,10 @@ const ContentBody = styled(Box)({
   flexDirection: "column",
   gap: "24px",
   minWidth: 0,
+  "@media (max-width: 767px)": {
+    padding: "12px",
+    gap: "12px",
+  },
 });
 
 const UploadZone = styled(Paper)<{ isDragActive?: boolean }>(({ isDragActive }) => ({
@@ -145,6 +160,8 @@ interface CloudPanelProps {
 
 export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
   const t = useTrans();
+  const isMobile = useMediaQuery("(max-width:767px)");
+  const [mobileView, setMobileView] = useState<"list" | "content">("list");
   const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [currentFolder, setCurrentFolder] = useState<any | null>(null);
@@ -386,6 +403,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
         style={{ display: "none" }}
       />
       {/* Sidebar quota & controls */}
+      {(!isMobile || mobileView === "list") && (
       <SidebarSection>
         {/* Sidebar Header matching Zalo 68px height */}
         <SidebarHeader>
@@ -414,7 +432,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                 return (
                   <Box
                     key={f.id}
-                    onClick={() => setCurrentFolder(f)}
+                    onClick={() => { setCurrentFolder(f); if (isMobile) setMobileView("content"); }}
                     sx={{
                       display: "flex",
                       alignItems: "center",
@@ -501,17 +519,23 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
           </Box>
         </Box>
       </SidebarSection>
+      )}
 
       {/* Main dashboard content */}
+      {(!isMobile || mobileView === "content") && (
       <ContentSection>
         {/* Navigation Breadcrumb & Dynamic Header Upload matching 68px height */}
         <ContentHeader>
           <Box display="flex" alignItems="center" gap={1}>
-            {currentFolder && (
+            {isMobile ? (
+              <IconButton size="small" onClick={() => setMobileView("list")} sx={{ mr: 1 }}>
+                <ArrowBackIcon />
+              </IconButton>
+            ) : currentFolder ? (
               <IconButton size="small" onClick={() => setCurrentFolder(null)} sx={{ mr: 1 }}>
                 <ArrowBackIcon />
               </IconButton>
-            )}
+            ) : null}
             <Breadcrumbs aria-label="breadcrumb">
               <Link
                 underline="hover"
@@ -580,8 +604,8 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      py: 12,
-                      px: 4,
+                      py: { xs: 4, md: 12 },
+                      px: { xs: 2, md: 4 },
                       border: "1px solid #EEF1F4",
                       borderRadius: "16px",
                       backgroundColor: "#FFFFFF",
@@ -592,8 +616,8 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                   >
                     <Box
                       sx={{
-                        width: 80,
-                        height: 80,
+                        width: { xs: 60, md: 80 },
+                        height: { xs: 60, md: 80 },
                         borderRadius: "50%",
                         backgroundColor: "#FFF9DB",
                         display: "flex",
@@ -602,7 +626,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                         mb: 1
                       }}
                     >
-                      <FolderIcon sx={{ fontSize: 40, color: "#FFC107" }} />
+                      <FolderIcon sx={{ fontSize: { xs: 32, md: 40 }, color: "#FFC107" }} />
                     </Box>
                     <Typography variant="h6" fontWeight={700} color="#081B3A">
                       {t("CLOUD.SELECT_FOLDER_TITLE")}
@@ -613,7 +637,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                   </Paper>
                                 ) : files.length === 0 ? (
                   // Selected Folder is Empty UI: Drag & Drop upload zone
-                  <UploadZone onClick={() => fileInputRef.current?.click()} sx={{ py: 10, border: "2px dashed #0068FF" }}>
+                  <UploadZone onClick={() => fileInputRef.current?.click()} sx={{ py: { xs: 4, md: 10 }, border: "2px dashed #0068FF" }}>
                     <CloudUploadIcon sx={{ fontSize: 48, color: "#0068FF" }} />
                     <Typography variant="body1" fontWeight={700} color="#081B3A">
                       {t("CLOUD.UPLOAD_TO_FOLDER", { name: currentFolder.name })}
@@ -624,7 +648,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
                   </UploadZone>
                 ) : (
                   <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "16px", border: "1px solid #EEF1F4", boxShadow: "0 8px 32px rgba(0,0,0,0.02)", overflow: "hidden", width: "100%" }}>
-                    <Table sx={{ width: "100%", minWidth: 500 }}>
+                    <Table sx={{ width: "100%", minWidth: { xs: 350, md: 500 } }}>
                       <TableHead sx={{ backgroundColor: "#F7F9FB" }}>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 700, color: "#081B3A", width: "100%" }}>{t("CLOUD.COL_NAME")}</TableCell>
@@ -710,6 +734,7 @@ export default function CloudPanel({ defaultView = "all" }: CloudPanelProps) {
           )}
         </ContentBody>
       </ContentSection>
+      )}
 
       {/* New Folder Dialog */}
       <Dialog open={openNewFolder} onClose={() => setOpenNewFolder(false)} PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}>

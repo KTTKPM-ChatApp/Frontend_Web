@@ -4,13 +4,14 @@ import { useChatStore } from "@/src/common/store/useChatStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 import AppAvatar from "@/src/shared/component/Avatar";
 import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Typography, useMediaQuery } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import GroupsIcon from "@mui/icons-material/Groups";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { startCall, startGroupCall } from "@/src/common/action/call.action";
 
 interface ChatHeaderProps {
@@ -19,6 +20,7 @@ interface ChatHeaderProps {
   conversationId: string | null;
   onToggleSearch?: () => void;
   onToggleInfo?: () => void;
+  onBackClick?: () => void;
 }
 
 const HeaderRoot = styled(Box)({
@@ -111,7 +113,9 @@ export default function ChatHeader({
   conversationId,
   onToggleSearch,
   onToggleInfo,
+  onBackClick,
 }: ChatHeaderProps) {
+  const isMobile = useMediaQuery('(max-width:767px)');
   const listConversation = useChatStore((s) => s.listConversation);
   const onlineUserIds = useChatStore((s) => s.onlineUserIds);
   const currentUserId = useChatStore((s) => s.currentUserId);
@@ -150,6 +154,11 @@ export default function ChatHeader({
   return (
     <HeaderRoot>
       <HeaderLeft>
+        {isMobile && onBackClick && (
+          <IconButton size="small" onClick={onBackClick} sx={{ color: "#4B5563", mr: 0.5 }}>
+            <ArrowBackIcon fontSize="small" />
+          </IconButton>
+        )}
         {!isDirect ? (
           <AppAvatar
             src={resolveMediaUrl(conversation?.avatarUrl) || undefined}

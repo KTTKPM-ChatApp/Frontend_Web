@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Box, TextField, IconButton, Typography, CircularProgress, Paper, Button } from "@mui/material";
+import { Box, TextField, IconButton, Typography, CircularProgress, Paper, Button, useMediaQuery } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SendIcon from "@mui/icons-material/Send";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import PersonIcon from "@mui/icons-material/Person";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { chatbotService } from "@/src/common/service/chatbot-service";
 import type { ChatbotConversation, ChatbotMessage } from "@/src/common/interface/chatbot-interface";
 import { useTranslation } from "react-i18next";
@@ -92,6 +93,12 @@ const ConversationSidebar = styled(Box)({
   display: "flex",
   flexDirection: "column",
   backgroundColor: "#FAFAFA",
+  "@media (max-width: 767px)": {
+    width: "100%",
+    minWidth: "unset",
+    borderRight: "none",
+    height: "100%",
+  },
 });
 
 const ConversationHeader = styled(Box)({
@@ -130,6 +137,10 @@ const ChatArea = styled(Box)({
   display: "flex",
   flexDirection: "column",
   height: "100%",
+  "@media (max-width: 767px)": {
+    width: "100%",
+    height: "100%",
+  },
 });
 
 const ChatHeader = styled(Box)({
@@ -214,6 +225,8 @@ const WelcomeContainer = styled(Box)({
 
 export default function ChatbotPanel() {
   const { t } = useTranslation();
+  const isMobile = useMediaQuery("(max-width:767px)");
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [conversations, setConversations] = useState<ChatbotConversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatbotMessage[]>([]);
@@ -327,8 +340,14 @@ export default function ChatbotPanel() {
 
   const activeConversation = conversations.find((c) => c.id === activeConvId);
 
+  const handleSelectConversation = (convId: string) => {
+    setActiveConvId(convId);
+    if (isMobile) setMobileView("chat");
+  };
+
   return (
     <Root>
+      {(!isMobile || mobileView === "list") && (
       <ConversationSidebar>
         <ConversationHeader>
           <Typography variant="subtitle1" fontWeight={600}>
@@ -348,7 +367,7 @@ export default function ChatbotPanel() {
             <ConversationItem
               key={conv.id}
               active={conv.id === activeConvId}
-              onClick={() => setActiveConvId(conv.id)}
+              onClick={() => handleSelectConversation(conv.id)}
             >
               <Typography
                 variant="body2"
@@ -373,7 +392,9 @@ export default function ChatbotPanel() {
           ))}
         </ConversationList>
       </ConversationSidebar>
+      )}
 
+      {(!isMobile || mobileView === "chat") && (
       <ChatArea>
         {!activeConvId ? (
           <WelcomeContainer>
@@ -383,10 +404,15 @@ export default function ChatbotPanel() {
               {t("AI.WELCOME_DESC")}
             </Typography>
           </WelcomeContainer>
-        ) : (
+          ) : (
           <>
             <ChatHeader sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                {isMobile && (
+                  <IconButton size="small" onClick={() => setMobileView("list")} sx={{ p: 0.5 }}>
+                    <ArrowBackIcon />
+                  </IconButton>
+                )}
                 <SmartToyIcon sx={{ color: "#005AE0" }} />
                 <Typography variant="subtitle1" fontWeight={600}>
                   {activeConversation?.title || t("AI.TITLE")}
@@ -537,6 +563,7 @@ export default function ChatbotPanel() {
           </>
         )}
       </ChatArea>
+      )}
     </Root>
   );
 }
