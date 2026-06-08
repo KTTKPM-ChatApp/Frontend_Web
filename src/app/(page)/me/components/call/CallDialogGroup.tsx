@@ -247,7 +247,7 @@ export default function CallDialogGroup() {
   }, [status, callStartTime]);
 
   useEffect(() => {
-    if (status !== "connected") return;
+    if (status !== "connected" && status !== "reconnecting") return;
     setControlsVisible(true);
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
     autoHideRef.current = setTimeout(() => setControlsVisible(false), 5000);
@@ -255,7 +255,7 @@ export default function CallDialogGroup() {
   }, [status]);
 
   useEffect(() => {
-    if (status !== "connected" && status !== "ringing") {
+    if (status !== "connected" && status !== "ringing" && status !== "connecting" && status !== "reconnecting") {
       if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; }
       return;
     }
@@ -268,7 +268,7 @@ export default function CallDialogGroup() {
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
-    if (status === "connected") {
+    if (status === "connected" || status === "reconnecting") {
       autoHideRef.current = setTimeout(() => setControlsVisible(false), 5000);
     }
   }, [status]);
@@ -388,10 +388,96 @@ export default function CallDialogGroup() {
     );
   }
 
-  if (status !== "connected") return null;
-
   const { isSpeaking } = useCallStore();
   const totalParticipants = peerStreams.length + 1;
+
+  if (status === "ringing" || status === "connecting") {
+    return (
+      <Overlay>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: 3 }}>
+          <AppAvatar name={t("CHAT.CALL_GROUP")} isGroup size={96} sx={{ width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 }, fontSize: { xs: 30, md: 40 }, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }} />
+          <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+            {t("CHAT.CALL_GROUP")}
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <CircularProgress size={14} sx={{ color: "rgba(255,255,255,0.7)" }} />
+            <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 15 }}>
+              {status === "connecting" ? t("CHAT.CONNECTING") : "Đang kết nối..."}
+            </Typography>
+          </Box>
+        </Box>
+        <Controls sx={{ position: "absolute", bottom: 80, left: "50%", transform: "translateX(-50%)" }}>
+          <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+            {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+          </EndCallBtn>
+        </Controls>
+      </Overlay>
+    );
+  }
+
+  if (status === "reconnecting") {
+    return (
+      <Overlay>
+        <GroupGrid>
+          {peerStreams.map((peer) => (
+            <PeerTile key={peer.peerId} $count={totalParticipants}>
+              {peer.video ? (
+                <PeerVideo
+                  ref={(el) => { if (el) peerVideoRefs.current.set(peer.peerId, el); }}
+                  autoPlay playsInline
+                />
+              ) : (
+                <PeerAvatarWrap>
+                  <AppAvatar src={resolveMediaUrl(peer.avatarUrl)} name={peer.displayName} size={64} sx={{ width: { xs: 48, md: 64 }, height: { xs: 48, md: 64 }, fontSize: { xs: 22, md: 28 }, boxShadow: "0 4px 12px rgba(0,90,224,0.3)" }} />
+                </PeerAvatarWrap>
+              )}
+              <audio
+                ref={(el) => { if (el) peerAudioRefs.current.set(peer.peerId, el); }}
+                autoPlay playsInline
+              />
+              <PeerNamelabel>
+                {peer.displayName}
+                {peer.audioMuted && <MicOffIcon sx={{ fontSize: 11, opacity: 0.7 }} />}
+              </PeerNamelabel>
+            </PeerTile>
+          ))}
+          <PeerTile $count={totalParticipants} sx={{ border: "2px solid rgba(255,255,255,0.1)" }}>
+            <LocalVideo
+              ref={localVideoRef}
+              autoPlay playsInline muted
+            />
+            <PeerNamelabel>{t("CHAT.YOU")}</PeerNamelabel>
+          </PeerTile>
+        </GroupGrid>
+        <Box sx={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 10, display: "flex", alignItems: "center", gap: 1, backgroundColor: "rgba(255,160,0,0.2)", padding: "8px 16px", borderRadius: 20 }}>
+          <CircularProgress size={12} sx={{ color: "#FFA000" }} />
+          <Typography sx={{ color: "#FFA000", fontSize: 13, fontWeight: 600 }}>{t("CHAT.RECONNECTING")}</Typography>
+        </Box>
+        <Controls sx={{ opacity: controlsVisible ? 1 : 0, transition: "opacity 0.3s", pointerEvents: controlsVisible ? "auto" : "none" }}>
+          <ControlBtn onClick={handleToggleAudio}>
+            {audioMuted ? <MicOffIcon /> : <MicIcon />}
+          </ControlBtn>
+          <ControlBtn onClick={handleToggleSpeaker} sx={speakerOn ? { backgroundColor: "#22C55E", "&:hover": { backgroundColor: "#16A34A" } } : {}}>
+            {speakerOn ? <VolumeUpIcon /> : <VolumeDownIcon />}
+          </ControlBtn>
+          <EndCallBtn onClick={handleEndCall} disabled={isEnding}>
+            {isEnding ? <CircularProgress size={26} sx={{ color: "#fff" }} /> : <CallEndIcon />}
+          </EndCallBtn>
+          <ControlBtn onClick={handleToggleVideo}>
+            {videoMuted ? <VideocamOffIcon /> : <VideocamIcon />}
+          </ControlBtn>
+          <ControlBtn onClick={handleSwitchCamera}>
+            <FlipCameraIosIcon />
+          </ControlBtn>
+          <ControlBtn onClick={handleMinimize}>
+            <MinimizeIcon />
+          </ControlBtn>
+        </Controls>
+      </Overlay>
+    );
+  }
+
+  if (status !== "connected") return null;
 
   return (
     <Overlay onClick={showControls} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
