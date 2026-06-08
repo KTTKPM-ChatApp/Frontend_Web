@@ -15,6 +15,9 @@ import FlipCameraIosIcon from "@mui/icons-material/FlipCameraIos";
 import { useCallStore, SfuPeerStream } from "@/src/common/store/useCallStore";
 import { endGroupCall } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
+import { userService } from "@/src/common/service/user-service";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
+import AppAvatar from "@/src/shared/component/Avatar";
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: scale(0.95); }
@@ -102,23 +105,10 @@ const PeerVideo = styled("video")({
   objectFit: "cover",
 });
 
-const PeerAvatarCircle = styled(Box)({
-  width: 64,
-  height: 64,
-  borderRadius: "50%",
-  backgroundColor: "#005AE0",
+const PeerAvatarWrap = styled(Box)({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "#fff",
-  fontSize: 28,
-  fontWeight: 600,
-  boxShadow: "0 4px 12px rgba(0,90,224,0.3)",
-  "@media (max-width: 767px)": {
-    width: 48,
-    height: 48,
-    fontSize: 22,
-  },
 });
 
 const PeerNamelabel = styled(Typography)({
@@ -194,16 +184,6 @@ const EndCallBtn = styled(IconButton)({
 });
 
 const MiniAvatar = styled(Box)({
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  backgroundColor: "#005AE0",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 600,
   flexShrink: 0,
 });
 
@@ -324,6 +304,20 @@ export default function CallDialogGroup() {
     });
   }, [peerStreams]);
 
+  useEffect(() => {
+    peerStreams.forEach((peer) => {
+      if (peer.avatarUrl || !peer.userId) return;
+      userService.getUserById(peer.userId).then((res) => {
+        if (res?.ok) {
+          const user = (res.payload as any)?.data ?? res.payload;
+          if (user?.avatarUrl) {
+            useCallStore.getState().updatePeerStream(peer.peerId, { avatarUrl: user.avatarUrl });
+          }
+        }
+      }).catch(() => {});
+    });
+  }, [peerStreams]);
+
   const handleEndCall = useCallback(() => {
     if (conversationId && sessionId)
       endGroupCall(conversationId, sessionId);
@@ -387,7 +381,7 @@ export default function CallDialogGroup() {
   if (minimized) {
     return (
       <MinimizedBar onClick={() => useCallStore.getState().setMinimized(false)}>
-        <MiniAvatar>{(peerStreams[0]?.displayName || "G")[0].toUpperCase()}</MiniAvatar>
+        <MiniAvatar><AppAvatar src={resolveMediaUrl(peerStreams[0]?.avatarUrl)} name={peerStreams[0]?.displayName || "Group"} size={32} /></MiniAvatar>
         <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{t("CHAT.CALL_GROUP")}</Typography>
         {elapsed && <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{elapsed}</Typography>}
       </MinimizedBar>
@@ -418,9 +412,9 @@ export default function CallDialogGroup() {
                 autoPlay playsInline
               />
             ) : (
-              <PeerAvatarCircle>
-                {peer.displayName[0].toUpperCase()}
-              </PeerAvatarCircle>
+              <PeerAvatarWrap>
+                <AppAvatar src={resolveMediaUrl(peer.avatarUrl)} name={peer.displayName} size={64} sx={{ width: { xs: 48, md: 64 }, height: { xs: 48, md: 64 }, fontSize: { xs: 22, md: 28 }, boxShadow: "0 4px 12px rgba(0,90,224,0.3)" }} />
+              </PeerAvatarWrap>
             )}
             <audio
               ref={(el) => { if (el) peerAudioRefs.current.set(peer.peerId, el); }}

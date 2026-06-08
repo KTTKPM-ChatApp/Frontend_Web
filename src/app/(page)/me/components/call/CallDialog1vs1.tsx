@@ -14,8 +14,12 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import FlipCameraIosIcon from "@mui/icons-material/FlipCameraIos";
 import { useCallStore } from "@/src/common/store/useCallStore";
+import { useChatStore } from "@/src/common/store/useChatStore";
 import { endCall, answerCall, rejectCall, enableVideo } from "@/src/common/action/call.action";
 import { useTrans } from "@/src/common/utilities/hook/trans";
+import { userService } from "@/src/common/service/user-service";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
+import AppAvatar from "@/src/shared/component/Avatar";
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: scale(0.95); }
@@ -104,26 +108,10 @@ const PulseRingInner = styled(Box)({
   animation: `${pulse} 2s ease-in-out infinite 0.3s`,
 });
 
-const AvatarCircle = styled(Box)({
-  width: 96,
-  height: 96,
-  borderRadius: "50%",
-  backgroundColor: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#005AE0",
-  fontSize: 40,
-  fontWeight: 700,
-  boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+const AvatarWrap = styled(Box)({
   position: "relative",
   zIndex: 1,
   animation: `${float} 3s ease-in-out infinite`,
-  "@media (max-width: 767px)": {
-    width: 72,
-    height: 72,
-    fontSize: 30,
-  },
 });
 
 const WaveContainer = styled(Box)({
@@ -240,16 +228,6 @@ const LocalVideo = styled("video")({
 });
 
 const MiniAvatar = styled(Box)({
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  backgroundColor: "#005AE0",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 600,
   flexShrink: 0,
 });
 
@@ -275,7 +253,7 @@ export default function CallDialog1vs1() {
   const t = useTrans();
   const {
     status, type, localStream, remoteStream, minimized,
-    conversationId, callId, callerName,
+    conversationId, callId, callerName, callerAvatarUrl,
     callStartTime, isEnding, isRejecting,
   } = useCallStore();
 
@@ -336,6 +314,27 @@ export default function CallDialog1vs1() {
     }
     return () => { if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null; } };
   }, [status]);
+
+  useEffect(() => {
+    if (status !== "ringing" && status !== "connected") return;
+    if (callerName) return;
+    if (!conversationId) return;
+    const chatState = useChatStore.getState();
+    const conv = chatState.listConversation.find((c) => c.id === conversationId);
+    if (!conv?.members || conv.members.length === 0) return;
+    const other = conv.members.find((m) => m.userId !== chatState.currentUserId);
+    if (!other) return;
+    const displayName = other.displayName || other.fullName || other.username || other.nickname || "";
+    if (displayName) useCallStore.getState().setCallerInfo(displayName, other.avatarUrl);
+    if (!other.avatarUrl && other.userId) {
+      userService.getUserById(other.userId).then((res) => {
+        if (res?.ok) {
+          const user = (res.payload as any)?.data ?? res.payload;
+          if (user?.avatarUrl) useCallStore.getState().setCallerInfo(displayName || user.displayName, user.avatarUrl);
+        }
+      }).catch(() => {});
+    }
+  }, [status, conversationId, callerName]);
 
   const showControls = useCallback(() => {
     setControlsVisible(true);
@@ -440,7 +439,7 @@ export default function CallDialog1vs1() {
   if (minimized) {
     return (
       <MinimizedBar onClick={() => useCallStore.getState().setMinimized(false)}>
-        <MiniAvatar>{(callerName || "?")[0].toUpperCase()}</MiniAvatar>
+        <MiniAvatar><AppAvatar src={resolveMediaUrl(callerAvatarUrl)} name={callerName} size={32} /></MiniAvatar>
         <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
           {callerName || (type === "VIDEO" ? t("CHAT.CALL_VIDEO") : t("CHAT.CALL_AUDIO"))}
         </Typography>
@@ -456,7 +455,7 @@ export default function CallDialog1vs1() {
           <AvatarContainer>
             <PulseRingOuter />
             <PulseRingInner />
-            <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+            <AvatarWrap><AppAvatar src={resolveMediaUrl(callerAvatarUrl)} name={callerName} size={96} sx={{ width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 }, fontSize: { xs: 30, md: 40 }, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }} /></AvatarWrap>
           </AvatarContainer>
           <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
             {callerName || ""}
@@ -488,7 +487,7 @@ export default function CallDialog1vs1() {
         <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
           <AvatarContainer>
             <PulseRingOuter />
-            <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+            <AvatarWrap><AppAvatar src={resolveMediaUrl(callerAvatarUrl)} name={callerName} size={96} sx={{ width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 }, fontSize: { xs: 30, md: 40 }, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }} /></AvatarWrap>
           </AvatarContainer>
           <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600 }}>
             {callerName || ""}
@@ -511,7 +510,7 @@ export default function CallDialog1vs1() {
       <AudioOverlay>
         <TopInfo sx={{ top: { xs: 40, md: 80 } }}>
           <AvatarContainer>
-            <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+            <AvatarWrap><AppAvatar src={resolveMediaUrl(callerAvatarUrl)} name={callerName} size={96} sx={{ width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 }, fontSize: { xs: 30, md: 40 }, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }} /></AvatarWrap>
           </AvatarContainer>
           <Typography sx={{ color: "#fff", fontSize: { xs: 20, md: 26 }, fontWeight: 600 }}>
             {callerName || ""}
@@ -585,7 +584,7 @@ export default function CallDialog1vs1() {
         <AvatarContainer>
           <PulseRingOuter />
           <PulseRingInner />
-          <AvatarCircle>{(callerName || "?")[0].toUpperCase()}</AvatarCircle>
+          <AvatarWrap><AppAvatar src={resolveMediaUrl(callerAvatarUrl)} name={callerName} size={96} sx={{ width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 }, fontSize: { xs: 30, md: 40 }, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }} /></AvatarWrap>
         </AvatarContainer>
         <Typography sx={{ color: "#fff", fontSize: { xs: 22, md: 28 }, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
           {callerName || t("CHAT.CALL_AUDIO")}

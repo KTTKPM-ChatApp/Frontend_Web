@@ -18,4 +18,7 @@ export const userService = {
         });
         return http.get<IApiResponse<any[]>>(`${API.API_USERS_SEARCH}?${params}`);
     },
+    getUserById(userId: string) {
+        return http.get<IApiResponse<IUser>>(API.API_USERS_PUBLIC_PROFILE(userId));
+    },
 }

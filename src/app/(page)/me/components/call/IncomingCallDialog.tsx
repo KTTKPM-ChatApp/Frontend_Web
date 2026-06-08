@@ -11,6 +11,9 @@ import { answerCall, rejectCall, handleIncomingGroupCall, endCall } from "@/src/
 import { useCallStore } from "@/src/common/store/useCallStore";
 import { useTrans } from "@/src/common/utilities/hook/trans";
 import { playRingtone, stopRingtone } from "@/src/common/service/ringtone";
+import { userService } from "@/src/common/service/user-service";
+import { resolveMediaUrl } from "@/src/common/helpers/displayMedia.helpers";
+import AppAvatar from "@/src/shared/component/Avatar";
 
 const pulseRing = keyframes`
   0% { transform: scale(1); opacity: 0.8; }
@@ -92,26 +95,10 @@ const PulseRing2 = styled(Box)({
   animation: `${pulseRing} 1.5s ease-in-out infinite 0.3s`,
 });
 
-const Avatar = styled(Box)({
-  width: 140,
-  height: 140,
-  borderRadius: "50%",
-  backgroundColor: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#005AE0",
-  fontSize: 56,
-  fontWeight: 700,
-  boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+const AvatarWrap = styled(Box)({
   position: "relative",
   zIndex: 1,
   animation: `${float} 3s ease-in-out infinite`,
-  "@media (max-width: 767px)": {
-    width: 100,
-    height: 100,
-    fontSize: 40,
-  },
 });
 
 const CallerInfo = styled(Box)({
@@ -190,6 +177,8 @@ export default function IncomingCallDialog() {
   const t = useTrans();
   const [visible, setVisible] = useState(false);
   const [data, setData] = useState<any>(null);
+  const [callerName, setCallerName] = useState("");
+  const [callerAvatar, setCallerAvatar] = useState<string | null>(null);
   const isAnswering = useCallStore((s) => s.isAnswering);
   const isRejecting = useCallStore((s) => s.isRejecting);
 
@@ -199,8 +188,19 @@ export default function IncomingCallDialog() {
       const store = useCallStore.getState();
       if (store.status !== "idle") return;
       setData(detail);
+      setCallerName(detail.caller_name || "");
+      setCallerAvatar(null);
       setVisible(true);
       playRingtone();
+      if (detail.started_by && !detail.caller_name) {
+        userService.getUserById(detail.started_by).then((res) => {
+          if (res?.ok) {
+            const user = (res.payload as any)?.data ?? res.payload;
+            if (user?.displayName) setCallerName(user.displayName);
+            if (user?.avatarUrl) setCallerAvatar(user.avatarUrl);
+          }
+        }).catch(() => {});
+      }
     };
     window.addEventListener("call:incoming", handler);
     return () => window.removeEventListener("call:incoming", handler);
@@ -224,7 +224,8 @@ export default function IncomingCallDialog() {
       callId: data.call_id || data.session_id,
       conversationId: data.conversation_id,
       callerId: data.started_by,
-      callerName: data.caller_name || "Unknown",
+      callerName,
+      callerAvatarUrl: callerAvatar,
       type: data.type === "incoming_group_call" ? "GROUP" : (data.call_type || "AUDIO"),
       sfuRoomId: data.sfu_room_id,
       sessionId: data.session_id,
@@ -249,7 +250,6 @@ export default function IncomingCallDialog() {
 
   const isGroup = data.type === "incoming_group_call";
   const isVideo = data.call_type === "VIDEO";
-  const callerInitial = (data.caller_name || "?")[0].toUpperCase();
 
   return (
     <Overlay onClick={handleReject}>
@@ -257,15 +257,13 @@ export default function IncomingCallDialog() {
         <AvatarContainer>
           <PulseRing />
           <PulseRing2 />
-          <Avatar>
+          <AvatarWrap>
             {isGroup ? (
-              <GroupsIcon sx={{ fontSize: 56, color: "#005AE0" }} />
+              <AppAvatar name="Group" isGroup size={140} fontSize={56} sx={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)", width: { xs: 100, md: 140 }, height: { xs: 100, md: 140 }, fontSize: { xs: 40, md: 56 } }} />
             ) : (
-              <Typography sx={{ color: "#005AE0", fontWeight: 700, fontSize: 48 }}>
-                {callerInitial}
-              </Typography>
+              <AppAvatar src={resolveMediaUrl(callerAvatar)} name={callerName} size={140} fontSize={56} sx={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)", width: { xs: 100, md: 140 }, height: { xs: 100, md: 140 }, fontSize: { xs: 40, md: 56 } }} />
             )}
-          </Avatar>
+          </AvatarWrap>
         </AvatarContainer>
 
         <CallerInfo>
@@ -277,7 +275,7 @@ export default function IncomingCallDialog() {
               textShadow: "0 2px 4px rgba(0,0,0,0.1)",
             }}
           >
-            {data.caller_name || t("CHAT.UNKNOWN")}
+            {callerName || t("CHAT.UNKNOWN")}
           </Typography>
           <Typography
             sx={{
