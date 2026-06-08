@@ -206,7 +206,8 @@ export default function IncomingCallDialog() {
 
   if (!visible || !data) return null;
 
-  const handleAccept = () => {
+  const handleAccept = (e: React.MouseEvent) => {
+    e.stopPropagation();
     stopRingtone();
     setVisible(false);
 
@@ -234,7 +235,8 @@ export default function IncomingCallDialog() {
     }
   };
 
-  const handleReject = () => {
+  const handleReject = (e: React.MouseEvent) => {
+    e.stopPropagation();
     stopRingtone();
     setVisible(false);
     if (data.type === "incoming_group_call") {
