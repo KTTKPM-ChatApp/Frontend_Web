@@ -10,7 +10,6 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-import GroupsIcon from "@mui/icons-material/Groups";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { startCall, startGroupCall } from "@/src/common/action/call.action";
 
@@ -191,7 +190,7 @@ export default function ChatHeader({
             <ActionBtn aria-label={t("CHAT.CALL_VIDEO")} onClick={() => conversationId && startCall(conversationId, "VIDEO")}><VideoCallIcon fontSize="small" /></ActionBtn>
           </>
         ) : (
-          <ActionBtn aria-label={t("CHAT.CALL_GROUP")} onClick={() => conversationId && startGroupCall(conversationId)}><GroupsIcon fontSize="small" /></ActionBtn>
+          <ActionBtn aria-label={t("CHAT.CALL_GROUP")} onClick={() => conversationId && startGroupCall(conversationId)}><PhoneIcon fontSize="small" /></ActionBtn>
         )}
         <ActionBtn aria-label={t("CHAT.SEARCH")} onClick={onToggleSearch}><SearchIcon fontSize="small" /></ActionBtn>
         <ActionBtn aria-label={t("CHAT.INFO")} onClick={onToggleInfo}><InfoOutlinedIcon fontSize="small" /></ActionBtn>
